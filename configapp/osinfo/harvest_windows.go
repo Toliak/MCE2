@@ -50,7 +50,7 @@ func detectPkgManagerByBinary() (data.PkgManager, bool) {
 
 
 // harvestPkgManager detects installed package managers on Windows
-func harvestPkgManager() data.PkgManager {
+func harvestPkgManager(d *data.Distrib) data.PkgManager {
 	pkg, _ := detectPkgManagerByBinary()
 	
 	return pkg
@@ -97,7 +97,7 @@ func harvestDistrib() data.Distrib {
 
 	version := data.NewVersion(build, 0, 0, "")
 	
-	return data.NewDistrib(id, "windows", productName, version)
+	return data.NewDistrib(id, make([]string, 0), productName, version)
 }
 
 // -----------------------

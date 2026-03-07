@@ -3,6 +3,7 @@ package osinfo
 import (
 	"os"
 	"path/filepath"
+	"slices" // Import the standard slices package
 	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
@@ -12,15 +13,18 @@ import (
 func detectPkgManagerByBinary() (data.PkgManager, bool) {
 	// Fallback: check for binaries
 	switch {
-	case commandExists("apt-get") || commandExists("apt"):
+	case CommandExists("apt-get") && CommandExists("apt-cache"):
+		// Do not trust without `apt-cache` because we have to search packages in some tasks
 		return data.NewPkgManager(data.PkgMgrAptGet, "apt-get"), true
-	case commandExists("apk"):
+	case CommandExists("apk"):
 		return data.NewPkgManager(data.PkgMgrApk, "apk"), true
-	case commandExists("dnf"):
+	case CommandExists("dnf"):
 		return data.NewPkgManager(data.PkgMgrDnf, "dnf"), true
-	case commandExists("yum"):
+	case CommandExists("microdnf"):
+		return data.NewPkgManager(data.PkgMgrMicroDnf, "microdnf"), true
+	case CommandExists("yum"):
 		return data.NewPkgManager(data.PkgMgrYum, "yum"), true
-	case commandExists("pacman"):
+	case CommandExists("pacman"):
 		return data.NewPkgManager(data.PkgMgrPacman, "pacman"), true
 	default:
 		return data.PkgManagerUnknown(), false
@@ -29,42 +33,44 @@ func detectPkgManagerByBinary() (data.PkgManager, bool) {
 
 // detectPkgManager infers package manager from distro ID and filesystem checks.
 // Returns false, if nothing found. True -- if found.
-func detectPkgManagerByOsVersion() (data.PkgManager, bool) {
-	// First try to read /etc/os-release again for ID/ID_LIKE
-	var id, idLike string
-	if f, err := os.Open("/etc/os-release"); err == nil {
-		props := parseKeyValueFile(f)
-		f.Close()
-		id = strings.ToLower(props["ID"])
-		idLike = strings.ToLower(props["ID_LIKE"])
-	} else {
-		return data.PkgManagerUnknown(), false
-	}
-
+func detectPkgManagerByOsVersion(d *data.Distrib) (data.PkgManager, bool) {
 	// Distribution-based detection
 	switch {
-	case id == "alpine" || idLike == "alpine" ||fileExists("/etc/alpine-release"):
-		if !commandExists("apk") {
-			break;
+	case d.Id == "alpine" || slices.Contains(d.IdLike, "alpine") || FileExists("/etc/alpine-release"):
+		if !CommandExists("apk") {
+			break
 		}
 		return data.NewPkgManager(data.PkgMgrApk, "apk"), true
-	case id == "arch" || id == "manjaro" || idLike == "arch" || fileExists("/etc/pacman.conf"):
-		if !commandExists("pacman") {
-			break;
+	case d.Id == "arch" || d.Id == "manjaro" || slices.Contains(d.IdLike, "arch") || FileExists("/etc/pacman.conf"):
+		if !CommandExists("pacman") {
+			break
 		}
 		return data.NewPkgManager(data.PkgMgrPacman, "pacman"), true
-	case id == "ubuntu" || id == "debian" || idLike == "debian" || fileExists("/etc/apt/sources.list"):
-		if commandExists("apt") {
-			return data.NewPkgManager(data.PkgMgrAptGet, "apt"), true
+	case d.Id == "ubuntu" || d.Id == "debian" || slices.Contains(d.IdLike, "debian") || FileExists("/etc/apt/sources.list"):
+		if !CommandExists("apt-cache") {
+			break;
 		}
-		if commandExists("apt-get") {
+
+		if CommandExists("apt-get") {
 			return data.NewPkgManager(data.PkgMgrAptGet, "apt-get"), true
 		}
-	case id == "fedora" || idLike == "fedora" || fileExists("/etc/dnf/dnf.conf") || id == "rhel" || id == "centos" || id == "ol" || fileExists("/etc/yum.conf"):
-		if commandExists("dnf") {
+		if CommandExists("apt") {
+			return data.NewPkgManager(data.PkgMgrAptGet, "apt"), true
+		}
+	case d.Id == "fedora" ||
+		slices.Contains(d.IdLike, "fedora") ||
+		FileExists("/etc/dnf/dnf.conf") ||
+		slices.Contains(d.IdLike, "rhel") ||
+		slices.Contains(d.IdLike, "centos") ||
+		FileExists("/etc/yum.conf"):
+
+		if CommandExists("dnf") {
 			return data.NewPkgManager(data.PkgMgrDnf, "dnf"), true
 		}
-		if commandExists("yum") {
+		if CommandExists("microdnf") {
+			return data.NewPkgManager(data.PkgMgrMicroDnf, "microdnf"), true
+		}
+		if CommandExists("yum") {
 			return data.NewPkgManager(data.PkgMgrYum, "yum"), true
 		}
 	}
@@ -72,13 +78,13 @@ func detectPkgManagerByOsVersion() (data.PkgManager, bool) {
 	return data.PkgManagerUnknown(), false
 }
 
-func harvestPkgManager() data.PkgManager {
-	if pkg, found := detectPkgManagerByOsVersion(); found == true {
+func harvestPkgManager(d *data.Distrib) data.PkgManager {
+	if pkg, found := detectPkgManagerByOsVersion(d); found == true {
 		return pkg
 	}
 
 	pkg, _ := detectPkgManagerByBinary()
-	return pkg;
+	return pkg
 }
 
 // ------------
@@ -124,7 +130,6 @@ func detectSysLibBySo() (data.SysLib, bool) {
 		"libc-*.so",
 	}
 
-
 	if checkSysLibPattern(dirs, glibcPatterns) {
 		// TODO: do we need the library path here?
 		return data.NewSysLib(data.SysLibGlibc, "glibc"), true
@@ -135,7 +140,6 @@ func detectSysLibBySo() (data.SysLib, bool) {
 
 	return data.NewSysLib(data.SysLibUnknown, ""), false
 }
-
 
 func harvestSysLib() data.SysLib {
 	res, _ := detectSysLibBySo()
@@ -150,7 +154,7 @@ func harvestDistrib() data.Distrib {
 		f.Close()
 
 		id := strings.ToLower(props["ID"])
-		idLike := strings.ToLower(props["ID_LIKE"])
+		idLike := strings.Split(strings.ToLower(props["ID_LIKE"]), " ")
 		name := props["NAME"]
 		versionStr := strings.ToLower(props["VERSION_ID"])
 		version := data.ParseVersion(versionStr)

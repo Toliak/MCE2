@@ -46,7 +46,7 @@ func detectPkgManagerByOsVersion() (data.PkgManager, bool) {
 	return data.PkgManagerUnknown(), false
 }
 
-func harvestPkgManager() data.PkgManager {
+func harvestPkgManager(d *data.Distrib) data.PkgManager {
 	if pkg, found := detectPkgManagerByOsVersion(); found == true {
 		return pkg
 	}
@@ -87,7 +87,7 @@ func harvestDistrib() data.Distrib {
 
 	return data.NewDistrib(
 		"",
-		"",
+		make([]string, 0),
 		name,
 		data.ParseVersion(versionStr),
 	)
