@@ -36,7 +36,7 @@ func parseKeyValueFile(r io.Reader) map[string]string {
 }
 
 // Checks if a file/glob pattern exists
-func fileExists(pattern string) bool {
+func FileExists(pattern string) bool {
 	if strings.Contains(pattern, "*") {
 		matches, _ := filepath.Glob(pattern)
 		return len(matches) > 0
@@ -46,7 +46,7 @@ func fileExists(pattern string) bool {
 }
 
 // Checks if a command is available in PATH
-func commandExists(cmd string) bool {
+func CommandExists(cmd string) bool {
 	_, err := exec.LookPath(cmd)
 	return err == nil
 }
