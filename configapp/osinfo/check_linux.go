@@ -1,13 +1,20 @@
 package osinfo
 
-import "syscall"
+import (
+	"fmt"
+	"syscall"
+)
 
 func isPseudoFsMounted(path string, magic int64) bool {
 	var stat syscall.Statfs_t
 	err := syscall.Statfs(path, &stat)
 	if err != nil {
+		// TODO: verbose log
+		fmt.Printf("Error! %s\n", err)
 		return false
 	}
+
+	// fmt.Printf("stat.Type=%x\n", stat.Type)
 	return stat.Type == magic
 }
 
@@ -24,10 +31,10 @@ func isSysMounted() bool {
 func CheckPlatform() (bool, []string) {
 	errors := make([]string, 0)
 
-	if isProcMounted() {
+	if !isProcMounted() {
 		errors = append(errors, "procfs (/proc) is not mounted")
 	}
-	if isSysMounted() {
+	if !isSysMounted() {
 		errors = append(errors, "sysfs (/sys) is not mounted")
 	}
 
