@@ -10,50 +10,27 @@ import (
 	"github.com/toliak/mce/osinfo/data"
 )
 
-// func InstallPackage(info *data.PkgManager, packageName string) error {
-
-// }
-
-// // Return package names
-// func SearchPackageNameStartsWith(info *data.PkgManager, packageName string) ([]string, error) {
-
-// }
-
 type PkgManagerError struct {
 	what string
 }
 
-// Assertion
-var _ error = (*PkgManagerError)(nil);
+var _ error = (*PkgManagerError)(nil)
 
-func NewPkgManagerError(what string) *PkgManagerError {
-	return &PkgManagerError{
-		what: what,
-	}
+
+func (e *PkgManagerError) Error() string {
+	return e.what
 }
 
-func (this* PkgManagerError) Error() string {
-	return this.what
-}
-
-func execCommandSearch(name string, arg ...string) (*bytes.Buffer, error) {
-	v := NewExecCommandWrapper(
+func execCommandSearchWrapper() ExecCommandWrapper {
+	return NewExecCommandWrapper(
 		WithBufferStdout(true),
 	)
-	return ExecCommand(v, name, arg...)
 }
 
 func execCommandUpdate(name string, arg ...string) error {
 	v := NewExecCommandWrapper(
 		WithThrowExitCodeError(true),
-	)
-	_, err := ExecCommand(v, name, arg...)
-	return err
-}
-
-func execCommandInstall(name string, arg ...string) error {
-	v := NewExecCommandWrapper(
-		WithThrowExitCodeError(true),
+		WithNeedsRoot(true),
 	)
 	_, err := ExecCommand(v, name, arg...)
 	return err
@@ -66,29 +43,16 @@ func UpdateRepositories(info *data.PkgManager) error {
 
 	switch info.V {
 	case data.PkgMgrAptGet:
-		err := execCommandUpdate(info.Raw, "update", "-y", "--allow-releaseinfo-change")
-		return err
+		return execCommandUpdate(info.Raw, "update", "-y", "--allow-releaseinfo-change")
 	case data.PkgMgrApk:
-		err := execCommandUpdate(info.Raw, "update")
-		return err
-	case data.PkgMgrDnf:
-		fmt.Printf("Skipped update for %v package manager\n", info.Raw)
-		return nil
-	case data.PkgMgrMicroDnf:
-		fmt.Printf("Skipped update for %v package manager\n", info.Raw)
-		return nil
-	case data.PkgMgrYum:
+		return execCommandUpdate(info.Raw, "update")
+	case data.PkgMgrDnf, data.PkgMgrMicroDnf, data.PkgMgrYum:
 		fmt.Printf("Skipped update for %v package manager\n", info.Raw)
 		return nil
 	case data.PkgMgrPacman:
-		err := execCommandUpdate(info.Raw, "-Syy")
-		return err
-	case data.PkgMgrBrew:
-		return NewPkgManagerError("Not implemented for PkgMgrBrew")
-	case data.PkgMgrWinget:
-		return NewPkgManagerError("Not implemented for PkgMgrWinget")
-	case data.PkgMgrScoop:
-		return NewPkgManagerError("Not implemented for PkgMgrScoop")
+		return execCommandUpdate(info.Raw, "-Syy")
+	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
+		return &PkgManagerError{what: fmt.Sprintf("Not implemented for %v", info.V)}
 	default:
 		return fmt.Errorf("Unknown package manager %#v", info)
 	}
@@ -99,55 +63,43 @@ func InstallPackages(info *data.PkgManager, packageNames []string) error {
 		return fmt.Errorf("pkgManager info cannot be nil")
 	}
 
+	var cmd string
+	var argList []string
+	var env []string
+
 	switch info.V {
 	case data.PkgMgrAptGet:
-		argList := []string{"install", "-y"}
-		argList = append(argList, packageNames...)
-
-		v := NewExecCommandWrapper(
-			WithThrowExitCodeError(true),
-			WithAdditionalEnv("DEBIAN_FRONTEND=noninteractive"),
-		)
-		_, err := ExecCommand(v, info.Raw, argList...)
-
-		return err
+		cmd = info.Raw
+		argList = []string{"install", "-y"}
+		env = []string{"DEBIAN_FRONTEND=noninteractive"}
 	case data.PkgMgrApk:
-		argList := []string{"add"}
-		argList = append(argList, packageNames...)
-		err := execCommandInstall(info.Raw, argList...)
-		return err
-	case data.PkgMgrDnf:
-		argList := []string{"install", "-y"}
-		argList = append(argList, packageNames...)
-		err := execCommandInstall(info.Raw, argList...)
-		return err
-	case data.PkgMgrMicroDnf:
-		argList := []string{"install", "-y"}
-		argList = append(argList, packageNames...)
-		err := execCommandInstall(info.Raw, argList...)
-		return err
-	case data.PkgMgrYum:
-		argList := []string{"install", "-y"}
-		argList = append(argList, packageNames...)
-		err := execCommandInstall(info.Raw, argList...)
-		return err
+		cmd = info.Raw
+		argList = []string{"add"}
+	case data.PkgMgrDnf, data.PkgMgrMicroDnf, data.PkgMgrYum:
+		cmd = info.Raw
+		argList = []string{"install", "-y"}
 	case data.PkgMgrPacman:
-		argList := []string{"-S", "--noconfirm"}
-		argList = append(argList, packageNames...)
-		err := execCommandInstall(info.Raw, argList...)
-		return err
-	case data.PkgMgrBrew:
-		return NewPkgManagerError("Not implemented for PkgMgrBrew")
-	case data.PkgMgrWinget:
-		return NewPkgManagerError("Not implemented for PkgMgrWinget")
-	case data.PkgMgrScoop:
-		return NewPkgManagerError("Not implemented for PkgMgrScoop")
+		cmd = info.Raw
+		argList = []string{"-S", "--noconfirm"}
+	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
+		return &PkgManagerError{what: fmt.Sprintf("Not implemented for %v", info.V)}
 	default:
 		return fmt.Errorf("Unknown package manager %#v", info)
 	}
+
+	argList = append(argList, packageNames...)
+
+	v := NewExecCommandWrapper(
+		WithThrowExitCodeError(true),
+		WithAdditionalEnvList(env),
+		WithNeedsRoot(true),
+	)
+	_, err := ExecCommand(v, cmd, argList...)
+	return err
 }
 
-// Return package names
+// WARNING: do not use this function if you have to search multiple packages
+// Use `SearchPackageFullNames` instead
 func SearchPackageFullName(info *data.PkgManager, packageName string) (bool, error) {
 	found, _, err := SearchPackageFullNames(info, []string{packageName})
 	if err != nil {
@@ -157,269 +109,65 @@ func SearchPackageFullName(info *data.PkgManager, packageName string) (bool, err
 	return len(found) == 1, nil
 }
 
-func searchPackagesDnf(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
-	resFound := make([]string, 0)
-	resNotFound := make([]string, 0)
-
-	commandsArgs := []string {
-		"repoquery",
-	}
-	commandsArgs = append(commandsArgs, packageNames...)
-
-	fmt.Printf("args: %#v\n", commandsArgs)
-	stdoutBuf, err := execCommandSearch("dnf", commandsArgs...)
-	if err != nil {
-		return resFound, resNotFound, fmt.Errorf("searchPackagesMicroDnf error: %w", err)
-	}
-
-	pkgRegexp := regexp.MustCompile(`^(.*)-\d+:.*$`)
-
-	receivedPkgNames := make(map[string]struct{})
-
-	scanner := bufio.NewScanner(stdoutBuf)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		matches := pkgRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			receivedPkgNames[matches[1]] = struct{}{};
-		}
-	}
-
-	for _, v := range packageNames {
-		_, ok := receivedPkgNames[v]
-		if ok {
-			resFound = append(resFound, v)
-		} else {
-			resNotFound = append(resNotFound, v)
-		}
-	}
-
-	return resFound, resNotFound, nil
+type searchConfig struct {
+	command      string
+	baseArgs     []string
+	pkgRegex     *regexp.Regexp
+	regexGroup   int
+	processNames func([]string) []string
+	execWrapper  func() ExecCommandWrapper
 }
 
-func searchPackagesMicroDnf(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
+func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config searchConfig) ([]string, []string, error) {
 	resFound := make([]string, 0)
 	resNotFound := make([]string, 0)
 
-	commandsArgs := []string {
-		"repoquery",
+	commandsArgs := make([]string, len(config.baseArgs))
+	copy(commandsArgs, config.baseArgs)
+
+	processedNames := packageNames
+	if config.processNames != nil {
+		processedNames = config.processNames(packageNames)
 	}
-	commandsArgs = append(commandsArgs, packageNames...)
+	commandsArgs = append(commandsArgs, processedNames...)
 
-	fmt.Printf("args: %#v\n", commandsArgs)
-	stdoutBuf, err := execCommandSearch("microdnf", commandsArgs...)
-	if err != nil {
-		return resFound, resNotFound, fmt.Errorf("searchPackagesMicroDnf error: %w", err)
+	// fmt.Printf("args: %#v\n", commandsArgs)
+
+	var stdoutBuf *bytes.Buffer
+	var err error
+
+	var execWrapper func() ExecCommandWrapper = nil
+	if config.execWrapper != nil {
+		execWrapper = config.execWrapper
+	} else {
+		execWrapper = execCommandSearchWrapper
 	}
-
-	pkgRegexp := regexp.MustCompile(`^(.+)-[^-]+-[^-]+\.[^.]+\.[^.]+$`)
-
-	receivedPkgNames := make(map[string]struct{})
-
-	scanner := bufio.NewScanner(stdoutBuf)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		matches := pkgRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			receivedPkgNames[matches[1]] = struct{}{};
-		}
-	}
-
-	for _, v := range packageNames {
-		_, ok := receivedPkgNames[v]
-		if ok {
-			resFound = append(resFound, v)
-		} else {
-			resNotFound = append(resNotFound, v)
-		}
-	}
-
-	return resFound, resNotFound, nil
-}
-
-func searchPackagesApk(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
-	resFound := make([]string, 0)
-	resNotFound := make([]string, 0)
-
-	commandsArgs := []string {
-		"search",
-		"-e",
-	}
-	commandsArgs = append(commandsArgs, packageNames...)
-
-	fmt.Printf("args: %#v\n", commandsArgs)
-	stdoutBuf, err := execCommandSearch("apk", commandsArgs...)
-	if err != nil {
-		return resFound, resNotFound, fmt.Errorf("searchPackagesApk error: %w", err)
-	}
-
-	pkgRegexp := regexp.MustCompile(`^(.+)-[^-]+-r\d+$`)
-
-	receivedPkgNames := make(map[string]struct{})
-
-	scanner := bufio.NewScanner(stdoutBuf)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		matches := pkgRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			receivedPkgNames[matches[1]] = struct{}{};
-		}
-	}
-
-	for _, v := range packageNames {
-		_, ok := receivedPkgNames[v]
-		if ok {
-			resFound = append(resFound, v)
-		} else {
-			resNotFound = append(resNotFound, v)
-		}
-	}
-
-	return resFound, resNotFound, nil
-}
-
-func searchPackagesYum(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
-	resFound := make([]string, 0)
-	resNotFound := make([]string, 0)
-
-	commandsArgs := []string {
-		"list",
-	}
-	commandsArgs = append(commandsArgs, packageNames...)
-	stdoutBuf, err := execCommandSearch("yum", commandsArgs...)
-	if err != nil {
-		return resFound, resNotFound, fmt.Errorf("searchPackagesYum error: %w", err)
-	}
-
-	pkgRegexp := regexp.MustCompile(`^([^. ]+)\.\S+\s+`)
-
-	receivedPkgNames := make(map[string]struct{})
-
-	scanner := bufio.NewScanner(stdoutBuf)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		matches := pkgRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			receivedPkgNames[matches[1]] = struct{}{};
-		}
-	}
-
-	for _, v := range packageNames {
-		_, ok := receivedPkgNames[v]
-		if ok {
-			resFound = append(resFound, v)
-		} else {
-			resNotFound = append(resNotFound, v)
-		}
-	}
-
-	return resFound, resNotFound, nil
-}
-
-func searchPackagesPacman(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
-	resFound := make([]string, 0)
-	resNotFound := make([]string, 0)
-
-	commandsArgs := []string {
-		"-Si",
-	}
-	commandsArgs = append(commandsArgs, packageNames...)
-	fmt.Printf("args: %#v\n", commandsArgs)
-	stdoutBuf, err := execCommandSearch("pacman", commandsArgs...)
-	if err != nil {
-		return resFound, resNotFound, fmt.Errorf("searchPackagesPacman error: %w", err)
-	}
-
-	pkgRegexp := regexp.MustCompile(`^Name\s+:\s+(.+)`)
-
-	receivedPkgNames := make(map[string]struct{})
-
-	scanner := bufio.NewScanner(stdoutBuf)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		matches := pkgRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			receivedPkgNames[matches[1]] = struct{}{};
-		}
-	}
-
-	for _, v := range packageNames {
-		_, ok := receivedPkgNames[v]
-		if ok {
-			resFound = append(resFound, v)
-		} else {
-			resNotFound = append(resNotFound, v)
-		}
-	}
-
-	return resFound, resNotFound, nil
-}
-
-func searchPackagesAptCache(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
-	resFound := make([]string, 0)
-	resNotFound := make([]string, 0)
-
-	// apt-cache --names-only search '^(python3|zsh)$'
-	commandsArgs := []string {
-		"--names-only",
-		"search",
-	}
-	for i,v := range packageNames {
-		packageNames[i] = regexp.QuoteMeta(v);
-	}
-	joined := strings.Join(packageNames, "|")
-	commandsArgs = append(commandsArgs, "^(" + joined + ")$")
 	
-	v := NewExecCommandWrapper(
-		WithBufferStdout(true),
-		WithAdditionalEnv("DEBIAN_FRONTEND=noninteractive"),
+	stdoutBuf, err = ExecCommand(
+		execWrapper(), 
+		config.command, 
+		commandsArgs...,
 	)
-	stdoutBuf, err := ExecCommand(v, "apt-cache", commandsArgs...)
 
 	if err != nil {
-		return resFound, resNotFound, fmt.Errorf("searchPackagesAptCache error: %w", err)
+		return resFound, resNotFound, fmt.Errorf("searchPackages (%s) error: %w", config.command, err)
 	}
 
-	pkgRegexp := regexp.MustCompile(`^([^ ]+)\s+-\s+`)
-
 	receivedPkgNames := make(map[string]struct{})
-
 	scanner := bufio.NewScanner(stdoutBuf)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
-
-		matches := pkgRegexp.FindStringSubmatch(line)
-		if len(matches) == 2 {
-			receivedPkgNames[matches[1]] = struct{}{};
+		matches := config.pkgRegex.FindStringSubmatch(line)
+		if len(matches) > config.regexGroup {
+			receivedPkgNames[matches[config.regexGroup]] = struct{}{}
 		}
 	}
 
 	for _, v := range packageNames {
-		_, ok := receivedPkgNames[v]
-		if ok {
+		if _, ok := receivedPkgNames[v]; ok {
 			resFound = append(resFound, v)
 		} else {
 			resNotFound = append(resNotFound, v)
@@ -437,31 +185,65 @@ func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]str
 		return make([]string, 0), make([]string, 0), nil
 	}
 
-	// resFound := make([]string, 0)
-	// resNotFound := make([]string, 0)
-
-	fmt.Printf("pkg: %#v", info)
+	// fmt.Printf("pkg: %#v\n", info)
 
 	switch info.V {
 	case data.PkgMgrAptGet:
-		return searchPackagesAptCache(info, packageNames)
+		processedNames := make([]string, len(packageNames))
+		for i, v := range packageNames {
+			processedNames[i] = regexp.QuoteMeta(v)
+		}
+		joined := strings.Join(processedNames, "|")
+		return searchPackagesGeneric(info, packageNames, searchConfig{
+			command:    "apt-cache",
+			baseArgs:   []string{"--names-only", "search", "^(" + joined + ")$"},
+			pkgRegex:   regexp.MustCompile(`^([^ ]+)\s+-\s+`),
+			regexGroup: 1,
+			execWrapper: func() ExecCommandWrapper {
+				return NewExecCommandWrapper(
+					WithBufferStdout(true),
+					WithAdditionalEnv("DEBIAN_FRONTEND=noninteractive"),
+				)
+			},
+		})
 	case data.PkgMgrApk:
-		return searchPackagesApk(info, packageNames)
+		return searchPackagesGeneric(info, packageNames, searchConfig{
+			command:    "apk",
+			baseArgs:   []string{"search", "-e"},
+			pkgRegex:   regexp.MustCompile(`^(.+)-[^-]+-r\d+$`),
+			regexGroup: 1,
+		})
 	case data.PkgMgrDnf:
-		return searchPackagesMicroDnf(info, packageNames)
+		return searchPackagesGeneric(info, packageNames, searchConfig{
+			command:    "dnf",
+			baseArgs:   []string{"repoquery"},
+			pkgRegex:   regexp.MustCompile(`^(.*)-\d+:.*$`),
+			regexGroup: 1,
+		})
 	case data.PkgMgrMicroDnf:
-		return searchPackagesMicroDnf(info, packageNames)
+		return searchPackagesGeneric(info, packageNames, searchConfig{
+			command:    "microdnf",
+			baseArgs:   []string{"repoquery"},
+			pkgRegex:   regexp.MustCompile(`^(.+)-[^-]+-[^-]+\.[^.]+\.[^.]+$`),
+			regexGroup: 1,
+		})
 	case data.PkgMgrYum:
-		return searchPackagesYum(info, packageNames)
+		return searchPackagesGeneric(info, packageNames, searchConfig{
+			command:    "yum",
+			baseArgs:   []string{"list"},
+			pkgRegex:   regexp.MustCompile(`^([^. ]+)\.\S+\s+`),
+			regexGroup: 1,
+		})
 	case data.PkgMgrPacman:
-		return searchPackagesPacman(info, packageNames)
-	case data.PkgMgrBrew:
-		return nil, nil, NewPkgManagerError("SearchPackageFullNames not implemented for PkgMgrBrew")
-	case data.PkgMgrWinget:
-		return nil, nil, NewPkgManagerError("SearchPackageFullNames not implemented for PkgMgrWinget")
-	case data.PkgMgrScoop:
-		return nil, nil, NewPkgManagerError("SearchPackageFullNames not implemented for PkgMgrScoop")
+		return searchPackagesGeneric(info, packageNames, searchConfig{
+			command:    "pacman",
+			baseArgs:   []string{"-Si"},
+			pkgRegex:   regexp.MustCompile(`^Name\s+:\s+(.+)`),
+			regexGroup: 1,
+		})
+	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
+		return nil, nil, &PkgManagerError{what: fmt.Sprintf("SearchPackageFullNames not implemented for %v", info.V)}
 	default:
-		return make([]string, 0), make([]string, 0), fmt.Errorf("Unknown package manager %#v", info)
+		return make([]string, 0), make([]string, 0), &PkgManagerError{what: fmt.Sprintf("Unknown package manager %#v", info)}
 	}
 }
