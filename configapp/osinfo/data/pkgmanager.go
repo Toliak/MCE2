@@ -1,13 +1,16 @@
 package data
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 // Package Manager enum with Rust-like unknown value
 type PkgManager struct {
-	v     PkgManagerE
-	raw   string // only used for Unknown and AptGet variant. Describes raw command name
+	V     PkgManagerE			`json:"value"`
+
+	// only used for Unknown and AptGet variant. Describes Raw command name
+	Raw   string				`json:"raw"`
 }
 
 type PkgManagerE int
@@ -16,6 +19,7 @@ const (
 	PkgMgrAptGet PkgManagerE = iota
 	PkgMgrApk
 	PkgMgrDnf
+	PkgMgrMicroDnf
 	PkgMgrYum
 	PkgMgrPacman
 	PkgMgrBrew
@@ -24,10 +28,14 @@ const (
 	PkgMgrUnknown
 )
 
+func (s PkgManagerE) MarshalJSON() ([]byte, error) {
+    return json.Marshal(s.String())
+}
+
 func NewPkgManager(mgr PkgManagerE, raw string) PkgManager {
 	return PkgManager{
-		v: mgr,
-		raw: raw,
+		V: mgr,
+		Raw: raw,
 	}
 }
 
@@ -35,21 +43,12 @@ func PkgManagerUnknown() PkgManager {
 	return NewPkgManager(PkgMgrUnknown, "unknown")
 }
 
-
-func (os *PkgManager) V() PkgManagerE { 
-	return os.v
-}
-
-func (os *PkgManager) Raw() string { 
-	return os.raw
-}
-
 func (os *PkgManager) String() string {
-	return os.v.String()
+	return os.V.String()
 }
 
 func (os *PkgManager) GoString() string {
-	return fmt.Sprintf("%s(%s)", os.v.String(), os.raw)
+	return fmt.Sprintf("%s(%s)", os.V.String(), os.Raw)
 }
 
 func (os PkgManagerE) String() string {
@@ -60,6 +59,8 @@ func (os PkgManagerE) String() string {
 		return "apk"
 	case PkgMgrDnf:
 		return "dnf"
+	case PkgMgrMicroDnf:
+		return "microdnf"
 	case PkgMgrYum:
 		return "yum"
 	case PkgMgrPacman:

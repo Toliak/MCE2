@@ -11,24 +11,24 @@ import (
 // Version both the parsed version and the original raw string.
 // The parsed version represents a tuple of three integers.
 type Version struct {
-	v VersionT
-	raw string
+	V     VersionT			`json:"value"`
+	Raw   string			`json:"raw"`
 }
 
 type VersionT struct {
-	major int
-	minor int
-	patch int
+	Major int			`json:"major"`
+	Minor int			`json:"minor"`
+	Patch int			`json:"patch"`
 }
 
 func NewVersion(major int, minor int, patch int, raw string) Version {
 	return Version{
-		v: VersionT{
-			major: major,
-			minor: minor,
-			patch: patch,
+		V: VersionT{
+			Major: major,
+			Minor: minor,
+			Patch: patch,
 		},
-		raw: raw,
+		Raw: raw,
 	}
 }
 
@@ -39,9 +39,9 @@ func NewVersion(major int, minor int, patch int, raw string) Version {
 func ParseVersion(raw string) Version {
 	parts := strings.Split(raw, ".")
 	v := VersionT{
-		major: 0,
-		minor: 0,
-		patch: 0,
+		Major: 0,
+		Minor: 0,
+		Patch: 0,
 	}
 
 	// Parse up to 3 parts, ignore extra parts if more than 3
@@ -55,51 +55,28 @@ func ParseVersion(raw string) Version {
 
 		switch i {
 		case 0:
-			v.major = val
+			v.Major = val
 		case 1:
-			v.minor = val
+			v.Minor = val
 		case 2:
-			v.patch = val
+			v.Patch = val
 		}
 	}
 
 	return Version{
-		v: v,
-		raw: raw,
+		V: v,
+		Raw: raw,
 	}
 }
 
-func (v *Version) V() VersionT {
-	return v.v
-}
-
-func (v *Version) Raw() string {
-	return v.raw
-}
-
 func (v *Version) String() string {
-	return v.v.String()
+	return v.V.String()
 }
 
 func (v *Version) GoString() string {
-	return fmt.Sprintf("%s (%s)", v.v.String(), v.raw)
+	return fmt.Sprintf("%s (%s)", v.V.String(), v.Raw)
 }
 
 func (v *VersionT) String() string {
-	return fmt.Sprintf("%d.%d.%d", v.major, v.minor, v.patch)
-}
-
-// Major returns the major version
-func (v *VersionT) Major() int {
-    return v.major
-}
-
-// Minor returns the minor version
-func (v *VersionT) Minor() int {
-    return v.minor
-}
-
-// Patch returns the patch version
-func (v *VersionT) Patch() int {
-    return v.patch
+	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }

@@ -1,13 +1,16 @@
 package data
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 // Package Manager enum with Rust-like unknown value
 type SysLib struct {
-	v     SysLibE
-	raw   string // only used for Unknown variant
+	V     SysLibE				`json:"value"`
+
+	// only used for Unknown variant
+	Raw   string				`json:"raw"`
 }
 
 type SysLibE int
@@ -18,28 +21,23 @@ const (
 	SysLibUnknown
 )
 
+func (s SysLibE) MarshalJSON() ([]byte, error) {
+    return json.Marshal(s.String())
+}
+
 func NewSysLib(mgr SysLibE, raw string) SysLib {
 	return SysLib{
-		v: mgr,
-		raw: raw,
+		V: mgr,
+		Raw: raw,
 	}
 }
 
-
-func (os *SysLib) V() SysLibE { 
-	return os.v
-}
-
-func (os *SysLib) Raw() string { 
-	return os.raw
-}
-
 func (os *SysLib) String() string {
-	return os.v.String()
+	return os.V.String()
 }
 
 func (os *SysLib) GoString() string {
-	return fmt.Sprintf("%s(%s)", os.v.String(), os.raw)
+	return fmt.Sprintf("%s(%s)", os.V.String(), os.Raw)
 }
 
 func (os SysLibE) String() string {

@@ -1,14 +1,17 @@
 package data
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
 
 // OS Type enum with Rust-like unknown value
 type OSType struct {
-	v     OSTypeE
-	raw   string // only used for Unknown variant
+	V     OSTypeE			`json:"value"`
+
+	// only used for Unknown variant
+	Raw   string			`json:"raw"`
 }
 
 type OSTypeE int
@@ -30,10 +33,14 @@ const (
 	OSTypeUnknown
 )
 
+func (s OSTypeE) MarshalJSON() ([]byte, error) {
+    return json.Marshal(s.String())
+}
+
 func ParseOsType(s string) OSType {
 	return OSType{
-		v: parseOsTypeE(s),
-		raw: s,
+		V: parseOsTypeE(s),
+		Raw: s,
 	}
 }
 
@@ -52,20 +59,12 @@ func parseOsTypeE(s string) OSTypeE {
 	}
 }
 
-func (os *OSType) V() OSTypeE { 
-	return os.v
-}
-
-func (os *OSType) Raw() string { 
-	return os.raw
-}
-
 func (os *OSType) String() string {
-	return os.v.String()
+	return os.V.String()
 }
 
 func (os *OSType) GoString() string {
-	return fmt.Sprintf("%s(%s)", os.v.String(), os.raw)
+	return fmt.Sprintf("%s(%s)", os.V.String(), os.Raw)
 }
 
 func (os OSTypeE) String() string {
