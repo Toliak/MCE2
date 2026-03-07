@@ -3,6 +3,7 @@ package osinfo
 import (
 	"fmt"
 	"syscall"
+	"time"
 )
 
 func isPseudoFsMounted(path string, magic int64) bool {
@@ -28,6 +29,22 @@ func isSysMounted() bool {
 	return isPseudoFsMounted("/sys", 0x62656572)
 }
 
+func isPriviledgedModeAvailable() bool {
+	if IsRoot() {
+		fmt.Println("Running the app as root is not recommended")
+		time.Sleep(500 * time.Millisecond)
+		return true
+	}
+
+	// TODO: sync that check with the platform/execwrap/ExecCommand
+	// cache maybe or something like that
+	if CommandExists("sudo") || CommandExists("pkexec") {
+		return true
+	}
+
+	return false
+}
+
 func CheckPlatform() (bool, []string) {
 	errors := make([]string, 0)
 
@@ -36,6 +53,9 @@ func CheckPlatform() (bool, []string) {
 	}
 	if !isSysMounted() {
 		errors = append(errors, "sysfs (/sys) is not mounted")
+	}
+	if !isPriviledgedModeAvailable() {
+		errors = append(errors, "unable to find program to evaluate the privileges (sudo or pkexec)")
 	}
 
 	return len(errors) == 0, errors
