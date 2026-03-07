@@ -149,13 +149,13 @@ def check_distrib(expected):
     return ok
 
 def main():
-    binary = "/test/mce"
+    binary = "/test/bin/mce-e2e"
     if not os.path.exists(binary):
         print(f"Binary {binary} not found")
         sys.exit(1)
 
     try:
-        output = subprocess.check_output([binary, "-harvest-only"], text=True)
+        output = subprocess.check_output([binary, "harvest"], text=True)
     except subprocess.CalledProcessError as e:
         print(f"Binary execution failed: {e}")
         print(e.output)
