@@ -1,0 +1,48 @@
+services:
+  alpine:
+    build:
+      context: ../
+      dockerfile: e2e/alpine.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
+
+  archlinux:
+    build:
+      context: ../
+      dockerfile: e2e/archlinux.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
+
+  debian:
+    build:
+      context: ../
+      dockerfile: e2e/debian.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
+
+  fedora:
+    build:
+      context: ../
+      dockerfile: e2e/fedora.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
+
+  rocky:
+    build:
+      context: ../
+      dockerfile: e2e/rocky.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
+
+  oraclelinux:
+    build:
+      context: ../
+      dockerfile: e2e/oraclelinux.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
