@@ -4,16 +4,25 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/toliak/mce/osinfo"
+	"github.com/toliak/mce/inspector"
 )
 
 func mainInternal() error {
-	if ok, errors := osinfo.CheckPlatform(); !ok {
-		fmt.Println("Platform checks failed!")
-		for _, error := range errors {
-			fmt.Printf("- %s\n", error);
-		}
-		return fmt.Errorf("Platform checks failed")
+	data, err := inspector.InspectAndHarvest(inspector.InspectAndHarvestConfig{
+		Check: true,
+		Harvest: true,
+		PkgManagerUpdate: false,
+		PkgManagerGetAvailablePackages: false,
+	})
+	if err != nil {
+		return err
+	}
+
+	if data == nil {
+		return fmt.Errorf("No harvest data obtained, internal error")
+	}
+	if data.OSInfo == nil {
+		return fmt.Errorf("No OSInfo data obtained")
 	}
 
 	args := os.Args[1:]
@@ -38,13 +47,13 @@ func mainInternal() error {
 		return fmt.Errorf("SubCommand '%s' not found. Available: %v", subCommand, availableSubCommands)
 	}
 
-	flagSet, data := subCommandData.FlagSet()
-	err := flagSet.Parse(args[1:])
+	flagSet, flagSetData := subCommandData.FlagSet()
+	err = flagSet.Parse(args[1:])
 	if err != nil {
 		return err
 	}
 
-	return subCommandData.Executor(data)
+	return subCommandData.Executor(*data.OSInfo, flagSetData)
 }
 
 func main() {

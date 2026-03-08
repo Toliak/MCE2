@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/toliak/mce/osinfo"
+	"github.com/toliak/mce/inspector"
+	"github.com/toliak/mce/tegnbuilder"
+	"github.com/toliak/mce/tegns"
 )
 
 func mainInternal() error {
@@ -14,49 +16,78 @@ func mainInternal() error {
 		return err
 	}
 
-	if !args.CheckDisable {
-		if ok, errors := osinfo.CheckPlatform(); !ok {
-			fmt.Println("Platform checks failed!")
-			for _, error := range errors {
-				fmt.Printf("- %s\n", error);
+	data, err := inspector.InspectAndHarvest(args.InspectorConfig)
+	if err != nil {
+		return err
+	}
+
+	if data == nil {
+		return fmt.Errorf("No harvest data obtained, internal error")
+	}
+
+	harvestData := *data
+
+	fmt.Println("Performed checks and harvested platform information")
+
+	if harvestData.OSInfo == nil {
+		return fmt.Errorf("Unable to continue without the OSInfo")
+	}
+
+	availablePackages := make([]string, 0)
+	if harvestData.AvailableManagerPackages != nil {
+		availablePackages = *harvestData.AvailableManagerPackages
+	}
+
+	builderData := tegnbuilder.TegnBuilderData {
+		OSInfo: *harvestData.OSInfo,
+		AvailableManagerPackages: availablePackages,
+	}
+
+	tegnsetts := tegns.InitializeAllTegnsetts(
+		tegns.Tegnsetts,
+		builderData,
+	)
+
+	// TODO: initialize Tegns
+
+	// Tegn -- package
+	// Tegnsett -- category
+
+	// fmt.Printf("%#v\n", tegnsetts)
+
+	tegnsettsObjs := make([]map[string]any, len(tegnsetts))
+	for i, tegnsett := range tegnsetts {
+		children := tegnsett.GetChildren()
+		childrenObjs := make([]map[string]any, len(children))
+		for j, v := range tegnsett.GetChildren() {
+			params := v.GetParameters()
+			paramsObjs := make([]map[string]any, len(params))
+			for i, v := range params {
+				paramsObjs[i] = map[string]any {
+					"name": v.Name,
+					"value": v.Value,
+					"type": v.ParamType.String(),
+				}
 			}
-			return fmt.Errorf("Platform checks failed")
+
+			childrenObjs[j] = map[string]any{
+				"id":     v.GetID(),
+				"name":   v.GetName(),
+				"params": paramsObjs,
+			}
+		}
+
+		tegnsettsObjs[i] = map[string]any{
+			"id":       tegnsett.GetID(),
+			"name":     tegnsett.GetName(),
+			"features": tegnsett.GetFeatures(),
+			"children": childrenObjs,
 		}
 	}
 
-	if args.CheckOnly {
-		return nil
-	}
+	marshalled, _ := json.Marshal(tegnsettsObjs)
+	fmt.Println(string(marshalled))
 
-	info := osinfo.Harvest()
-
-	if args.HarvestOnly {
-		info_json, err := json.Marshal(info)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%s\n", info_json)
-		return nil
-	} else {
-		fmt.Println("Harvested platform information")
-	}
-
-	// err = platform.UpdateRepositories(&info.PkgManager)
-	// if err != nil {
-	// 	return fmt.Errorf("Update error: %w", err)
-	// }
-	// found, notFound, err := platform.SearchPackageFullNames(&info.PkgManager, []string{"python3", "zsh"})
-	// fmt.Printf("%#v, %#v, %s\n", found, notFound, err)
-
-	// err = platform.InstallPackages(&info.PkgManager, found)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// TODO: use Verbosity
-	// args.Verbosity
-
-	fmt.Printf("%s\n", "Finish")
 	return nil
 }
 

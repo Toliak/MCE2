@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/toliak/mce/osinfo"
+	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 )
 
-type SubCommandFunc		func (data any) error
+type SubCommandFunc		func (info data.OSInfo, data any) error
 
 // Returns the flagset and the data-object with the parameter pointers
 type SubCommandFlagSet	func() (flag.FlagSet, any)
@@ -25,6 +25,11 @@ var SubCommands = []SubCommandData {
 	{
 		Name: "harvest",
 		Executor: subCommandHarvestJson,
+		FlagSet: emptyFlagSet,
+	},
+	{
+		Name: "repo-list",
+		Executor: subCommandRepoList,
 		FlagSet: emptyFlagSet,
 	},
 	{
@@ -43,12 +48,32 @@ func emptyFlagSet() (flag.FlagSet, any) {
 	return *flagSet, struct{}{}
 }
 
-func subCommandHarvestJson(_ any) error {
-	info := osinfo.Harvest()
+func subCommandHarvestJson(info data.OSInfo, _ any) error {
 	info_json, err := json.Marshal(info)
 
 	if err != nil {
 		return err
+	}
+
+	fmt.Printf("%s", info_json)
+	return nil
+}
+
+func subCommandRepoList(info data.OSInfo, _ any) error {
+	err := platform.UpdateRepositories(&info.PkgManager)
+	if err != nil {
+		return fmt.Errorf("Update error: %w", err)
+	}
+
+	packageList, err := platform.GetAvailablePackages(
+		&info.PkgManager,
+	)
+	if err != nil {
+		return fmt.Errorf("Search error: %w", err)
+	}
+	info_json, err := json.Marshal(packageList)
+	if err != nil {
+		return fmt.Errorf("json.Marshal error: %w", err)
 	}
 
 	fmt.Printf("%s", info_json)
@@ -80,14 +105,13 @@ func subCommandRepoInstallFlagSet() (flag.FlagSet, any) {
 	}
 }
 
-func subCommandRepoInstall(data any) error {
+func subCommandRepoInstall(info data.OSInfo, data any) error {
 	d := data.(SubCommandRepoInstallData)
 	if *d.toInstall == nil {
 		return fmt.Errorf("Parameter -to-install must be set")
 	}
 
 	toInstall := **d.toInstall
-	info := osinfo.Harvest()
 
 	err := platform.UpdateRepositories(&info.PkgManager)
 	if err != nil {
@@ -122,5 +146,3 @@ func subCommandRepoInstall(data any) error {
 	fmt.Printf("%s", info_json)
 	return nil
 }
-
-// TODO: priviledged commands

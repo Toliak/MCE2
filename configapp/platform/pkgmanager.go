@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
@@ -16,15 +17,8 @@ type PkgManagerError struct {
 
 var _ error = (*PkgManagerError)(nil)
 
-
 func (e *PkgManagerError) Error() string {
 	return e.what
-}
-
-func execCommandSearchWrapper() ExecCommandWrapper {
-	return NewExecCommandWrapper(
-		WithBufferStdout(true),
-	)
 }
 
 func execCommandUpdate(name string, arg ...string) error {
@@ -47,8 +41,7 @@ func UpdateRepositories(info *data.PkgManager) error {
 	case data.PkgMgrApk:
 		return execCommandUpdate(info.Raw, "update")
 	case data.PkgMgrDnf, data.PkgMgrMicroDnf, data.PkgMgrYum:
-		fmt.Printf("Skipped update for %v package manager\n", info.Raw)
-		return nil
+		return execCommandUpdate(info.Raw, "makecache", "--refresh")
 	case data.PkgMgrPacman:
 		return execCommandUpdate(info.Raw, "-Syy")
 	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
@@ -119,6 +112,13 @@ type searchConfig struct {
 }
 
 func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config searchConfig) ([]string, []string, error) {
+	execWrapperDefault := func() ExecCommandWrapper {
+		return NewExecCommandWrapper(
+			WithBufferStdout(true),
+			WithRetransmitStdout(false),
+		)
+	}
+
 	resFound := make([]string, 0)
 	resNotFound := make([]string, 0)
 
@@ -140,12 +140,12 @@ func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config 
 	if config.execWrapper != nil {
 		execWrapper = config.execWrapper
 	} else {
-		execWrapper = execCommandSearchWrapper
+		execWrapper = execWrapperDefault
 	}
-	
+
 	stdoutBuf, err = ExecCommand(
-		execWrapper(), 
-		config.command, 
+		execWrapper(),
+		config.command,
 		commandsArgs...,
 	)
 
@@ -160,9 +160,16 @@ func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config 
 		if line == "" {
 			continue
 		}
+
+		if config.pkgRegex == nil {
+			receivedPkgNames[line]= struct{}{}
+			continue
+		}
+
 		matches := config.pkgRegex.FindStringSubmatch(line)
 		if len(matches) > config.regexGroup {
-			receivedPkgNames[matches[config.regexGroup]] = struct{}{}
+			name := matches[config.regexGroup]
+			receivedPkgNames[name] = struct{}{}
 		}
 	}
 
@@ -179,7 +186,9 @@ func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config 
 
 func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
 	if info == nil {
-		return make([]string, 0), make([]string, 0), fmt.Errorf("pkgManager info cannot be nil")
+		return make([]string, 0),
+			make([]string, 0),
+			&PkgManagerError{what: "SearchPackageFullNames: pkgManager info cannot be nil"}
 	}
 	if len(packageNames) == 0 {
 		return make([]string, 0), make([]string, 0), nil
@@ -217,6 +226,7 @@ func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]str
 		return searchPackagesGeneric(info, packageNames, searchConfig{
 			command:    "dnf",
 			baseArgs:   []string{"repoquery"},
+			// WARN: the same regexp in [GetAvailablePackages]
 			pkgRegex:   regexp.MustCompile(`^(.*)-\d+:.*$`),
 			regexGroup: 1,
 		})
@@ -224,6 +234,7 @@ func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]str
 		return searchPackagesGeneric(info, packageNames, searchConfig{
 			command:    "microdnf",
 			baseArgs:   []string{"repoquery"},
+			// WARN: the same regexp in [GetAvailablePackages]
 			pkgRegex:   regexp.MustCompile(`^(.+)-[^-]+-[^-]+\.[^.]+\.[^.]+$`),
 			regexGroup: 1,
 		})
@@ -231,6 +242,7 @@ func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]str
 		return searchPackagesGeneric(info, packageNames, searchConfig{
 			command:    "yum",
 			baseArgs:   []string{"list"},
+			// WARN: the same regexp in [GetAvailablePackages]
 			pkgRegex:   regexp.MustCompile(`^([^. ]+)\.\S+\s+`),
 			regexGroup: 1,
 		})
@@ -242,8 +254,152 @@ func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]str
 			regexGroup: 1,
 		})
 	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
-		return nil, nil, &PkgManagerError{what: fmt.Sprintf("SearchPackageFullNames not implemented for %v", info.V)}
+		return make([]string, 0), make([]string, 0), &PkgManagerError{what: fmt.Sprintf("SearchPackageFullNames not implemented for %v", info.V)}
 	default:
 		return make([]string, 0), make([]string, 0), &PkgManagerError{what: fmt.Sprintf("Unknown package manager %#v", info)}
+	}
+}
+
+type getAvailablePackagesConfig struct {
+	command      string
+	baseArgs     []string
+	pkgRegex     *regexp.Regexp
+	regexGroup   int
+	execWrapper  func() ExecCommandWrapper
+}
+
+func getAvailablePackagesGeneric(info *data.PkgManager, config getAvailablePackagesConfig) ([]string, error) {
+	execWrapperDefault := func() ExecCommandWrapper {
+		return NewExecCommandWrapper(
+			WithBufferStdout(true),
+			WithRetransmitStdout(false),
+		)
+	}
+
+	var stdoutBuf *bytes.Buffer
+	var err error
+
+	var execWrapper func() ExecCommandWrapper = nil
+	if config.execWrapper != nil {
+		execWrapper = config.execWrapper
+	} else {
+		execWrapper = execWrapperDefault
+	}
+
+	stdoutBuf, err = ExecCommand(
+		execWrapper(),
+		config.command, 
+		config.baseArgs...,
+	)
+
+	if err != nil {
+		return make([]string, 0), 
+			fmt.Errorf("searchPackages (%s) error: %w", config.command, err)
+	}
+
+	result := make(map[string]struct{}, 10 * 1024)
+	scanner := bufio.NewScanner(stdoutBuf)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+
+		if config.pkgRegex == nil {
+			result[line] = struct{}{}
+			continue
+		}
+
+		matches := config.pkgRegex.FindStringSubmatch(line)
+		if len(matches) > config.regexGroup {
+			name := matches[config.regexGroup]
+			result[name] = struct{}{}
+		}
+	}
+
+	keys := make([]string, 0, len(result))
+	for k := range result {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys, nil
+}
+
+func GetAvailablePackages(info *data.PkgManager) ([]string, error) {
+	if info == nil {
+		return make([]string, 0),
+			&PkgManagerError{what: "SearchPackageFullNames: pkgManager info cannot be nil"}
+	}
+
+	switch info.V {
+	case data.PkgMgrAptGet:
+		return getAvailablePackagesGeneric(
+			info,
+			getAvailablePackagesConfig{
+				command: "apt-cache",
+				baseArgs: []string{"pkgnames"},
+				// pkgRegex: ,
+				// regexGroup: 1,
+			},
+		)
+	case data.PkgMgrApk:
+		return getAvailablePackagesGeneric(
+			info,
+			getAvailablePackagesConfig{
+				command: "apk",
+				baseArgs: []string{"search", "-v"},
+				pkgRegex: regexp.MustCompile(`^([^ ]+)-[^-]+-r\d+ `),
+				regexGroup: 1,
+			},
+		)
+	case data.PkgMgrDnf:
+		return getAvailablePackagesGeneric(
+			info,
+			getAvailablePackagesConfig{
+				command: "dnf",
+				baseArgs: []string{"repoquery"},
+				// WARN: the same regexp in [SearchPackageFullNames]
+				pkgRegex:   regexp.MustCompile(`^(.*)-\d+:.*$`),
+				regexGroup: 1,
+			},
+		)
+	case data.PkgMgrMicroDnf:
+		return getAvailablePackagesGeneric(
+			info,
+			getAvailablePackagesConfig{
+				command:    "microdnf",
+			baseArgs:   []string{"repoquery"},
+			// WARN: the same regexp in [SearchPackageFullNames]
+			// pkgRegex:   regexp.MustCompile(`^(.+)-[^-]+-[^-]+\.[^.]+\.[^.]+$`),
+			// regexGroup: 1,
+			},
+		)
+	case data.PkgMgrYum:
+		return getAvailablePackagesGeneric(
+			info,
+			getAvailablePackagesConfig{
+				command: "yum",
+				baseArgs: []string{"list"},
+				// WARN: the same regexp in [SearchPackageFullNames]
+				pkgRegex:   regexp.MustCompile(`^([^. ]+)\.\S+\s+`),
+				regexGroup: 1,
+			},
+		)
+	case data.PkgMgrPacman:
+		return getAvailablePackagesGeneric(
+			info,
+			getAvailablePackagesConfig{
+				command: "pacman",
+				baseArgs: []string{"-Slq"},
+			},
+		)
+	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
+		return make([]string, 0),
+			&PkgManagerError{what: fmt.Sprintf("SearchPackageFullNames not implemented for %v", info.V)}
+	default:
+		return make([]string, 0),
+			&PkgManagerError{what: fmt.Sprintf("Unknown package manager %#v", info)}
 	}
 }

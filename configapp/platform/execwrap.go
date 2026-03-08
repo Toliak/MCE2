@@ -7,8 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-
-	"github.com/toliak/mce/osinfo"
+	"sync"
 )
 
 type ExecCommandWrapper struct {
@@ -87,6 +86,18 @@ func NewExecCommandWrapper(opts ...ExecCommandOption) ExecCommandWrapper {
 	return w
 }
 
+// threadSafeBuffer wraps bytes.Buffer to allow concurrent writes
+type threadSafeBuffer struct {
+	mu  sync.Mutex
+	buf *bytes.Buffer
+}
+
+func (tsb *threadSafeBuffer) Write(p []byte) (n int, err error) {
+	tsb.mu.Lock()
+	defer tsb.mu.Unlock()
+	return tsb.buf.Write(p)
+}
+
 func execCommandInternal(name string, arg ...string) *exec.Cmd {
 	// logs
 	fmt.Printf("Exec: %s %v\n", name, arg)
@@ -94,21 +105,29 @@ func execCommandInternal(name string, arg ...string) *exec.Cmd {
 }
 
 func ExecCommand(config ExecCommandWrapper, name string, arg ...string) (*bytes.Buffer, error) {
-	var stdoutBuf bytes.Buffer
+	var rawBuffer bytes.Buffer
+
+	// Wrap it for thread safety if both stdout and stderr are buffering
+	var bufferWriter io.Writer = &rawBuffer
+	
+	if config.BufferStdout && config.BufferStderr {
+		// If both are writing to the same buffer, we need a mutex
+		bufferWriter = &threadSafeBuffer{buf: &rawBuffer}
+	}
 
 	usesWrapperForPrivileges := false
 	
 	var cmd *exec.Cmd
-	if !config.NeedsRoot || osinfo.IsRoot() {
+	if !config.NeedsRoot || IsRoot() {
 		cmd = execCommandInternal(name, arg...)
 	} else {
 		usesWrapperForPrivileges = true
-		if osinfo.CommandExists("sudo") {
+		if CommandExists("sudo") {
 			newArgs := []string{"-E"}
 			newArgs = append(newArgs, name)
 			newArgs = append(newArgs, arg...)
 			cmd = execCommandInternal("sudo", newArgs...)
-		} else if osinfo.CommandExists("pkexec") {
+		} else if CommandExists("pkexec") {
 			newArgs := []string{"--keep-cwd"}
 			newArgs = append(newArgs, name)
 			newArgs = append(newArgs, arg...)
@@ -117,24 +136,8 @@ func ExecCommand(config ExecCommandWrapper, name string, arg ...string) (*bytes.
 			return nil, fmt.Errorf("Unable to find app to run as root (sudo or pkexec)")
 		}
 	}
-	
 
 	cmd.Env = append(os.Environ(), config.AdditionalEnv...)
-
-	// Create pipes
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, fmt.Errorf("ExecCommand error stdoutPipe: %w", err)
-	}
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return nil, fmt.Errorf("ExecCommand error stderrPipe: %w", err)
-	}
-
-	// Start the command
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("ExecCommand error start: %w", err)
-	}
 
 	// Configure stdout writer(s)
 	var stdoutWriters []io.Writer
@@ -142,7 +145,7 @@ func ExecCommand(config ExecCommandWrapper, name string, arg ...string) (*bytes.
 		stdoutWriters = append(stdoutWriters, os.Stdout)
 	}
 	if config.BufferStdout {
-		stdoutWriters = append(stdoutWriters, &stdoutBuf)
+		stdoutWriters = append(stdoutWriters, bufferWriter)
 		if usesWrapperForPrivileges {
 			// WARNING
 			fmt.Println("BufferStdout: Privilege evaluation was used. The sudo/pkexec prompt will be buffered too")
@@ -158,7 +161,7 @@ func ExecCommand(config ExecCommandWrapper, name string, arg ...string) (*bytes.
 		stderrWriters = append(stderrWriters, os.Stdout)
 	}
 	if config.BufferStderr {
-		stderrWriters = append(stderrWriters, &stdoutBuf) // reuse buffer if needed
+		stderrWriters = append(stderrWriters, bufferWriter) // reuse buffer if needed
 		if usesWrapperForPrivileges {
 			// WARNING
 			fmt.Println("BufferStderr: Privilege evaluation was used. The sudo/pkexec prompt will be buffered too")
@@ -168,27 +171,28 @@ func ExecCommand(config ExecCommandWrapper, name string, arg ...string) (*bytes.
 		stderrWriters = []io.Writer{io.Discard}
 	}
 
-	// Stream stdout
-	go func() {
-		io.Copy(io.MultiWriter(stdoutWriters...), stdoutPipe)
-	}()
+	// Create pipes
+	cmd.Stdout = io.MultiWriter(stdoutWriters...)
+	cmd.Stderr = io.MultiWriter(stderrWriters...)
 
-	// Stream stderr
-	go func() {
-		io.Copy(io.MultiWriter(stderrWriters...), stderrPipe)
-	}()
-
-	// Wait for the command to finish
-	if err := cmd.Wait(); err != nil {
-		if config.ThrowExitCodeError {
-			return nil, fmt.Errorf("ExecCommand error command: %w", err)
-		}
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			return &stdoutBuf, nil
-		}
-		return nil, fmt.Errorf("ExecCommand error command: %w", err)
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("ExecCommand error start: %w", err)
 	}
 
-	return &stdoutBuf, nil
+	cmdErr := cmd.Wait()
+
+	// Wait for the command to finish
+	if cmdErr != nil {
+		if config.ThrowExitCodeError {
+			return nil, fmt.Errorf("ExecCommand error command: %w", cmdErr)
+		}
+		var exitError *exec.ExitError
+		if errors.As(cmdErr, &exitError) {
+			return &rawBuffer, nil
+		}
+		return nil, fmt.Errorf("ExecCommand error command: %w", cmdErr)
+	}
+
+	return &rawBuffer, nil
 }

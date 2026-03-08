@@ -4,15 +4,16 @@ import (
 	"flag"
 	"fmt"
 	// "os"
+
+	"github.com/toliak/mce/inspector"
 )
 
 type Args struct {
-	CheckOnly    bool
-	CheckDisable bool
-	HarvestOnly  bool
-	InstallDir   string
-	Template     string
-	Verbosity    int
+	InspectorConfig   inspector.InspectAndHarvestConfig
+
+	InstallDir        string
+	Template          string
+	Verbosity         int
 }
 
 func ParseArgs(args []string) (*Args, error) {
@@ -22,15 +23,17 @@ func ParseArgs(args []string) (*Args, error) {
 		return nil, fmt.Errorf("No available templates")
 	}
 
-	checkOnly := flag.Bool("check-only", false, "Run check only")
-	checkDisable := flag.Bool("check-disable", false, "Disable check")
-	harvestOnly := flag.Bool("harvest-only", false, "Run harvest only. And print the harvested information in the JSON format")
+	checkEnable := flag.Bool("check-enable", true, "Enable platform check")
+	harvestEnable := flag.Bool("harvest-enable", true, "Enable harvesting the OS information")
+	pkgManagerUpdateEnable := flag.Bool("repo-update-enable", true, "Update the package manager repositories metadata (may require privilege evaluation)")
+	pkgManagerGetAvailablePackagesEnable := flag.Bool("repo-packages-enable", true, "Obtain all the available packages from the package manager")
+
 	installDir := flag.String("install-dir", "", "Installation directory")
 
 	var template *string = nil
 	flag.Func(
-		"template", 
-		fmt.Sprintf("Package template (one of: %v)", availableTemplates), 
+		"template",
+		fmt.Sprintf("Selected Tegns template (one of: %v)", availableTemplates),
 		func(s string) error {
 			for _, t := range availableTemplates {
 				if s == t {
@@ -68,9 +71,12 @@ func ParseArgs(args []string) (*Args, error) {
 
 	// Return parsed arguments
 	return &Args{
-		CheckOnly:    *checkOnly,
-		CheckDisable: *checkDisable,
-		HarvestOnly:  *harvestOnly,
+		InspectorConfig: inspector.InspectAndHarvestConfig{
+			Check: *checkEnable,
+			Harvest: *harvestEnable,
+			PkgManagerUpdate: *pkgManagerUpdateEnable,
+			PkgManagerGetAvailablePackages: *pkgManagerGetAvailablePackagesEnable,
+		},
 		InstallDir:   *installDir,
 		Template:     *template,
 		Verbosity:    *verbosity,
