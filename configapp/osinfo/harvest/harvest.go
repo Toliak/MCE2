@@ -1,4 +1,4 @@
-package osinfo
+package harvest
 
 import (
 	"runtime"
@@ -18,3 +18,17 @@ func harvestOSType() data.OSType {
 	return data.ParseOsType(raw)
 }
 
+func HarvestOSInfo() data.OSInfo {
+	distrib := harvestDistrib()
+
+	return data.NewOsInfo(
+		data.WithArch(harvestCPUArch()),
+		data.WithOSType(harvestOSType()),
+		data.WithPkgManager(
+			harvestPkgManager(&distrib),
+		),
+		data.WithSysLib(harvestSysLib()),
+		// data.WithKernelVersion(),
+		data.WithDistrib(distrib),
+	)
+}

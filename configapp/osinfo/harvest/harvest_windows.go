@@ -1,4 +1,4 @@
-package osinfo
+package harvest
 
 import (
 	"os"

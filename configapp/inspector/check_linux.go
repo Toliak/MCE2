@@ -1,9 +1,11 @@
-package osinfo
+package inspector
 
 import (
 	"fmt"
 	"syscall"
 	"time"
+
+	"github.com/toliak/mce/platform"
 )
 
 func isPseudoFsMounted(path string, magic int64) bool {
@@ -30,7 +32,7 @@ func isSysMounted() bool {
 }
 
 func isPriviledgedModeAvailable() bool {
-	if IsRoot() {
+	if platform.IsRoot() {
 		fmt.Println("Running the app as root is not recommended")
 		time.Sleep(500 * time.Millisecond)
 		return true
@@ -38,14 +40,15 @@ func isPriviledgedModeAvailable() bool {
 
 	// TODO: sync that check with the platform/execwrap/ExecCommand
 	// cache maybe or something like that
-	if CommandExists("sudo") || CommandExists("pkexec") {
+	if platform.CommandExists("sudo") || platform.CommandExists("pkexec") {
 		return true
 	}
 
 	return false
 }
 
-func CheckPlatform() (bool, []string) {
+// main function for the check_*.go
+func checkPlatform() (bool, []string) {
 	errors := make([]string, 0)
 
 	if !isProcMounted() {

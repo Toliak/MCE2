@@ -1,18 +1,18 @@
-
-package osinfo
+package harvest
 
 import (
 	"os/exec"
 	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
+	"github.com/toliak/mce/platform"
 )
 
 // Returns false, if nothing found. True -- if found.
 func detectPkgManagerByBinary() (data.PkgManager, bool) {
 	// Darwin package managers
 	switch {
-	case commandExists("brew"):
+	case platform.CommandExists("brew"):
 		return data.NewPkgManager(data.PkgMgrBrew, "brew"), true
 	// For now we do support only the brew pkg manager
 	// case commandExists("port"):
@@ -29,8 +29,8 @@ func detectPkgManagerByBinary() (data.PkgManager, bool) {
 func detectPkgManagerByOsVersion() (data.PkgManager, bool) {
 	// Check for common Darwin package manager paths
 	switch {
-	case fileExists("/opt/homebrew/bin/brew") || fileExists("/usr/local/bin/brew") || fileExists("/home/linuxbrew/.linuxbrew/bin/brew"):
-		if commandExists("brew") {
+	case platform.FileExists("/opt/homebrew/bin/brew") || platform.FileExists("/usr/local/bin/brew") || platform.FileExists("/home/linuxbrew/.linuxbrew/bin/brew"):
+		if platform.CommandExists("brew") {
 			return data.NewPkgManager(data.PkgMgrBrew, "brew"), true
 		}
 	// case fileExists("/opt/local/bin/port"):

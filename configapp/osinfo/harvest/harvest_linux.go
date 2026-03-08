@@ -1,4 +1,4 @@
-package osinfo
+package harvest
 
 import (
 	"os"
@@ -7,24 +7,25 @@ import (
 	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
+	"github.com/toliak/mce/platform"
 )
 
 // Returns false, if nothing found. True -- if found.
 func detectPkgManagerByBinary() (data.PkgManager, bool) {
 	// Fallback: check for binaries
 	switch {
-	case CommandExists("apt-get") && CommandExists("apt-cache"):
+	case platform.CommandExists("apt-get") && platform.CommandExists("apt-cache"):
 		// Do not trust without `apt-cache` because we have to search packages in some tasks
 		return data.NewPkgManager(data.PkgMgrAptGet, "apt-get"), true
-	case CommandExists("apk"):
+	case platform.CommandExists("apk"):
 		return data.NewPkgManager(data.PkgMgrApk, "apk"), true
-	case CommandExists("dnf"):
+	case platform.CommandExists("dnf"):
 		return data.NewPkgManager(data.PkgMgrDnf, "dnf"), true
-	case CommandExists("microdnf"):
+	case platform.CommandExists("microdnf"):
 		return data.NewPkgManager(data.PkgMgrMicroDnf, "microdnf"), true
-	case CommandExists("yum"):
+	case platform.CommandExists("yum"):
 		return data.NewPkgManager(data.PkgMgrYum, "yum"), true
-	case CommandExists("pacman"):
+	case platform.CommandExists("pacman"):
 		return data.NewPkgManager(data.PkgMgrPacman, "pacman"), true
 	default:
 		return data.PkgManagerUnknown(), false
@@ -36,41 +37,41 @@ func detectPkgManagerByBinary() (data.PkgManager, bool) {
 func detectPkgManagerByOsVersion(d *data.Distrib) (data.PkgManager, bool) {
 	// Distribution-based detection
 	switch {
-	case d.Id == "alpine" || slices.Contains(d.IdLike, "alpine") || FileExists("/etc/alpine-release"):
-		if !CommandExists("apk") {
+	case d.Id == "alpine" || slices.Contains(d.IdLike, "alpine") || platform.FileExists("/etc/alpine-release"):
+		if !platform.CommandExists("apk") {
 			break
 		}
 		return data.NewPkgManager(data.PkgMgrApk, "apk"), true
-	case d.Id == "arch" || d.Id == "manjaro" || slices.Contains(d.IdLike, "arch") || FileExists("/etc/pacman.conf"):
-		if !CommandExists("pacman") {
+	case d.Id == "arch" || d.Id == "manjaro" || slices.Contains(d.IdLike, "arch") || platform.FileExists("/etc/pacman.conf"):
+		if !platform.CommandExists("pacman") {
 			break
 		}
 		return data.NewPkgManager(data.PkgMgrPacman, "pacman"), true
-	case d.Id == "ubuntu" || d.Id == "debian" || slices.Contains(d.IdLike, "debian") || FileExists("/etc/apt/sources.list"):
-		if !CommandExists("apt-cache") {
+	case d.Id == "ubuntu" || d.Id == "debian" || slices.Contains(d.IdLike, "debian") || platform.FileExists("/etc/apt/sources.list"):
+		if !platform.CommandExists("apt-cache") {
 			break;
 		}
 
-		if CommandExists("apt-get") {
+		if platform.CommandExists("apt-get") {
 			return data.NewPkgManager(data.PkgMgrAptGet, "apt-get"), true
 		}
-		if CommandExists("apt") {
+		if platform.CommandExists("apt") {
 			return data.NewPkgManager(data.PkgMgrAptGet, "apt"), true
 		}
 	case d.Id == "fedora" ||
 		slices.Contains(d.IdLike, "fedora") ||
-		FileExists("/etc/dnf/dnf.conf") ||
+		platform.FileExists("/etc/dnf/dnf.conf") ||
 		slices.Contains(d.IdLike, "rhel") ||
 		slices.Contains(d.IdLike, "centos") ||
-		FileExists("/etc/yum.conf"):
+		platform.FileExists("/etc/yum.conf"):
 
-		if CommandExists("dnf") {
+		if platform.CommandExists("dnf") {
 			return data.NewPkgManager(data.PkgMgrDnf, "dnf"), true
 		}
-		if CommandExists("microdnf") {
+		if platform.CommandExists("microdnf") {
 			return data.NewPkgManager(data.PkgMgrMicroDnf, "microdnf"), true
 		}
-		if CommandExists("yum") {
+		if platform.CommandExists("yum") {
 			return data.NewPkgManager(data.PkgMgrYum, "yum"), true
 		}
 	}
@@ -150,7 +151,7 @@ func harvestSysLib() data.SysLib {
 
 func harvestDistrib() data.Distrib {
 	if f, err := os.Open("/etc/os-release"); err == nil {
-		props := parseKeyValueFile(f)
+		props := platform.ParseKeyValueFile(f)
 		f.Close()
 
 		id := strings.ToLower(props["ID"])

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type OsInfo struct {
+type OSInfo struct {
 	Arch CPUArch 				`json:"arch"`
 	OsType OSType				`json:"osType"`
 	PkgManager PkgManager		`json:"pkgManager"`
@@ -16,26 +16,26 @@ type OsInfo struct {
 // ---------- Functional Options ----------
 
 // OsInfoOption defines a functional option for configuring OsInfo.
-type OsInfoOption func(*OsInfo)
+type OsInfoOption func(*OSInfo)
 
 // WithArch sets the CPU architecture.
 func WithArch(a CPUArch) OsInfoOption {
-	return func(o *OsInfo) { o.Arch = a }
+	return func(o *OSInfo) { o.Arch = a }
 }
 
 // WithOSType sets the operating system type.
 func WithOSType(t OSType) OsInfoOption {
-	return func(o *OsInfo) { o.OsType = t }
+	return func(o *OSInfo) { o.OsType = t }
 }
 
 // WithPkgManager sets the package manager.
 func WithPkgManager(p PkgManager) OsInfoOption {
-	return func(o *OsInfo) { o.PkgManager = p }
+	return func(o *OSInfo) { o.PkgManager = p }
 }
 
 // WithSysLib sets the system library information.
 func WithSysLib(l SysLib) OsInfoOption {
-	return func(o *OsInfo) { o.SysLib = l }
+	return func(o *OSInfo) { o.SysLib = l }
 }
 
 // WithKernelVersion sets the kernel version.
@@ -45,14 +45,14 @@ func WithSysLib(l SysLib) OsInfoOption {
 
 // WithDistrib sets the distribution name.
 func WithDistrib(d Distrib) OsInfoOption {
-	return func(o *OsInfo) { o.Distrib = d }
+	return func(o *OSInfo) { o.Distrib = d }
 }
 
 // ---------- Constructor ----------
 
 // NewOsInfo creates a new OsInfo applying any number of functional options.
-func NewOsInfo(opts ...OsInfoOption) OsInfo {
-	info := OsInfo{}
+func NewOsInfo(opts ...OsInfoOption) OSInfo {
+	info := OSInfo{}
 	for _, opt := range opts {
 		opt(&info)
 	}
@@ -62,7 +62,7 @@ func NewOsInfo(opts ...OsInfoOption) OsInfo {
 // ---------- Stringer Interfaces ----------
 
 // String returns a human‑readable representation of OsInfo.
-func (o *OsInfo) String() string {
+func (o *OSInfo) String() string {
 	return fmt.Sprintf(
 		"%s (%s) – %s, pkg manager %s, sys lib %s",
 		o.Distrib.String(),
@@ -75,7 +75,7 @@ func (o *OsInfo) String() string {
 }
 
 // GoString returns a Go‑syntax representation of OsInfo.
-func (o *OsInfo) GoString() string {
+func (o *OSInfo) GoString() string {
 	return fmt.Sprintf(
 		"&OsInfo{arch: %#v, pkgManager: %#v, sysLib: %#v, osType: %#v, distrib: %#v}",
 		o.Arch,
