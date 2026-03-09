@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/toliak/mce/osinfo/data"
-	"golang.org/x/sys/windows"
+	"github.com/toliak/mce/platform"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -33,15 +33,15 @@ func detectPkgManagerByBinary() (data.PkgManager, bool) {
 		filepath.Join(userProfile, "scoop", "shims"),         // Scoop
 	}
 
-	if commandExistsInPaths("winget.exe", paths) || commandExists("winget.exe") {
+	if commandExistsInPaths("winget.exe", paths) || platform.CommandExists("winget.exe") {
 		return data.NewPkgManager(data.PkgMgrWinget, "winget"), true
 	}
 	
-	// if commandExistsInPaths("choco.exe", paths) || commandExists("choco.exe") {
+	// if commandExistsInPaths("choco.exe", paths) || platform.CommandExists("choco.exe") {
 	// 	return data.NewPkgManager(PkgMgrChoco, "choco"), true
 	// }
 	
-	if commandExistsInPaths("scoop.exe", paths) || commandExists("scoop.exe") {
+	if commandExistsInPaths("scoop.exe", paths) || platform.CommandExists("scoop.exe") {
 		return data.NewPkgManager(data.PkgMgrScoop, "scoop"), true
 	}
 	

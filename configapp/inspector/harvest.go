@@ -77,7 +77,7 @@ func InspectAndHarvest(options InspectAndHarvestConfig) (*HarvestData, error) {
 			fmt.Println("PkgManager repository metadata update will be skipped, due to the absence of the Harvested OSInfo")
 		} else {
 			if osInfo.PkgManager.V == data.PkgMgrUnknown {
-				fmt.Println("PkgManager repository metadata update will be skipped, due to the unknown PkgManager %s", osInfo.PkgManager)
+				fmt.Printf("PkgManager repository metadata update will be skipped, due to the unknown PkgManager %s\n", osInfo.PkgManager)
 			} else {
 				err := platform.UpdateRepositories(&osInfo.PkgManager)
 				if err != nil {
@@ -88,12 +88,12 @@ func InspectAndHarvest(options InspectAndHarvestConfig) (*HarvestData, error) {
 	}
 
 	var availablePackages *[]string
-	if options.PkgManagerUpdate {
+	if options.PkgManagerGetAvailablePackages {
 		if osInfo == nil {
 			fmt.Println("PkgManager available packages obtaining will be skipped, due to the absence of the Harvested OSInfo")
 		} else {
 			if osInfo.PkgManager.V == data.PkgMgrUnknown {
-				fmt.Println("PkgManager available packages obtaining will be skipped, due to the unknown PkgManager %s", osInfo.PkgManager)
+				fmt.Printf("PkgManager available packages obtaining will be skipped, due to the unknown PkgManager %s\n", osInfo.PkgManager)
 			} else {
 				v, err := platform.GetAvailablePackages(&osInfo.PkgManager)
 				if err != nil {
