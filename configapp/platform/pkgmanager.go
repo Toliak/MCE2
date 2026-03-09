@@ -40,8 +40,10 @@ func UpdateRepositories(info *data.PkgManager) error {
 		return execCommandUpdate(info.Raw, "update", "-y", "--allow-releaseinfo-change")
 	case data.PkgMgrApk:
 		return execCommandUpdate(info.Raw, "update")
-	case data.PkgMgrDnf, data.PkgMgrMicroDnf, data.PkgMgrYum:
+	case data.PkgMgrDnf, data.PkgMgrMicroDnf:
 		return execCommandUpdate(info.Raw, "makecache", "--refresh")
+	case data.PkgMgrYum:
+		return execCommandUpdate(info.Raw, "makecache")
 	case data.PkgMgrPacman:
 		return execCommandUpdate(info.Raw, "-Syy")
 	case data.PkgMgrBrew, data.PkgMgrWinget, data.PkgMgrScoop:
