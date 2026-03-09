@@ -10,6 +10,13 @@ type Tegn interface {
 	GetParameters() []TegnParameter
 
 	SetParameter(name string, value string) error
+
+	// The features parameter contains features provided 
+	// by previously selected Tegns (according to installation order).
+	SetContextFeatures(features []string)
+
+	// Returns the features provided by this Tegn.
+	GetFeatures() []string
 }
 
 type TegnBuildFunc func(data TegnBuilderData) Tegn

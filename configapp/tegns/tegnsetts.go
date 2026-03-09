@@ -5,15 +5,13 @@ import (
 	"github.com/toliak/mce/tegns/tegnsett"
 )
 
-var Tegnsetts = []tegnbuilder.TegnsettBuildFunc {
+var Tegnsetts = []tegnbuilder.TegnsettBuildFunc{
 	tegnsett.NewOuterOSPackages(AllPkgConstructors),
-}
-
-func InitializeAllTegnsetts(tegnsetts []tegnbuilder.TegnsettBuildFunc, data tegnbuilder.TegnBuilderData) []tegnbuilder.Tegnsett {
-	result := make([]tegnbuilder.Tegnsett, len(tegnsetts))
-	for i, v := range tegnsetts {
-		result[i] = v(data)
-	}
-
-	return result
+	tegnsett.NewOuterGeneralTegnsett(
+		"zsh-config",
+		"zsh-config",
+		"zsh-config",
+		[]string{"os-packages"},
+		AllZshConfig,
+	),
 }

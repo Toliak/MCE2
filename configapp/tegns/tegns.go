@@ -7,7 +7,12 @@ import (
 
 // Register packages here
 var AllPkgConstructors = []tegnbuilder.TegnBuildFunc{
-	tegn.NewPkgLinuxPackages,
+	tegn.NewTegnLinuxPackages,
+}
+
+// Register packages here
+var AllZshConfig = []tegnbuilder.TegnBuildFunc{
+	tegn.NewTegnZshBaseConfig,
 }
 
 // We need categories here

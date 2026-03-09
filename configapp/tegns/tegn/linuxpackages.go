@@ -9,18 +9,18 @@ import (
 	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
-	"github.com/toliak/mce/tegnbuilder"
+	tb "github.com/toliak/mce/tegnbuilder"
 )
 
 type LinuxPackages struct {
-	info tegnbuilder.TegnBuilderData
+	info tb.TegnBuilderData
 	
 	packageParams map[string]bool
 }
 
-var _ tegnbuilder.Tegn = (*LinuxPackages)(nil)
+var _ tb.Tegn = (*LinuxPackages)(nil)
 
-func NewPkgLinuxPackages(info tegnbuilder.TegnBuilderData) tegnbuilder.Tegn {
+func NewTegnLinuxPackages(info tb.TegnBuilderData) tb.Tegn {
 	defaultPackages := []string {
 		"git",
 		"zsh",
@@ -44,13 +44,15 @@ func NewPkgLinuxPackages(info tegnbuilder.TegnBuilderData) tegnbuilder.Tegn {
 		packageParams[v] = false
 	}
 
+	// features []string
+
 	return &LinuxPackages{
 		info: info,
 		packageParams: packageParams,
 	}
 }
 
-var _ tegnbuilder.TegnBuildFunc = NewPkgLinuxPackages
+var _ tb.TegnBuildFunc = NewTegnLinuxPackages
 
 // GetID implements [tegnbuilder.Tegn].
 func (p *LinuxPackages) GetID() string {
@@ -80,8 +82,8 @@ func (p *LinuxPackages) GetAvailableOsType() *[]data.OSTypeE {
 }
 
 // GetAvailability implements [tegnbuilder.Tegn].
-func (p *LinuxPackages) GetAvailability(features []string) tegnbuilder.TegnAvailability {
-	return tegnbuilder.TegnAvailability{
+func (p *LinuxPackages) GetAvailability() tb.TegnAvailability {
+	return tb.TegnAvailability{
 		Available: p.info.PkgManager.V != data.PkgMgrUnknown,
 		Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
 	}
@@ -107,19 +109,19 @@ func (p *LinuxPackages) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tegnbuilder.Tegn].
-func (p *LinuxPackages) GetParameters() []tegnbuilder.TegnParameter {
-	result := make([]tegnbuilder.TegnParameter, 0, len(p.packageParams))
+func (p *LinuxPackages) GetParameters() []tb.TegnParameter {
+	result := make([]tb.TegnParameter, 0, len(p.packageParams))
 	for k, v := range p.packageParams {
-		result = append(result, tegnbuilder.TegnParameter {
-			Name: k,
-			Description: k,
-			Value: tegnbuilder.TegnParameterFromBool(v),
-			ParamType: tegnbuilder.TegnParameterTypeBool,
-			Available: tegnbuilder.NewTegnAvailable(),
-		})
+		result = append(result, tb.NewTegnParameter(
+			k,
+			tb.TegnParameterTypeBool,
+			tb.WithDescription(k),
+			tb.WithValue(tb.TegnParameterFromBool(v)),
+			tb.WithAvailabilityTrue(),
+		))
 	}
 
-	slices.SortFunc(result, func(tp1, tp2 tegnbuilder.TegnParameter) int {
+	slices.SortFunc(result, func(tp1, tp2 tb.TegnParameter) int {
 		return strings.Compare(tp1.Name, tp2.Name)
 	})
 	return result
@@ -131,6 +133,10 @@ func (p *LinuxPackages) SetParameter(name string, value string) error {
 		return nil
 	}
 
-	p.packageParams[name] = tegnbuilder.TegnParameterToBool(value)
+	p.packageParams[name] = tb.TegnParameterToBool(value)
 	return nil
 }
+
+
+// GetFeatures implements [tegnbuilder.Tegn].
+func (p *LinuxPackages) SetContextFeatures(features []string) {}

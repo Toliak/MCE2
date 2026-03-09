@@ -6,6 +6,7 @@ package tegnbuilder
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/toliak/mce/osinfo/data"
 )
@@ -26,19 +27,76 @@ func NewTegnAvailable() TegnAvailability {
 	}
 }
 
+// Returns the TegnAvailability with the Available=true
+func NewTegnNotAvailable(reason string) TegnAvailability {
+	return TegnAvailability {
+		Available: false,
+		Reason: reason,
+	}
+}
+
+type TegnParameterOption func(*TegnParameter)
+
 // Represents a parameter specification for a Tegn.
 type TegnParameter struct {
 	Name string
 	Description string
 
 	// Current parameter value.
-	Value string
+	value string
 
 	// Parameter's data type.
 	ParamType TegnParameterType
 
 	// Indicates the availability and contains the reason, if not available.
 	Available TegnAvailability
+}
+
+func NewTegnParameter(name string, paramType TegnParameterType, opts ...TegnParameterOption) TegnParameter{
+	p := TegnParameter{
+		Name:        name,
+		ParamType: paramType,
+	}
+	for _, opt := range opts {
+		opt(&p)
+	}
+
+	return p
+}
+
+// WithValue sets the private value field.
+func WithValue(val string) TegnParameterOption {
+	return func(p *TegnParameter) {
+		p.value = val
+	}
+}
+
+// WithAvailability sets the availability status.
+func WithAvailability(available TegnAvailability) TegnParameterOption {
+	return func(p *TegnParameter) {
+		p.Available = available
+	}
+}
+
+// WithAvailability sets the availability status.
+func WithAvailabilityTrue() TegnParameterOption {
+	return func(p *TegnParameter) {
+		p.Available = NewTegnAvailable()
+	}
+}
+
+// WithAvailability sets the availability status.
+func WithAvailabilityFalse(reason string) TegnParameterOption {
+	return func(p *TegnParameter) {
+		p.Available = NewTegnNotAvailable(reason)
+	}
+}
+
+// WithDescription overrides the description (useful if you want to set it optionally).
+func WithDescription(desc string) TegnParameterOption {
+	return func(p *TegnParameter) {
+		p.Description = desc
+	}
 }
 
 // Data type of a TegnParameter.
@@ -76,7 +134,7 @@ func TegnParameterFromInt(v int) string {
 }
 
 func (p *TegnParameter) ToBool() bool {
-	return TegnParameterToBool(p.Value)
+	return TegnParameterToBool(p.value)
 }
 
 func TegnParameterToBool(s string) bool {
@@ -84,13 +142,17 @@ func TegnParameterToBool(s string) bool {
 }
 
 func (p *TegnParameter) ToInt(fallback int) int {
-	return TegnParameterToInt(p.Value, fallback)
+	return TegnParameterToInt(p.value, fallback)
+}
+
+func (p *TegnParameter) GetValue() string {
+	return p.value
 }
 
 func TegnParameterToInt(s string, fallback int) int {
 	var result *int
 	_, err := fmt.Sscanf(s, "%d", result)
-	if err != nil {
+	if err != nil || result == nil {
 		return fallback
 	}
 
@@ -119,16 +181,38 @@ type TegnGeneral interface {
 	GetAvailableCPUArch() *[]data.CPUArchE
 
 	// Checks whether this Tegn is available for installation.
-	// The features parameter contains features provided 
-	// by previously selected Tegns (according to installation order).
-	GetAvailability(features []string) TegnAvailability
-
-	// Returns the features provided by this Tegn.
-	// For Tegnsett, returns features provided by all child Tegns.
-	GetFeatures() []string
+	//
+	// In Tegnsett the method must not accumulate the children data!
+	GetAvailability() TegnAvailability
 
 	// Returns IDs of Tegns that must be installed before this one.
 	// Only IDs from the same category take effect; IDs from other categories
 	// are ignored.
 	GetBeforeIDs() []string
+}
+
+func GetTegnGeneralAvailable(obj TegnGeneral, osInfo data.OSInfo) TegnAvailability {
+	cpu := obj.GetAvailableCPUArch()
+	if cpu != nil {
+		if !slices.ContainsFunc(*cpu, func(v data.CPUArchE) bool {
+			return v == osInfo.Arch.V
+		}) {
+			return NewTegnNotAvailable(
+				fmt.Sprintf("Not available for the CPU Arch %v", osInfo.Arch),
+			)
+		}
+	}
+
+	osType := obj.GetAvailableOsType()
+	if osType != nil {
+		if !slices.ContainsFunc(*osType, func(v data.OSTypeE) bool {
+			return v == osInfo.OsType.V
+		}) {
+			return NewTegnNotAvailable(
+				fmt.Sprintf("Not available for the OS Type %v", osInfo.OsType),
+			)
+		}
+	}
+
+	return obj.GetAvailability()
 }

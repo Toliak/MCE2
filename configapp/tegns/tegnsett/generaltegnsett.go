@@ -8,22 +8,37 @@ import (
 	"github.com/toliak/mce/tegnbuilder"
 )
 
-type OSPackages struct {
+type GeneralTegnsett struct {
 	info     tegnbuilder.TegnBuilderData
+
+	id string
+	name string
+	description string
+	beforeIDs []string
+
 	children []tegnbuilder.Tegn
 }
 
-var _ tegnbuilder.Tegnsett = (*OSPackages)(nil)
+var _ tegnbuilder.Tegnsett = (*GeneralTegnsett)(nil)
 
-func NewOSPackages(info tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
-	return &OSPackages{
+func NewGeneralTegnsett(info tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
+	return &GeneralTegnsett{
 		info: info,
 	}
 }
 
-func NewOuterOSPackages(children []tegnbuilder.TegnBuildFunc) tegnbuilder.TegnsettBuildFunc {
+func NewOuterGeneralTegnsett(
+	id, name, description string,
+	beforeIDs []string,
+	children []tegnbuilder.TegnBuildFunc,
+) tegnbuilder.TegnsettBuildFunc {
 	return func(data tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
-		v := NewOSPackages(data).(*OSPackages)
+		v := NewGeneralTegnsett(data).(*GeneralTegnsett)
+		v.id = id
+		v.name = name
+		v.description = description
+		v.beforeIDs = beforeIDs
+
 		v.children = make([]tegnbuilder.Tegn, len(children))
 		for i, child := range children {
 			v.children[i] = child(data)
@@ -33,36 +48,36 @@ func NewOuterOSPackages(children []tegnbuilder.TegnBuildFunc) tegnbuilder.Tegnse
 	}
 }
 
-var _ tegnbuilder.TegnsettBuildFunc = NewOSPackages
-// var _ tegnbuilder.TegnsettOuterBuildFunc = NewOuterOSPackages
+var _ tegnbuilder.TegnsettBuildFunc = NewGeneralTegnsett
+// var _ tegnbuilder.TegnsettOuterBuildFunc = NewOuterGeneralTegnsett
 
 // GetID implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetID() string {
-	return "os-packages"
+func (p *GeneralTegnsett) GetID() string {
+	return p.id
 }
 
 // GetName implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetName() string {
-	return "os-packages"
+func (p *GeneralTegnsett) GetName() string {
+	return p.name
 }
 
 // GetDescription implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetDescription() string {
-	return "os-packages"
+func (p *GeneralTegnsett) GetDescription() string {
+	return p.description
 }
 
 // GetAvailableCPUArch implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetAvailableCPUArch() *[]data.CPUArchE {
+func (p *GeneralTegnsett) GetAvailableCPUArch() *[]data.CPUArchE {
 	return nil
 }
 
 // GetAvailableOsType implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetAvailableOsType() *[]data.OSTypeE {
+func (p *GeneralTegnsett) GetAvailableOsType() *[]data.OSTypeE {
 	return nil
 }
 
 // GetAvailability implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetAvailability() tegnbuilder.TegnAvailability {
+func (p *GeneralTegnsett) GetAvailability() tegnbuilder.TegnAvailability {
 	return tegnbuilder.TegnAvailability{
 		Available: p.info.PkgManager.V != data.PkgMgrUnknown,
 		Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
@@ -70,7 +85,7 @@ func (p *OSPackages) GetAvailability() tegnbuilder.TegnAvailability {
 }
 
 // GetFeatures implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetFeatures() []string {
+func (p *GeneralTegnsett) GetFeatures() []string {
 	// result := make([]string, 0)
 	// for _, child := range p.children {
 	// 	result = append(result, child.GetFeatures()...)
@@ -80,16 +95,16 @@ func (p *OSPackages) GetFeatures() []string {
 }
 
 // GetBeforeIDs implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetBeforeIDs() []string {
-	return make([]string, 0)
+func (p *GeneralTegnsett) GetBeforeIDs() []string {
+	return p.beforeIDs
 }
 
 // GetChildren implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetChildren() []tegnbuilder.Tegn {
+func (p *GeneralTegnsett) GetChildren() []tegnbuilder.Tegn {
 	return p.children
 }
 
-func (p *OSPackages) GoString() string {
+func (p *GeneralTegnsett) GoString() string {
 	children := make([]map[string]any, len(p.children))
 	for i, v := range p.children {
 		children[i] = map[string]any{
