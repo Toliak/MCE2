@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/toliak/mce/cmd/mce/ui"
 	"github.com/toliak/mce/inspector"
-	"github.com/toliak/mce/tegnbuilder"
+	tb "github.com/toliak/mce/tegnbuilder"
 	"github.com/toliak/mce/tegns"
 )
 
@@ -38,34 +39,65 @@ func mainInternal() error {
 		availablePackages = *harvestData.AvailableManagerPackages
 	}
 
-	builderData := tegnbuilder.TegnBuilderData {
+	builderData := tb.TegnBuilderData {
 		OSInfo: *harvestData.OSInfo,
 		AvailableManagerPackages: availablePackages,
 	}
 
-	tegnsetts := tegns.InitializeAllTegnsetts(
+	tegnsetts, err := tb.InitializeAllTegnsetts(
 		tegns.Tegnsetts,
 		builderData,
 	)
+	if err != nil {
+		return err
+	}
+	initResult := *tegnsetts
 
-	// TODO: initialize Tegns
+	// Just check that we do not have errors
+	_, err = tb.GetTegnsettsOrder(initResult.TegnsettByID)
+	if err != nil {
+		return err
+	}
 
-	// Tegn -- package
-	// Tegnsett -- category
+	app := ui.NewApp(initResult, harvestData)
+
+	for k, v := range DefaultEnables {
+		_, ok := app.State.EnabledIDsMap[k]
+		if !ok {
+			fmt.Println("")
+			continue
+		}
+
+		app.State.EnabledIDsMap[k] = v
+	}
+
+	// TODO: if any errors -- prompt before continue
+	
+	err = app.Run()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("App: %#v\n", app)
 
 	// fmt.Printf("%#v\n", tegnsetts)
 
-	tegnsettsObjs := make([]map[string]any, len(tegnsetts))
-	for i, tegnsett := range tegnsetts {
+	// err = RunTUI(tegnsetts, builderData)
+	// if err != nil {
+	// 	return err
+	// }
+
+	tegnsettsObjs := make([]map[string]any, 0, len(initResult.TegnsettByID))
+	for id, tegnsett := range initResult.TegnsettByID {
 		children := tegnsett.GetChildren()
 		childrenObjs := make([]map[string]any, len(children))
-		for j, v := range tegnsett.GetChildren() {
+		for j, v := range children {
 			params := v.GetParameters()
 			paramsObjs := make([]map[string]any, len(params))
 			for i, v := range params {
 				paramsObjs[i] = map[string]any {
 					"name": v.Name,
-					"value": v.Value,
+					"value": v.GetValue(),
 					"type": v.ParamType.String(),
 				}
 			}
@@ -77,15 +109,16 @@ func mainInternal() error {
 			}
 		}
 
-		tegnsettsObjs[i] = map[string]any{
-			"id":       tegnsett.GetID(),
+		tegnsettsObjs = append(tegnsettsObjs, map[string]any{
+			"id":       id,
 			"name":     tegnsett.GetName(),
-			"features": tegnsett.GetFeatures(),
 			"children": childrenObjs,
-		}
+		})
 	}
 
-	marshalled, _ := json.Marshal(tegnsettsObjs)
+	marshalled, _ := json.MarshalIndent(tegnsettsObjs, "", "  ")
+	fmt.Println(string(marshalled))
+	marshalled, _ = json.MarshalIndent(app.State.EnabledIDsMap, "", "  ")
 	fmt.Println(string(marshalled))
 
 	return nil
