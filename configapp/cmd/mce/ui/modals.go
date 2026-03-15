@@ -4,43 +4,19 @@ import (
 	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+
+	tb "github.com/toliak/mce/tegnbuilder"
 )
 
 // NewHelpModal creates a help modal
-func NewHelpModal(state *UIState, app *tview.Application, closer func()) *tview.Form {
-	helpText := `
-[::b]Keyboard Shortcuts[::]
-  [yellow]F1[white] or [yellow]?[white]      - Show this help
-  [yellow]F3[white] or [yellow]/[white]      - Search by ID
-  [yellow]F5[white] or [yellow]Ctrl-X[white] - Confirm selection
-  [yellow]F10[white] or [yellow]Ctrl-C[white]- Exit application
-  [yellow]Space[white]          - Toggle enable/disable
-  [yellow]Enter[white]          - Open item / Edit parameter
-  [yellow]Esc[white]            - Go back
+func NewHelpModal(state *UIState, app *tview.Application, tegnGeneral *tb.TegnGeneral, closer func()) *tview.Flex {
+	var helpText string
 
-[::b]Navigation[::]
-  [yellow]↑/↓[white] or [yellow]j/k[white]   - Navigate list
-  [yellow]Enter[white]          - Select item
-
-[::b]Current View[::]
-`
-	
-	switch state.CurrentView {
-	case ViewTegnsettList:
-		helpText += "  Tegnsett Selector - Choose configuration categories"
-	case ViewTegnList:
-		helpText += fmt.Sprintf("  Tegn List - Configure items in '%s'", state.CurrentTegnsettID)
-	case ViewParameterList:
-		helpText += fmt.Sprintf("  Parameters - Edit settings for '%s'", state.CurrentTegnID)
+	if tegnGeneral == nil {
+		helpText = `No help available`
+	} else {
+		helpText = (*tegnGeneral).GetDescription()
 	}
-	
-	helpText += `
-
-[::b]Legend[::]
-  [green]✓[white] - Enabled
-  [red]○[white] - Disabled
-  [yellow][Params][white] - Has configurable parameters
-`
 	
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
@@ -48,15 +24,26 @@ func NewHelpModal(state *UIState, app *tview.Application, closer func()) *tview.
 		SetWordWrap(true).
 		SetText(helpText)
 
-	// TODO: flex
-	form := tview.NewForm().
-		AddFormItem(textView).
-		AddButton("Close", func() {
-			closer()
-		})
+	textView.SetBackgroundColor(tcell.ColorDarkBlue)
+
+	// button := tview.NewButton("Close").
+	// 	SetSelectedFunc(func() {
+	// 		closer()
+	// 	})
+
+	form := tview.NewFlex().
+		SetDirection(tview.FlexRow)
+
+	form.AddItem(textView, 0, 1, true)
+	// form.AddItem(button, 1, 0, false)
 	
-	form.SetBorder(true).
-		SetTitle("Help").
+	// AddItem(textView).
+	// AddFormItem(textView).
+	// AddButton("Close", func() {
+	// 	closer()
+	// })
+	
+	form.SetTitle("Help").
 		SetBackgroundColor(tcell.ColorDarkBlue).
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			if event.Key() == tcell.KeyEscape {
@@ -65,7 +52,10 @@ func NewHelpModal(state *UIState, app *tview.Application, closer func()) *tview.
 			}
 			return event
 		})
-	
+
+	// textView.Box
+	// form.SetInputCapture()
+
 	return form
 }
 

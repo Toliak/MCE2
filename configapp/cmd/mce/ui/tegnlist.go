@@ -48,20 +48,31 @@ func NewTegnList(
 		list.AddItem(secondaryText, "", 0, func() {
 			// Enter key pressed
 			if canBeOpened {
+				state.SelectionTegnID = list.GetCurrentItem()
 				app.showParameterList(id)
 			}
 		})
 	}
-	
+
+	if sel := state.GetAndResetTegnSelection(); sel != -1 && sel < list.GetItemCount(){
+		list.SetCurrentItem(sel)
+	}
+
 	// Set up key bindings for the list
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyEscape:
+		case tcell.KeyEscape, tcell.KeyLeft:
+			state.SelectionTegnID = list.GetCurrentItem()
 			app.navigateBack()
 			return nil
-		case tcell.KeyEnter:
+		case tcell.KeyEnter, tcell.KeyRight:
 			// Handled by item selection
-			return event
+			index := list.GetCurrentItem()
+			state.SelectionTegnID = index
+			if index < list.GetItemCount() {
+				list.GetItemSelectedFunc(index)()
+			}
+			return nil
 		case tcell.KeyRune:
 			if event.Rune() == ' ' {
 				// Toggle enabled state
@@ -73,9 +84,22 @@ func NewTegnList(
 						state.ToggleID(id)
 
 						// Refresh the list to show updated status
+						state.SelectionTegnID = list.GetCurrentItem()
 						app.showTegnList(tegnsettID)
 					}
 				}
+				return nil
+			}
+			if event.Rune() == '?' {
+				index := list.GetCurrentItem()
+				state.SelectionTegnID = index
+				if index >= 0 && index < len(order) {
+					id := order[index]
+					tegn := state.InitResult.TegnByID[id].(tb.TegnGeneral)
+					app.showHelpModal(&tegn)
+					return nil
+				}
+				app.showHelpModal(nil)
 				return nil
 			}
 		}

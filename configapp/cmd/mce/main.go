@@ -78,6 +78,11 @@ func mainInternal() error {
 		return err
 	}
 
+	if !app.State.ExitConfirmed {
+		// TODO: maybe store the temporary state
+		return nil
+	}
+
 	fmt.Printf("App: %#v\n", app)
 
 	// fmt.Printf("%#v\n", tegnsetts)
@@ -118,8 +123,43 @@ func mainInternal() error {
 
 	marshalled, _ := json.MarshalIndent(tegnsettsObjs, "", "  ")
 	fmt.Println(string(marshalled))
+	fmt.Println("-----------------------------")
 	marshalled, _ = json.MarshalIndent(app.State.EnabledIDsMap, "", "  ")
 	fmt.Println(string(marshalled))
+
+	order, err := tb.GetTegnsettsOrder(initResult.TegnsettByID)
+	if err != nil {
+		return err
+	}
+
+	availability := tb.GetTegnsettsAvailability(
+		*harvestData.OSInfo,
+		*order,
+		initResult.TegnsettByID,
+		initResult.TegnByID,
+		app.State.EnabledIDsMap,
+	)
+
+	to_install := make([]string, 0)
+	for _, id := range order.Tegnsett {
+		tegnList := order.TegnByTegnsettID[id]
+
+		for _, tegn := range tegnList {
+			if !availability[tegn].Available {
+				fmt.Printf("Selected unavailable Tegn '%s', skipped\n", tegn)
+				continue
+			}
+
+			to_install = append(to_install, tegn)
+		}
+	}
+
+	// TODO: split install and the update
+	fmt.Println("----------\nWill be installed:")
+	for _, id := range to_install {
+		fmt.Printf("- %s\n", id)
+	}
+
 
 	return nil
 }

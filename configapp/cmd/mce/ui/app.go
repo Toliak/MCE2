@@ -1,6 +1,8 @@
 package ui
 
 import (
+	// "slices"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/toliak/mce/inspector"
@@ -68,10 +70,10 @@ func (a *App) createButtonBar() *tview.Flex {
 	buttons := tview.NewFlex().SetDirection(tview.FlexColumn)
 	
 	helpBtn := tview.NewButton(" (F1) Help ").
-		SetSelectedFunc(func() { a.showHelpModal() })
+		SetSelectedFunc(func() { a.showHelpModal(nil) })
 	
-	searchBtn := tview.NewButton(" (F3) Search ").
-		SetSelectedFunc(func() { a.showSearchModal() })
+	// searchBtn := tview.NewButton(" (F3) Search ").
+	// 	SetSelectedFunc(func() { a.showSearchModal() })
 	
 	confirmBtn := tview.NewButton(" (F5) Confirm ").
 		SetSelectedFunc(func() { a.showConfirmModal() })
@@ -80,7 +82,7 @@ func (a *App) createButtonBar() *tview.Flex {
 		SetSelectedFunc(func() { a.showExitModal() })
 	
 	buttons.AddItem(helpBtn, 0, 1, false)
-	buttons.AddItem(searchBtn, 0, 1, false)
+	// buttons.AddItem(searchBtn, 0, 1, false)
 	buttons.AddItem(confirmBtn, 0, 1, false)
 	buttons.AddItem(exitBtn, 0, 1, false)
 	
@@ -92,26 +94,31 @@ func (a *App) setupGlobalKeyBindings() {
 	a.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyF1:
-			a.showHelpModal()
+			a.showHelpModal(nil)
 			return nil
-		case tcell.KeyF3:
-			a.showSearchModal()
-			return nil
+		// case tcell.KeyF3:
+		// 	a.showSearchModal()
+		// 	return nil
 		case tcell.KeyF5, tcell.KeyCtrlX:
 			a.showConfirmModal()
 			return nil
 		case tcell.KeyF10, tcell.KeyCtrlC:
+			// names := a.pages.GetPageNames(true)
+			// if slices.Contains(names, "tegnsettList") || slices.Contains(names, "tegnList") || slices.Contains(names, "parameterList") {
+			// 	// TODO: wtf, thats baaad
+			// 	return event
+			// }
 			a.showExitModal()
 			return nil
 		case tcell.KeyRune:
-			if event.Rune() == '?' {
-				a.showHelpModal()
-				return nil
-			}
-			if event.Rune() == '/' {
-				a.showSearchModal()
-				return nil
-			}
+			// if event.Rune() == '?' {
+			// 	a.showHelpModal(nil)
+			// 	return nil
+			// }
+			// if event.Rune() == '/' {
+			// 	a.showSearchModal()
+			// 	return nil
+			// }
 		}
 		return event
 	})
@@ -189,8 +196,8 @@ func (a *App) showParameterList(tegnID string) {
 	a.updateStatusBar()
 }
 
-func (a *App) showHelpModal() {
-	modal := NewHelpModal(a.State, a.app, func () {a.closeModals()})
+func (a *App) showHelpModal(tegnGeneral *tb.TegnGeneral) {
+	modal := NewHelpModal(a.State, a.app, tegnGeneral, func () {a.closeModals()})
 	a.pages.AddPage("helpModal", modal, true, true)
 }
 

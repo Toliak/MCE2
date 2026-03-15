@@ -25,6 +25,10 @@ type UIState struct {
 	CurrentTegnID     string
 	ExitConfirmed     bool
 	ExitError         error
+
+	SelectionTegnsettID  int
+	SelectionTegnID      int
+	SelectionParameterID int
 }
 
 // NewUIState creates a new UI state
@@ -34,6 +38,9 @@ func NewUIState(initResult        tegnbuilder.TegnsettInitializeResult, harvestD
 		HarvestData:        harvestData,
 		EnabledIDsMap:     make(tegnbuilder.EnabledIDsMap),
 		ExitConfirmed:    false,
+		SelectionTegnsettID: -1,
+		SelectionTegnID: -1,
+		SelectionParameterID: -1,
 	}
 	// Initialize maps for each tegnsett
 	for k, _ := range initResult.AllIDsSet {
@@ -46,6 +53,24 @@ func NewUIState(initResult        tegnbuilder.TegnsettInitializeResult, harvestD
 // ToggleTegnsett toggles the enabled state of a tegnsett
 func (s *UIState) ToggleID(id string) {
 	s.EnabledIDsMap[id] = !s.EnabledIDsMap[id]
+}
+
+func (s *UIState) GetAndResetTegnsettSelection() int {
+	result := s.SelectionTegnsettID
+	s.SelectionTegnsettID = -1
+	return result
+}
+
+func (s *UIState) GetAndResetTegnSelection() int {
+	result := s.SelectionTegnID
+	s.SelectionTegnID = -1
+	return result
+}
+
+func (s *UIState) GetAndResetParameterSelection() int {
+	result := s.SelectionParameterID
+	s.SelectionParameterID = -1
+	return result
 }
 
 // SetParameterValue sets a parameter value
