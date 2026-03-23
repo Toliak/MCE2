@@ -2,8 +2,6 @@ package tegnbuilder
 
 import (
 	"fmt"
-
-	"github.com/toliak/mce/osinfo/data"
 )
 
 // Tegnsett represents a group of related Tegns.
@@ -12,9 +10,15 @@ type Tegnsett interface {
 
 	// Returns all child Tegns in this group.
 	GetChildren() []Tegn
+
+	// Post-install stage, after all Tegns (in ths Tegnsett) were installed.
+	// 
+	// The installedTegns contains only installed Tegns from the current Tegnsett.
+	// The "already" includes features that were added by the children Tegns.
+	ExecPostInstall(installedTegns []Tegn, osInfo OSInfoExt, already []TegnFeature, tegnToParams map[string]TegnParameterMap)
 }
 
-type TegnsettBuildFunc func(data TegnBuilderData) Tegnsett
+type TegnsettBuildFunc func() Tegnsett
 // type TegnsettOuterBuildFunc func (children []TegnBuildFunc) TegnsettBuildFunc
 
 type TegnsettInitializeError struct {
@@ -54,13 +58,15 @@ func (d *MapTegnsettByID) GetTegnsetts() []Tegnsett {
 	return result
 }
 
-func InitializeAllTegnsetts(tegnsetts []TegnsettBuildFunc, data TegnBuilderData) (*TegnsettInitializeResult, error) {
+// Initializes all Tegnsetts using their build functions.
+// Also initializes all the children (Tegns).
+func InitializeAllTegnsetts(tegnsetts []TegnsettBuildFunc) (*TegnsettInitializeResult, error) {
 	tegnsettByID := make(map[string]Tegnsett, len(tegnsetts))
 	tegnByID := make(map[string]Tegn /*probably capacity*/, len(tegnsetts))
 	allIDsSet := make(map[string]struct{} /*probably capacity*/, len(tegnsetts)*2)
 
 	for _, v := range tegnsetts {
-		tegnsett := v(data)
+		tegnsett := v()
 		tegnsettID := tegnsett.GetID()
 		if _, ok := allIDsSet[tegnsettID]; ok {
 			return nil, &TegnsettInitializeError{
@@ -130,25 +136,22 @@ func GetTegnsettsOrder(tegnsettByID MapTegnsettByID) (*TegnsettsOrderResult, err
 	}, nil
 }
 
-type EnabledIDsMap map[string]bool
-
 type TegnGeneralAvailabilityByID  map[string]TegnAvailability
 
-
-
 func GetTegnsettsAvailability(
-	osInfo data.OSInfo,
+	osInfo OSInfoExt,
 	orders TegnsettsOrderResult,
 	tegnsettByID MapTegnsettByID,
 	tegnByID MapTegnByID,
-	selectedIDs EnabledIDsMap,
+	selectedIDs TegnGeneralEnabledIDsMap,
 ) TegnGeneralAvailabilityByID {
 	availableByID := make(TegnGeneralAvailabilityByID /* probably capacity */, len(tegnByID))
 
-	currentFeatures := make([]string, 0)
+	currentFeatures := make([]TegnFeature, 0)
 	for _, tegnsettID := range orders.Tegnsett {
 		tegnsett := tegnsettByID[tegnsettID]
-		available := GetTegnGeneralAvailable(tegnsett, osInfo)
+
+		available := GetTegnGeneralAvailable(tegnsett, osInfo, currentFeatures, selectedIDs)
 		availableByID[tegnsettID] = available
 		if !available.Available {
 			continue
@@ -159,9 +162,8 @@ func GetTegnsettsAvailability(
 
 		for _, tegnID := range orders.TegnByTegnsettID[tegnsettID] {
 			tegn := tegnByID[tegnID]
-			tegn.SetContextFeatures(currentFeatures)
 
-			available := GetTegnGeneralAvailable(tegn, osInfo)
+			available := GetTegnGeneralAvailable(tegn, osInfo, currentFeatures, selectedIDs)
 			availableByID[tegnID] = available
 			if !available.Available {
 				continue

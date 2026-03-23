@@ -5,104 +5,107 @@ import (
 	"fmt"
 
 	"github.com/toliak/mce/osinfo/data"
-	"github.com/toliak/mce/tegnbuilder"
+	tb "github.com/toliak/mce/tegnbuilder"
+	"github.com/toliak/mce/tegns/tegn"
 )
 
 type OSPackages struct {
-	info     tegnbuilder.TegnBuilderData
-	children []tegnbuilder.Tegn
+	children []tb.Tegn
 }
 
-var _ tegnbuilder.Tegnsett = (*OSPackages)(nil)
+var _ tb.Tegnsett = (*OSPackages)(nil)
 
-func NewOSPackages(info tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
-	return &OSPackages{
-		info: info,
-	}
-}
-
-func NewOuterOSPackages(children []tegnbuilder.TegnBuildFunc) tegnbuilder.TegnsettBuildFunc {
-	return func(data tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
-		v := NewOSPackages(data).(*OSPackages)
-		v.children = make([]tegnbuilder.Tegn, len(children))
+func NewOSPackages(children []tb.TegnBuildFunc) tb.TegnsettBuildFunc {
+	return func() tb.Tegnsett {
+		v := OSPackages{
+			// children will be add later
+		}
+		v.children = make([]tb.Tegn, len(children))
 		for i, child := range children {
-			v.children[i] = child(data)
+			child := child()
+			
+			if _, ok := child.(tegn.GenericPackageTegn); !ok {
+				// TODO: log error
+				fmt.Printf("The child '%s' cannot be add as a child of the OSPackages. Because it does not inherit GenericPackageTegn\n", child.GetID())
+				continue
+			}
+
+			v.children[i] = child
 		}
 
-		return v
+		return &v
 	}
 }
 
-var _ tegnbuilder.TegnsettBuildFunc = NewOSPackages
-// var _ tegnbuilder.TegnsettOuterBuildFunc = NewOuterOSPackages
-
-// GetID implements [tegnbuilder.Tegnsett].
+// GetID implements [tb.Tegnsett].
 func (p *OSPackages) GetID() string {
 	return "os-packages"
 }
 
-// GetName implements [tegnbuilder.Tegnsett].
+// GetName implements [tb.Tegnsett].
 func (p *OSPackages) GetName() string {
 	return "os-packages"
 }
 
-// GetDescription implements [tegnbuilder.Tegnsett].
+// GetDescription implements [tb.Tegnsett].
 func (p *OSPackages) GetDescription() string {
 	return "os-packages"
 }
 
-// GetAvailableCPUArch implements [tegnbuilder.Tegnsett].
+// GetAvailableCPUArch implements [tb.Tegnsett].
 func (p *OSPackages) GetAvailableCPUArch() *[]data.CPUArchE {
 	return nil
 }
 
-// GetAvailableOsType implements [tegnbuilder.Tegnsett].
+// GetAvailableOsType implements [tb.Tegnsett].
 func (p *OSPackages) GetAvailableOsType() *[]data.OSTypeE {
 	return nil
 }
 
-// GetAvailability implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetAvailability() tegnbuilder.TegnAvailability {
-	return tegnbuilder.TegnAvailability{
-		Available: p.info.PkgManager.V != data.PkgMgrUnknown,
-		Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
-	}
-}
-
-// GetFeatures implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetFeatures() []string {
-	// result := make([]string, 0)
-	// for _, child := range p.children {
-	// 	result = append(result, child.GetFeatures()...)
+// GetAvailability implements [tb.Tegnsett].
+func (p *OSPackages) GetAvailability(osInfo tb.OSInfoExt, before []tb.TegnFeature, enabledIds tb.TegnGeneralEnabledIDsMap) tb.TegnAvailability {
+	// return tegnbuilder.TegnAvailability{
+	// 	Available: p.info.PkgManager.V != data.PkgMgrUnknown,
+	// 	Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
 	// }
-
-	return make([]string, 0)
+	return tb.NewTegnAvailable()
 }
 
-// GetBeforeIDs implements [tegnbuilder.Tegnsett].
+// GetBeforeIDs implements [tb.Tegnsett].
 func (p *OSPackages) GetBeforeIDs() []string {
 	return make([]string, 0)
 }
 
-// GetChildren implements [tegnbuilder.Tegnsett].
-func (p *OSPackages) GetChildren() []tegnbuilder.Tegn {
+// GetChildren implements [tb.Tegnsett].
+func (p *OSPackages) GetChildren() []tb.Tegn {
 	return p.children
 }
 
-func (p *OSPackages) GoString() string {
+// There is a "contract":
+// we assume that the installedTegns are the children of the [OSPackages]
+// therefore they all implement the [TODO:] interface
+func (p *OSPackages) ExecPostInstall(
+	installedTegns []tb.Tegn, 
+	osInfo tb.OSInfoExt, 
+	already []tb.TegnFeature, 
+	tegnToParams map[string]tb.TegnParameterMap,
+) {
+	
+}
+
+func (p *OSPackages) GoString(osInfo tb.OSInfoExt) string {
 	children := make([]map[string]any, len(p.children))
 	for i, v := range p.children {
 		children[i] = map[string]any{
 			"id":     v.GetID(),
 			"name":   v.GetName(),
-			"params": v.GetParameters(),
+			"params": v.GetParameters(osInfo),
 		}
 	}
 
 	str, _ := json.Marshal(map[string]any{
 		"id":       p.GetID(),
 		"name":     p.GetName(),
-		"features": p.GetFeatures(),
 		"children": children,
 	})
 

@@ -7,12 +7,18 @@ import (
 
 // Register packages here
 var AllPkgConstructors = []tegnbuilder.TegnBuildFunc{
-	tegn.NewTegnLinuxPackages,
+	tegn.NewGenericPackageBuilder(
+		"vim",
+		"vim",
+		"vim",
+		"vim",
+		nil,
+	),
 }
 
 // Register packages here
 var AllZshConfig = []tegnbuilder.TegnBuildFunc{
-	tegn.NewTegnZshBaseConfig,
+	tegn.NewTegnZshBaseConfigBuilder(),
 }
 
 // We need categories here

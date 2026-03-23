@@ -25,8 +25,10 @@ func NewTegnLinuxPackages(info tb.TegnBuilderData) tb.Tegn {
 		"git",
 		"zsh",
 		"vim",
-		// "mc",
+		"mc",
 	}
+
+	// TODO: auto-update?????? how to  check????
 
 	packages := make([]string, 0, len(defaultPackages))
 	for _, v := range defaultPackages {
@@ -116,7 +118,7 @@ func (p *LinuxPackages) GetParameters() []tb.TegnParameter {
 			k,
 			tb.TegnParameterTypeBool,
 			tb.WithDescription(k),
-			tb.WithValue(tb.TegnParameterFromBool(v)),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(v)),
 			tb.WithAvailabilityTrue(),
 		))
 	}
@@ -140,3 +142,20 @@ func (p *LinuxPackages) SetParameter(name string, value string) error {
 
 // GetFeatures implements [tegnbuilder.Tegn].
 func (p *LinuxPackages) SetContextFeatures(features []string) {}
+
+
+func (p *LinuxPackages) IsInstalled() bool {
+	return false
+}
+
+func (p *LinuxPackages) ExecInstall() error {
+
+}
+
+func (p *LinuxPackages) ExecUpdate() error {
+
+}
+
+func (p *LinuxPackages) ExecUninstall() error {
+
+}

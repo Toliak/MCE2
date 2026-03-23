@@ -35,129 +35,18 @@ func NewTegnNotAvailable(reason string) TegnAvailability {
 	}
 }
 
-type TegnParameterOption func(*TegnParameter)
+type TegnFeature string
 
-// Represents a parameter specification for a Tegn.
-type TegnParameter struct {
-	Name string
-	Description string
+// Key -- Parameter ID
+// Value -- Parameter Value
+type TegnParameterMap map[string]string
 
-	// Current parameter value.
-	value string
+// Key -- Tegn or Tegnsett ID
+// Value -- is enabled (default -- false)
+type TegnGeneralEnabledIDsMap map[string]bool
 
-	// Parameter's data type.
-	ParamType TegnParameterType
-
-	// Indicates the availability and contains the reason, if not available.
-	Available TegnAvailability
-}
-
-func NewTegnParameter(name string, paramType TegnParameterType, opts ...TegnParameterOption) TegnParameter{
-	p := TegnParameter{
-		Name:        name,
-		ParamType: paramType,
-	}
-	for _, opt := range opts {
-		opt(&p)
-	}
-
-	return p
-}
-
-// WithValue sets the private value field.
-func WithValue(val string) TegnParameterOption {
-	return func(p *TegnParameter) {
-		p.value = val
-	}
-}
-
-// WithAvailability sets the availability status.
-func WithAvailability(available TegnAvailability) TegnParameterOption {
-	return func(p *TegnParameter) {
-		p.Available = available
-	}
-}
-
-// WithAvailability sets the availability status.
-func WithAvailabilityTrue() TegnParameterOption {
-	return func(p *TegnParameter) {
-		p.Available = NewTegnAvailable()
-	}
-}
-
-// WithAvailability sets the availability status.
-func WithAvailabilityFalse(reason string) TegnParameterOption {
-	return func(p *TegnParameter) {
-		p.Available = NewTegnNotAvailable(reason)
-	}
-}
-
-// WithDescription overrides the description (useful if you want to set it optionally).
-func WithDescription(desc string) TegnParameterOption {
-	return func(p *TegnParameter) {
-		p.Description = desc
-	}
-}
-
-// Data type of a TegnParameter.
-type TegnParameterType int
-
-const (
-	TegnParameterTypeInt TegnParameterType = iota
-	TegnParameterTypeBool
-	TegnParameterTypeString
-)
-
-func (t TegnParameterType) String() string {
-	switch t {
-	case TegnParameterTypeInt:
-		return "int"
-	case TegnParameterTypeBool:
-		return "bool"
-	case TegnParameterTypeString:
-		return "string"
-	default:
-		return "invalid"
-	}
-}
-
-func TegnParameterFromBool(v bool) string {
-	if v {
-		return "y"
-	}
-
-	return "n"
-}
-
-func TegnParameterFromInt(v int) string {
-	return fmt.Sprintf("%d", v)
-}
-
-func (p *TegnParameter) ToBool() bool {
-	return TegnParameterToBool(p.value)
-}
-
-func TegnParameterToBool(s string) bool {
-	return s == "y"
-}
-
-func (p *TegnParameter) ToInt(fallback int) int {
-	return TegnParameterToInt(p.value, fallback)
-}
-
-func (p *TegnParameter) GetValue() string {
-	return p.value
-}
-
-func TegnParameterToInt(s string, fallback int) int {
-	var result *int
-	_, err := fmt.Sscanf(s, "%d", result)
-	if err != nil || result == nil {
-		return fallback
-	}
-
-	return *result
-}
+// The type MUST match [TegnGeneral.GetAvailability] function
+type TegnAvailabilityFunc func (osInfo OSInfoExt, before []TegnFeature, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
 
 // TegnGeneral defines the common interface for all Tegn types.
 type TegnGeneral interface {
@@ -170,20 +59,21 @@ type TegnGeneral interface {
 	// Returns a detailed description.
 	GetDescription() string
 
-	// Returns the OS types this Tegn supports.
-	// Returns nil if the Tegn is available on all OS types.
-	// This condition is evaluated before GetAvailableCPUArch.
-	GetAvailableOsType() *[]data.OSTypeE
-
 	// Returns the CPU architectures this Tegn supports.
 	// Returns nil if the Tegn is available on all architectures.
 	// This condition is evaluated before GetAvailability.
 	GetAvailableCPUArch() *[]data.CPUArchE
 
+	// Returns the OS types this Tegn supports.
+	// Returns nil if the Tegn is available on all OS types.
+	// This condition is evaluated before GetAvailableCPUArch.
+	GetAvailableOsType() *[]data.OSTypeE
+
 	// Checks whether this Tegn is available for installation.
+	// Received all features that are available just before that Tegn (from previous Tegns and Tegnsetts).
 	//
 	// In Tegnsett the method must not accumulate the children data!
-	GetAvailability() TegnAvailability
+	GetAvailability(osInfo OSInfoExt, before []TegnFeature, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
 
 	// Returns IDs of Tegns that must be installed before this one.
 	// Only IDs from the same category take effect; IDs from other categories
@@ -191,7 +81,11 @@ type TegnGeneral interface {
 	GetBeforeIDs() []string
 }
 
-func GetTegnGeneralAvailable(obj TegnGeneral, osInfo data.OSInfo) TegnAvailability {
+// Availability checker. Depends on the:
+// - CPU arch
+// - OS Type
+// - own Tegn's Availability method
+func GetTegnGeneralAvailable(obj TegnGeneral, osInfo OSInfoExt, before []TegnFeature, selectedIDs TegnGeneralEnabledIDsMap) TegnAvailability {
 	cpu := obj.GetAvailableCPUArch()
 	if cpu != nil {
 		if !slices.ContainsFunc(*cpu, func(v data.CPUArchE) bool {
@@ -214,5 +108,5 @@ func GetTegnGeneralAvailable(obj TegnGeneral, osInfo data.OSInfo) TegnAvailabili
 		}
 	}
 
-	return obj.GetAvailability()
+	return obj.GetAvailability(osInfo, before, selectedIDs)
 }

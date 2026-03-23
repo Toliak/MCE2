@@ -2,122 +2,122 @@ package tegnsett
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/toliak/mce/osinfo/data"
-	"github.com/toliak/mce/tegnbuilder"
+	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type GeneralTegnsett struct {
-	info     tegnbuilder.TegnBuilderData
-
+type GenericTegnsett struct {
 	id string
 	name string
 	description string
 	beforeIDs []string
 
-	children []tegnbuilder.Tegn
+	children []tb.Tegn
+
+	availabilityFunc tb.TegnAvailabilityFunc
 }
 
-var _ tegnbuilder.Tegnsett = (*GeneralTegnsett)(nil)
+var _ tb.Tegnsett = (*GenericTegnsett)(nil)
 
-func NewGeneralTegnsett(info tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
-	return &GeneralTegnsett{
-		info: info,
-	}
-}
-
-func NewOuterGeneralTegnsett(
+func NewGeneralTegnsett(
 	id, name, description string,
 	beforeIDs []string,
-	children []tegnbuilder.TegnBuildFunc,
-) tegnbuilder.TegnsettBuildFunc {
-	return func(data tegnbuilder.TegnBuilderData) tegnbuilder.Tegnsett {
-		v := NewGeneralTegnsett(data).(*GeneralTegnsett)
-		v.id = id
-		v.name = name
-		v.description = description
-		v.beforeIDs = beforeIDs
-
-		v.children = make([]tegnbuilder.Tegn, len(children))
-		for i, child := range children {
-			v.children[i] = child(data)
+	children []tb.TegnBuildFunc,
+	availabilityFunc tb.TegnAvailabilityFunc,
+) tb.TegnsettBuildFunc {
+	return func() tb.Tegnsett {
+		v := GenericTegnsett{
+			id: id,
+			name: name,
+			description: description,
+			beforeIDs: beforeIDs,
+			// children will be add later
+			availabilityFunc: availabilityFunc,
 		}
 
-		return v
+		v.children = make([]tb.Tegn, len(children))
+		for i, child := range children {
+			v.children[i] = child()
+		}
+
+		return &v
 	}
 }
 
-var _ tegnbuilder.TegnsettBuildFunc = NewGeneralTegnsett
-// var _ tegnbuilder.TegnsettOuterBuildFunc = NewOuterGeneralTegnsett
+// ----------------------
 
-// GetID implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetID() string {
+// GetID implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetID() string {
 	return p.id
 }
 
-// GetName implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetName() string {
+// GetName implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetName() string {
 	return p.name
 }
 
-// GetDescription implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetDescription() string {
+// GetDescription implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetDescription() string {
 	return p.description
 }
 
-// GetAvailableCPUArch implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetAvailableCPUArch() *[]data.CPUArchE {
+// GetAvailableCPUArch implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetAvailableCPUArch() *[]data.CPUArchE {
+	// TODO: fill that in the constructor
 	return nil
 }
 
-// GetAvailableOsType implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetAvailableOsType() *[]data.OSTypeE {
+// GetAvailableOsType implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetAvailableOsType() *[]data.OSTypeE {
 	return nil
 }
 
-// GetAvailability implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetAvailability() tegnbuilder.TegnAvailability {
-	return tegnbuilder.TegnAvailability{
-		Available: p.info.PkgManager.V != data.PkgMgrUnknown,
-		Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
+// GetAvailability implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetAvailability(
+	osInfo tb.OSInfoExt, 
+	before []tb.TegnFeature, 
+	enabledIds tb.TegnGeneralEnabledIDsMap,
+) tb.TegnAvailability {
+	if p.availabilityFunc != nil {
+		return p.availabilityFunc(osInfo, before, enabledIds)
 	}
+
+	return tb.NewTegnAvailable()
 }
 
-// GetFeatures implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetFeatures() []string {
-	// result := make([]string, 0)
-	// for _, child := range p.children {
-	// 	result = append(result, child.GetFeatures()...)
-	// }
-
-	return make([]string, 0)
-}
-
-// GetBeforeIDs implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetBeforeIDs() []string {
+// GetBeforeIDs implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetBeforeIDs() []string {
 	return p.beforeIDs
 }
 
-// GetChildren implements [tegnbuilder.Tegnsett].
-func (p *GeneralTegnsett) GetChildren() []tegnbuilder.Tegn {
+// GetChildren implements [tb.Tegnsett].
+func (p *GenericTegnsett) GetChildren() []tb.Tegn {
 	return p.children
 }
 
-func (p *GeneralTegnsett) GoString() string {
+func (p *GenericTegnsett) ExecPostInstall(
+	installedTegns []tb.Tegn, 
+	osInfo tb.OSInfoExt, 
+	already []tb.TegnFeature, 
+	tegnToParams map[string]tb.TegnParameterMap,
+) {
+	// Do nothing here
+}
+
+func (p *GenericTegnsett) GoString(osInfo tb.OSInfoExt) string {
 	children := make([]map[string]any, len(p.children))
 	for i, v := range p.children {
 		children[i] = map[string]any{
 			"id":     v.GetID(),
 			"name":   v.GetName(),
-			"params": v.GetParameters(),
+			"params": v.GetParameters(osInfo),
 		}
 	}
 
 	str, _ := json.Marshal(map[string]any{
 		"id":       p.GetID(),
 		"name":     p.GetName(),
-		"features": p.GetFeatures(),
 		"children": children,
 	})
 

@@ -2,6 +2,7 @@ package platform
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -53,4 +54,36 @@ func CommandExists(cmd string) bool {
 
 func IsRoot() bool {
     return os.Geteuid() == 0
+}
+
+func FileEntryExists(path string) bool {
+	_, err := os.Stat(path)
+	return err != nil && os.IsNotExist(err)
+}
+
+// See https://opensource.com/article/18/6/copying-files-go
+func CopyFile(src, dst string) error {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+			return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+			return fmt.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+			return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+			return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
 }
