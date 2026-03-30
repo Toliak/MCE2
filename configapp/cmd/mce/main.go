@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 
 	"github.com/toliak/mce/cmd/mce/ui"
@@ -38,15 +39,32 @@ func mainInternal() error {
 	if harvestData.AvailableManagerPackages != nil {
 		availablePackages = *harvestData.AvailableManagerPackages
 	}
+	
+	// List of strings into the map
+	availablePackagesMap := make(tb.AvailablePackagesMap)
+	for _, v := range availablePackages {
+		availablePackagesMap[v] = true
+	}
 
-	builderData := tb.TegnBuilderData {
+	// Installed cache
+
+
+	// TODO: now we need to rework all the parameters shit
+
+	// TODO: it can be installed and not available. Check it!
+	// Or maybe not just here
+
+	builderData := tb.OSInfoExt {
 		OSInfo: *harvestData.OSInfo,
-		AvailableManagerPackages: availablePackages,
+		AvailableManagerPackages: availablePackagesMap,
+		MainInstallDir: args.MainInstallDir,
+		DataDir: args.DataDir,
+		MceRepositoryURL: args.MceRepositoryURL,
+		MceRepositoryBranch: args.MceRepositoryBranch,
 	}
 
 	tegnsetts, err := tb.InitializeAllTegnsetts(
 		tegns.Tegnsetts,
-		builderData,
 	)
 	if err != nil {
 		return err
@@ -59,8 +77,30 @@ func mainInternal() error {
 		return err
 	}
 
-	app := ui.NewApp(initResult, harvestData)
+	// AvailablePackagesMap
+	alreadyInstalled := make(tb.AvailablePackagesMap)
+	alreadyInstalledFeatures := make(tb.TegnInstalledFeaturesMap, len(alreadyInstalled))
+	for k, v := range tegnsetts.TegnByID {
+		if v.IsInstalled(builderData) {
+			alreadyInstalled[k] = true
+			features := v.GetFeatures()
+			for ft, _ := range features {
+				alreadyInstalledFeatures[ft] = true
+			}
+		}
+	}
 
+	// TODO: use the IsInstalled info
+	// TODO: add flag to skip the ui and just use the "TegnTemplate"
+	app := ui.NewApp(initResult, builderData, alreadyInstalled, alreadyInstalledFeatures)
+
+	for k, _ := range tegnsetts.TegnByID {
+		app.State.ParameterByIDMap[k] = make(tb.TegnParameterMap)
+	}
+
+	// TODO: add YAML or JSON support, where the default enabled Tegns and Tegnsetts can be set
+	// TODO: or at least make multiple variants in golang and let the user to select them using flag
+	// TODO: add the parameters supportg
 	for k, v := range DefaultEnables {
 		_, ok := app.State.EnabledIDsMap[k]
 		if !ok {
@@ -69,6 +109,9 @@ func mainInternal() error {
 		}
 
 		app.State.EnabledIDsMap[k] = v
+	}
+	for k, v := range DefaultParameters {
+		maps.Copy(app.State.ParameterByIDMap[k], v)
 	}
 
 	// TODO: if any errors -- prompt before continue
@@ -79,9 +122,12 @@ func mainInternal() error {
 	}
 
 	if !app.State.ExitConfirmed {
-		// TODO: maybe store the temporary state
+		// TODO: store the temporary state
+		// TODO: disable temporary state storing as a flag
 		return nil
 	}
+
+	// TODO: capture from the state paramets
 
 	fmt.Printf("App: %#v\n", app)
 
@@ -97,13 +143,21 @@ func mainInternal() error {
 		children := tegnsett.GetChildren()
 		childrenObjs := make([]map[string]any, len(children))
 		for j, v := range children {
-			params := v.GetParameters()
+			params := v.GetParameters(builderData)
 			paramsObjs := make([]map[string]any, len(params))
-			for i, v := range params {
+			for i, p := range params {
+				id := v.GetID()
+				paramID := p.GetID()
+				// paramName := p.GetName()
+				paramValue, ok := app.State.ParameterByIDMap[id][paramID]
+				if !ok {
+					continue
+				}
 				paramsObjs[i] = map[string]any {
-					"name": v.Name,
-					"value": v.GetValue(),
-					"type": v.ParamType.String(),
+					"id": id,
+					"name": p.GetName(),
+					"value": paramValue,
+					"type": p.GetParamType().String(),
 				}
 			}
 
@@ -133,32 +187,51 @@ func mainInternal() error {
 	}
 
 	availability := tb.GetTegnsettsAvailability(
-		*harvestData.OSInfo,
+		builderData,
 		*order,
 		initResult.TegnsettByID,
 		initResult.TegnByID,
 		app.State.EnabledIDsMap,
+		app.State.InstalledFeatures,
 	)
 
-	to_install := make([]string, 0)
+	toInstall := make([]string, 0)
+	// TODO: to post install
 	for _, id := range order.Tegnsett {
 		tegnList := order.TegnByTegnsettID[id]
 
-		for _, tegn := range tegnList {
-			if !availability[tegn].Available {
-				fmt.Printf("Selected unavailable Tegn '%s', skipped\n", tegn)
+		for _, tegnID := range tegnList {
+			// tegn := initResult.TegnByID[tegnID]
+			// fmt.Printf("%s:%s\n", tegnID, app.State.EnabledIDsMap[tegnID])
+			if !app.State.EnabledIDsMap[tegnID] {
+				// It is not selected
 				continue
 			}
+			if alreadyInstalled[tegnID] {
+				fmt.Printf("Selected already installed Tegn '%s', skipped\n", tegnID)
+				continue
+			}
+			if !availability[tegnID].Available {
+				fmt.Printf("Selected unavailable Tegn '%s', skipped\n", tegnID)
+				continue
+			}
+			
 
-			to_install = append(to_install, tegn)
+			toInstall = append(toInstall, tegnID)
 		}
 	}
 
 	// TODO: split install and the update
 	fmt.Println("----------\nWill be installed:")
-	for _, id := range to_install {
+	for _, id := range toInstall {
 		fmt.Printf("- %s\n", id)
 	}
+
+
+	// TODO: print also parameters
+
+	// TODO: add one more app to confirm the 
+	// TODO: add flag to skip confirmation
 
 
 	return nil

@@ -96,11 +96,12 @@ func NewTegnsettList(
 				state.SelectionTegnsettID = index
 				if index >= 0 && index < len(order) {
 					id := order[index]
+					availability := availability[id]
 					tegn := state.InitResult.TegnsettByID[id].(tb.TegnGeneral)
-					app.showHelpModal(&tegn)
+					app.showHelpModal(&tegn, &availability)
 					return nil
 				}
-				app.showHelpModal(nil)
+				app.showHelpModal(nil, nil)
 				return nil
 			}
 		}

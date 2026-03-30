@@ -22,24 +22,28 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 		return list
 	}
 
-	params := tegn.GetParameters()
+	params := tegn.GetParameters(state.OSInfExt)
 	
 	for _, param := range params {
-		paramName := param.Name
+		paramID := param.GetID()
+		paramName := param.GetName()
 		// paramDesc := param.Description
-		paramValue := param.GetValue()
-		paramType := param.ParamType.String()
+		paramValue, ok := state.ParameterByIDMap[tegnID][paramID]
+		if !ok {
+			paramValue = param.GetDefaultValue()
+		}
+		paramType := param.GetParamType().String()
 		
 		secondaryText := fmt.Sprintf("%s = [yellow]%s[white]", paramName, paramValue)
-		if param.Available.Available {
+		if param.GetAvailable().Available {
 			secondaryText = fmt.Sprintf("(%- 8s) %s", paramType, secondaryText)
 		} else {
 			secondaryText = fmt.Sprintf("--- %s", secondaryText)
 		}
-		
+
 		list.AddItem(secondaryText, "", 0, func() {
 			// Enter key pressed - edit parameter
-			if param.Available.Available {
+			if param.GetAvailable().Available {
 				state.SelectionParameterID = list.GetCurrentItem()
 				app.showParameterEditModal(state, tegnID, param)
 			}
@@ -68,7 +72,7 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 		case tcell.KeyRune:
 			if event.Rune() == '?' {
 				state.SelectionParameterID = list.GetCurrentItem()
-				app.showHelpModal(nil)
+				app.showHelpModal(nil, nil)
 				return nil
 			}
 			if event.Rune() == ' ' {
@@ -84,17 +88,34 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 
 // WARN: do not change param value here!
 func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbuilder.TegnParameter) {
-	newValue := param.GetValue()
+	paramValue, ok := state.ParameterByIDMap[tegnID][param.GetID()]
+	if !ok {
+		paramValue = param.GetDefaultValue()
+	}
+
+	getDefaultDescriptionValue := func () string {
+		return param.GetDescription()
+	}
+
+	var setDescriptionError func (value error)
 
 	// For now, use a simple form modal
 	form := tview.NewForm().
-		AddTextView("Description", param.Description, 0, 2, false, true).
-		AddInputField("Value", param.GetValue(), 0, nil, func (v string) {
-			newValue = v
+		AddTextView("Description", getDefaultDescriptionValue(), 0, 2, false, true).
+		AddInputField("Value", paramValue, 0, nil, func (v string) {
+			paramValue = v
 		}).
 		AddButton("Save", func() {
+			// TODO: validate and add the error message
 			// Get value from form and save
-			state.InitResult.TegnByID[tegnID].SetParameter(param.Name, newValue)
+			// TODO: resolved?
+			err := param.Validate(paramValue)
+			if err != nil {
+				setDescriptionError(err)
+				return
+			}
+
+			state.ParameterByIDMap[tegnID][param.GetID()] = paramValue
 			a.pages.RemovePage("parameterEditModal")
 
 			// Refresh
@@ -106,6 +127,14 @@ func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbu
 			// Refresh
 			a.showParameterList(state.CurrentTegnID)
 		})
+
+	setDescriptionError = func (value error) {
+		newText := fmt.Sprintf("ERROR: %s\n\n%s", value, getDefaultDescriptionValue())
+		// TODO: Create TextView before the `form`. And use AddFormItem to add it
+		// This makes able to get rid of the "non-verifiable" GetFormItem(0)
+		textView := form.GetFormItem(0).(*tview.TextView)
+		textView.SetText(newText)
+	}
 
 	form.SetFocus(1); // Focus on the value
 	

@@ -5,7 +5,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/toliak/mce/inspector"
+	// "github.com/toliak/mce/inspector"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
@@ -19,9 +19,15 @@ type App struct {
 }
 
 // NewApp creates a new TUI application
-func NewApp(initResult tb.TegnsettInitializeResult, harvestData inspector.HarvestData) *App {
+func NewApp(
+	initResult tb.TegnsettInitializeResult, 
+	osInfoExt tb.OSInfoExt, 
+	alreadyInstalled tb.AvailablePackagesMap,
+	alreadyInstalledFeatures tb.TegnInstalledFeaturesMap,
+) *App {
 	app := tview.NewApplication()
-	state := NewUIState(initResult, harvestData)
+	state := NewUIState(initResult, osInfoExt, alreadyInstalled)
+	state.InstalledFeatures = alreadyInstalledFeatures
 
 	ui := &App{
 		app:       app,
@@ -70,7 +76,7 @@ func (a *App) createButtonBar() *tview.Flex {
 	buttons := tview.NewFlex().SetDirection(tview.FlexColumn)
 	
 	helpBtn := tview.NewButton(" (F1) Help ").
-		SetSelectedFunc(func() { a.showHelpModal(nil) })
+		SetSelectedFunc(func() { a.showHelpModal(nil, nil) })
 	
 	// searchBtn := tview.NewButton(" (F3) Search ").
 	// 	SetSelectedFunc(func() { a.showSearchModal() })
@@ -94,7 +100,7 @@ func (a *App) setupGlobalKeyBindings() {
 	a.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyF1:
-			a.showHelpModal(nil)
+			a.showHelpModal(nil, nil)
 			return nil
 		// case tcell.KeyF3:
 		// 	a.showSearchModal()
@@ -148,12 +154,15 @@ func (a *App) showTegnsettList() {
 		return
 	}
 
+	// TODO: pick already installed 
+
 	availability := tb.GetTegnsettsAvailability(
-		*a.State.HarvestData.OSInfo,
+		a.State.OSInfExt,
 		*order,
 		a.State.InitResult.TegnsettByID,
 		a.State.InitResult.TegnByID,
 		a.State.EnabledIDsMap,
+		a.State.InstalledFeatures,
 	)
 
 	list := NewTegnsettList(a.State, order.Tegnsett, availability, a)
@@ -172,11 +181,12 @@ func (a *App) showTegnList(tegnsettID string) {
 	}
 
 	availability := tb.GetTegnsettsAvailability(
-		*a.State.HarvestData.OSInfo,
+		a.State.OSInfExt,
 		*order,
 		a.State.InitResult.TegnsettByID,
 		a.State.InitResult.TegnByID,
 		a.State.EnabledIDsMap,
+		a.State.InstalledFeatures,
 	)
 
 	list := NewTegnList(a.State, tegnsettID, order.TegnByTegnsettID[tegnsettID], availability, a)
@@ -196,8 +206,8 @@ func (a *App) showParameterList(tegnID string) {
 	a.updateStatusBar()
 }
 
-func (a *App) showHelpModal(tegnGeneral *tb.TegnGeneral) {
-	modal := NewHelpModal(a.State, a.app, tegnGeneral, func () {a.closeModals()})
+func (a *App) showHelpModal(tegnGeneral *tb.TegnGeneral, availability *tb.TegnAvailability) {
+	modal := NewHelpModal(a.State, a.app, tegnGeneral, availability, func () {a.closeModals()})
 	a.pages.AddPage("helpModal", modal, true, true)
 }
 

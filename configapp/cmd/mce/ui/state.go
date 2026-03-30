@@ -1,8 +1,7 @@
 package ui
 
 import (
-	"github.com/toliak/mce/inspector"
-	"github.com/toliak/mce/tegnbuilder"
+	tb "github.com/toliak/mce/tegnbuilder"
 )
 
 // UIView represents the current view state
@@ -16,10 +15,14 @@ const (
 
 // UIState manages the application state
 type UIState struct {
-	InitResult        tegnbuilder.TegnsettInitializeResult
-	HarvestData 	  inspector.HarvestData
+	InitResult        tb.TegnsettInitializeResult
+	OSInfExt 	  tb.OSInfoExt
+	InstalledCache       tb.AvailablePackagesMap
+	InstalledFeatures	 tb.TegnInstalledFeaturesMap
 
-	EnabledIDsMap     tegnbuilder.EnabledIDsMap
+	EnabledIDsMap       tb.TegnGeneralEnabledIDsMap
+	ParameterByIDMap     map[string]tb.TegnParameterMap
+
 	CurrentView       UIView
 	CurrentTegnsettID string
 	CurrentTegnID     string
@@ -32,11 +35,17 @@ type UIState struct {
 }
 
 // NewUIState creates a new UI state
-func NewUIState(initResult        tegnbuilder.TegnsettInitializeResult, harvestData inspector.HarvestData) *UIState {
+func NewUIState(
+	initResult tb.TegnsettInitializeResult, 
+	osInfoExt tb.OSInfoExt, 
+	alreadyInstalled tb.AvailablePackagesMap,
+) *UIState {
 	state := &UIState{
 		InitResult:        initResult,
-		HarvestData:        harvestData,
-		EnabledIDsMap:     make(tegnbuilder.EnabledIDsMap),
+		OSInfExt:        osInfoExt,
+		InstalledCache: alreadyInstalled,
+		EnabledIDsMap:     make(tb.TegnGeneralEnabledIDsMap),
+		ParameterByIDMap:  make(map[string]tb.TegnParameterMap),
 		ExitConfirmed:    false,
 		SelectionTegnsettID: -1,
 		SelectionTegnID: -1,

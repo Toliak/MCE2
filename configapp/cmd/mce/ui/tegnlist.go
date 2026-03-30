@@ -26,11 +26,14 @@ func NewTegnList(
 		enabled := state.EnabledIDsMap[id]
 
 		isAvailable := availability[id].Available
-		canBeOpened := isAvailable && enabled && len(tegn.GetParameters()) > 0
+		isInstalled := state.InstalledCache[id]
+		canBeOpened := !isInstalled && isAvailable && enabled && len(tegn.GetParameters(state.OSInfExt)) > 0
 
 		status := "[gray]---[white]"
 		
-		if isAvailable {
+		if isInstalled {
+			status = "[yellow]-+-[white]"
+		} else if isAvailable {
 			if enabled {
 				status = "[green](*)[white]"
 			} else {
@@ -80,7 +83,7 @@ func NewTegnList(
 				if index >= 0 && index < len(order) {
 					id := order[index]
 					
-					if availability[id].Available {
+					if !state.InstalledCache[id] && availability[id].Available {
 						state.ToggleID(id)
 
 						// Refresh the list to show updated status
@@ -96,10 +99,11 @@ func NewTegnList(
 				if index >= 0 && index < len(order) {
 					id := order[index]
 					tegn := state.InitResult.TegnByID[id].(tb.TegnGeneral)
-					app.showHelpModal(&tegn)
+					availability := availability[id]
+					app.showHelpModal(&tegn, &availability)
 					return nil
 				}
-				app.showHelpModal(nil)
+				app.showHelpModal(nil, nil)
 				return nil
 			}
 		}
