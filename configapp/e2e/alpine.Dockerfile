@@ -13,4 +13,4 @@ RUN printf "\n%s\n" 'user ALL=(ALL:ALL) NOPASSWD: ALL' >> /etc/sudoers && \
 
 USER 1000:1000
 
-ENTRYPOINT ["/opt/python/install/bin/python3.10", "/test/e2e/verify.py"]
+ENTRYPOINT ["/opt/python/install/bin/python3.10", "/test/e2e/overlay/__main__.py"]

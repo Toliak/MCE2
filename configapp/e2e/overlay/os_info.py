@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
 import json
+from pathlib import Path
 import subprocess
 import os
 import glob
 import platform
 import shutil
 import sys
+from typing import *
 
 def check_arch(expected):
     machine = platform.machine()
@@ -148,18 +149,13 @@ def check_distrib(expected):
 
     return ok
 
-def main():
-    binary = "/test/bin/mce-e2e"
-    if not os.path.exists(binary):
-        print(f"Binary {binary} not found")
-        sys.exit(1)
-
+def test_os_info(binary_path: Path, _: Path) -> bool:
     try:
-        output = subprocess.check_output([binary, "harvest"], text=True)
+        output = subprocess.check_output([binary_path.as_posix(), "harvest"], text=True)
     except subprocess.CalledProcessError as e:
         print(f"Binary execution failed: {e}")
         print(e.output)
-        sys.exit(1)
+        return False
 
     print("Binary output:")
     print(output)
@@ -168,7 +164,7 @@ def main():
         data = json.loads(output)
     except json.JSONDecodeError as e:
         print(f"Invalid JSON: {e}")
-        sys.exit(1)
+        return False
 
     print("Parsed JSON:")
     print(json.dumps(data, indent=2))
@@ -218,10 +214,7 @@ def main():
 
     if failures == 0:
         print("\nAll checks passed!")
-        sys.exit(0)
+        return True
     else:
         print(f"\n{failures} check(s) failed.")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+        return False
