@@ -111,7 +111,7 @@ func (p *GenericPackage) GetAvailableOsType() *[]data.OSTypeE {
 // GetAvailability implements [tegnbuilder.Tegn].
 func (p *GenericPackage) GetAvailability(
 	osInfo tb.OSInfoExt,
-	before []tb.TegnFeature,
+	_before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// TODO: make that more complex (request the checker from the user)
@@ -126,7 +126,7 @@ func (p *GenericPackage) GetAvailability(
 }
 
 // GetFeatures implements [tegnbuilder.Tegn].
-func (p *GenericPackage) GetFeatures() []tb.TegnFeature {
+func (p *GenericPackage) GetFeatures() tb.TegnInstalledFeaturesMap {
 	// result := make([]string, 0, len(p.packageParams))
 	// for k, v := range p.packageParams {
 	// 	if !v {
@@ -136,8 +136,8 @@ func (p *GenericPackage) GetFeatures() []tb.TegnFeature {
 	// }
 
 	// return result
-	return []tb.TegnFeature{
-		tb.TegnFeature("pkg:" + p.idSuffix),
+	return tb.TegnInstalledFeaturesMap{
+		tb.TegnFeature("pkg:" + p.idSuffix): true,
 	}
 }
 
@@ -187,7 +187,7 @@ func (p *GenericPackage) IsInstalled(osInfo tb.OSInfoExt) bool {
 	return platform.CommandExists(p.pkgName)
 }
 
-func (p *GenericPackage) ExecInstall(osInfo tb.OSInfoExt, already []tb.TegnFeature, params tb.TegnParameterMap) error {
+func (p *GenericPackage) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
 	// Do not install packages here. They must be installed in the Tegnsett stage.
 	return nil
 }

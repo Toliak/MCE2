@@ -63,7 +63,7 @@ func (p *OSPackages) GetAvailableOsType() *[]data.OSTypeE {
 }
 
 // GetAvailability implements [tb.Tegnsett].
-func (p *OSPackages) GetAvailability(osInfo tb.OSInfoExt, before []tb.TegnFeature, enabledIds tb.TegnGeneralEnabledIDsMap) tb.TegnAvailability {
+func (p *OSPackages) GetAvailability(_osInfo tb.OSInfoExt, _before tb.TegnInstalledFeaturesMap, _enabledIds tb.TegnGeneralEnabledIDsMap) tb.TegnAvailability {
 	// return tegnbuilder.TegnAvailability{
 	// 	Available: p.info.PkgManager.V != data.PkgMgrUnknown,
 	// 	Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
@@ -83,14 +83,15 @@ func (p *OSPackages) GetChildren() []tb.Tegn {
 
 // There is a "contract":
 // we assume that the installedTegns are the children of the [OSPackages]
-// therefore they all implement the [TODO:] interface
+// therefore they all implement the [tegn.GenericPackageTegn] interface
 func (p *OSPackages) ExecPostInstall(
-	installedTegns []tb.Tegn, 
-	osInfo tb.OSInfoExt, 
-	already []tb.TegnFeature, 
-	tegnToParams map[string]tb.TegnParameterMap,
+	_installedTegns []tb.Tegn, 
+	_osInfo tb.OSInfoExt, 
+	_already tb.TegnInstalledFeaturesMap, 
+	_tegnToParams map[string]tb.TegnParameterMap,
 ) {
-	
+	// TODO: implement
+	panic("NOT IMPLEMENTED ExecPostInstall for OSPackages")
 }
 
 func (p *OSPackages) GoString(osInfo tb.OSInfoExt) string {

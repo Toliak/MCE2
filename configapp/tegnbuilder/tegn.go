@@ -15,7 +15,7 @@ type Tegn interface {
 
 	// Returns the features provided by this Tegn.
 	// Features do not depend on the parameters, OSInfo and before-installed featured.
-	GetFeatures() []TegnFeature
+	GetFeatures() TegnInstalledFeaturesMap
 
 	// Returns true if the Tegn already installed
 	IsInstalled(osInfo OSInfoExt) bool
@@ -23,7 +23,7 @@ type Tegn interface {
 	// Install the Tegn
 	// WARN: this function does not check, is Tegn already installed.
 	// Params must contain all parameters value (even not available!)
-	ExecInstall(osInfo OSInfoExt, already []TegnFeature, params TegnParameterMap) error
+	ExecInstall(osInfo OSInfoExt, already TegnInstalledFeaturesMap, params TegnParameterMap) error
 
 	// WARN: this function does not check, is Tegn already installed
 	// ExecUpdate() error

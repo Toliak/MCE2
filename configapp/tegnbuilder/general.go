@@ -36,6 +36,7 @@ func NewTegnNotAvailable(reason string) TegnAvailability {
 }
 
 type TegnFeature string
+type TegnInstalledFeaturesMap map[TegnFeature]bool
 
 // Key -- Parameter ID
 // Value -- Parameter Value
@@ -46,7 +47,7 @@ type TegnParameterMap map[string]string
 type TegnGeneralEnabledIDsMap map[string]bool
 
 // The type MUST match [TegnGeneral.GetAvailability] function
-type TegnAvailabilityFunc func (osInfo OSInfoExt, before []TegnFeature, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
+type TegnAvailabilityFunc func (osInfo OSInfoExt, before TegnInstalledFeaturesMap, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
 
 // TegnGeneral defines the common interface for all Tegn types.
 type TegnGeneral interface {
@@ -73,7 +74,7 @@ type TegnGeneral interface {
 	// Received all features that are available just before that Tegn (from previous Tegns and Tegnsetts).
 	//
 	// In Tegnsett the method must not accumulate the children data!
-	GetAvailability(osInfo OSInfoExt, before []TegnFeature, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
+	GetAvailability(osInfo OSInfoExt, before TegnInstalledFeaturesMap, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
 
 	// Returns IDs of Tegns that must be installed before this one.
 	// Only IDs from the same category take effect; IDs from other categories
@@ -85,7 +86,7 @@ type TegnGeneral interface {
 // - CPU arch
 // - OS Type
 // - own Tegn's Availability method
-func GetTegnGeneralAvailable(obj TegnGeneral, osInfo OSInfoExt, before []TegnFeature, selectedIDs TegnGeneralEnabledIDsMap) TegnAvailability {
+func GetTegnGeneralAvailable(obj TegnGeneral, osInfo OSInfoExt, before TegnInstalledFeaturesMap, selectedIDs TegnGeneralEnabledIDsMap) TegnAvailability {
 	cpu := obj.GetAvailableCPUArch()
 	if cpu != nil {
 		if !slices.ContainsFunc(*cpu, func(v data.CPUArchE) bool {

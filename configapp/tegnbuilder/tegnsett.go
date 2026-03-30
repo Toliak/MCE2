@@ -1,6 +1,7 @@
 package tegnbuilder
 
 import (
+	"maps"
 	"fmt"
 )
 
@@ -15,7 +16,7 @@ type Tegnsett interface {
 	// 
 	// The installedTegns contains only installed Tegns from the current Tegnsett.
 	// The "already" includes features that were added by the children Tegns.
-	ExecPostInstall(installedTegns []Tegn, osInfo OSInfoExt, already []TegnFeature, tegnToParams map[string]TegnParameterMap)
+	ExecPostInstall(installedTegns []Tegn, osInfo OSInfoExt, already TegnInstalledFeaturesMap, tegnToParams map[string]TegnParameterMap)
 }
 
 type TegnsettBuildFunc func() Tegnsett
@@ -144,10 +145,13 @@ func GetTegnsettsAvailability(
 	tegnsettByID MapTegnsettByID,
 	tegnByID MapTegnByID,
 	selectedIDs TegnGeneralEnabledIDsMap,
+	alreadyInstalledFeatures TegnInstalledFeaturesMap,
 ) TegnGeneralAvailabilityByID {
 	availableByID := make(TegnGeneralAvailabilityByID /* probably capacity */, len(tegnByID))
 
-	currentFeatures := make([]TegnFeature, 0)
+	currentFeatures := make(TegnInstalledFeaturesMap)
+	maps.Copy(currentFeatures, alreadyInstalledFeatures)
+
 	for _, tegnsettID := range orders.Tegnsett {
 		tegnsett := tegnsettByID[tegnsettID]
 
@@ -172,7 +176,7 @@ func GetTegnsettsAvailability(
 				continue
 			}
 
-			currentFeatures = append(currentFeatures, tegn.GetFeatures()...)
+			maps.Copy(currentFeatures, tegn.GetFeatures())
 		}
 	}
 

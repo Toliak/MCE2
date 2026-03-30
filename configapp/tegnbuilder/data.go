@@ -7,7 +7,7 @@ import (
 	"github.com/toliak/mce/osinfo/data"
 )
 
-type AvailablePackagesMap map[string] bool
+type AvailablePackagesMap map[string]bool
 
 // Extended OSInfo
 type OSInfoExt struct {

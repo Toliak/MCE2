@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
@@ -64,11 +63,11 @@ func (p *ZshBaseConfig) GetAvailableOsType() *[]data.OSTypeE {
 // GetAvailability implements [tb.Tegn].
 func (p *ZshBaseConfig) GetAvailability(
 	osInfo tb.OSInfoExt, 
-	before []tb.TegnFeature, 
+	before tb.TegnInstalledFeaturesMap, 
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	return tb.TegnAvailability{
-		Available: slices.Contains(before, "pkg:zsh") /*|| platform.CommandExists("zsh")*/,
+		Available: before["pkg:zsh"] == true /*|| platform.CommandExists("zsh")*/,
 		Reason:    fmt.Sprintf("Feature pkg:zsh not found"),
 	}
 }
@@ -102,6 +101,7 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 	return []tb.TegnParameter {
 		tb.NewTegnParameter(
 			"repo-url",
+			"Repository URL",
 			tb.TegnParameterTypeString,
 			tb.WithDescription("Oh-my-zsh Repository URL"),
 			tb.WithDefaultValue("https://github.com/ohmyzsh/ohmyzsh"),
@@ -109,6 +109,7 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 		),
 		tb.NewTegnParameter(
 			"repo-branch",
+			"Repository branch",
 			tb.TegnParameterTypeString,
 			tb.WithDescription("Oh-my-zsh Repository branch"),
 			tb.WithDefaultValue("master"),
@@ -116,22 +117,23 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 		),
 		tb.NewTegnParameter(
 			"zshrc-backup",
-			tb.TegnParameterTypeString,
+			"Do zshrc backup",
+			tb.TegnParameterTypeBool,
 			tb.WithDescription("Backup current .zshrc configuration?"),
 			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailability(tb.TegnAvailability{
-				Available: zshrcAvailabilityReason != "",
-				Reason: zshrcAvailabilityReason,
-			}),
+			tb.WithAvailability(
+				zshrcAvailabilityReason != "",
+				zshrcAvailabilityReason,
+			),
 		),
 	}
 }
 
 // GetFeatures implements [tb.Tegn].
-func (p *ZshBaseConfig) GetFeatures() []tb.TegnFeature {
-	return []tb.TegnFeature{
-		tb.TegnFeature("cfg:zsh-base"), 
-		tb.TegnFeature("cfg:oh-my-zsh"),
+func (p *ZshBaseConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
+	return tb.TegnInstalledFeaturesMap{
+		tb.TegnFeature("cfg:zsh-base"): true, 
+		tb.TegnFeature("cfg:oh-my-zsh"): true,
 }
 }
 
@@ -150,7 +152,7 @@ func (p *ZshBaseConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	}
 }
 
-func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, already []tb.TegnFeature, params tb.TegnParameterMap) error {
+func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]

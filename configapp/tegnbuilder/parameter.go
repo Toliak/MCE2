@@ -1,12 +1,16 @@
 package tegnbuilder
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type TegnParameterOption func(self *TegnParameter)
-type TegnValidator func (self *TegnParameter, newValue string) bool
+type TegnValidator func (self *TegnParameter, newValue string) error
 
 // Represents a parameter specification for a Tegn.
 type TegnParameter struct {
+	id string
 	name string
 	description string
 
@@ -23,8 +27,9 @@ type TegnParameter struct {
 	validator TegnValidator
 }
 
-func NewTegnParameter(name string, paramType TegnParameterType, opts ...TegnParameterOption) TegnParameter{
+func NewTegnParameter(id string, name string, paramType TegnParameterType, opts ...TegnParameterOption) TegnParameter{
 	p := TegnParameter{
+		id: id,
 		name:        name,
 		paramType: paramType,
 	}
@@ -43,9 +48,12 @@ func WithDefaultValue(val string) TegnParameterOption {
 }
 
 // WithAvailability sets the availability status.
-func WithAvailability(available TegnAvailability) TegnParameterOption {
+func WithAvailability(status bool, reason string) TegnParameterOption {
 	return func(p *TegnParameter) {
-		p.available = available
+		p.available = TegnAvailability{
+			Available: status,
+			Reason: reason,
+		}
 	}
 }
 
@@ -77,6 +85,10 @@ func WithValidator(validator TegnValidator) TegnParameterOption {
 	}
 }
 
+func (p *TegnParameter) GetID() string {
+	return p.id
+}
+
 func (p *TegnParameter) GetName() string {
 	return p.name
 }
@@ -90,6 +102,11 @@ func (p *TegnParameter) GetDefaultValue() string {
 }
 
 func (p *TegnParameter) GetParamType() TegnParameterType {
+	// TODO: about "param type" and "validate". Consolidate that somehow.
+	// So, two ways:
+	// 1. Validate checks the parameter based on the type and custom validator
+	// 2. Remove param type and leave the custom validator. But how to store templates?
+	// TODO: resolved??
 	return p.paramType
 }
 
@@ -101,7 +118,32 @@ func (p *TegnParameter) GetValidator() TegnValidator {
 	return p.validator
 }
 
-func (p *TegnParameter) Validate(newValue string) bool {
+func (p *TegnParameter) validateBasedOnParameterType(newValue string) error {
+	switch p.paramType {
+	case TegnParameterTypeInt:
+		_, err := strconv.Atoi(newValue)
+		if err != nil {
+			return fmt.Errorf("Unable to convert '%s' to integer", newValue)
+		}
+	case TegnParameterTypeBool:
+		if newValue != "y" && newValue != "n" {
+			return fmt.Errorf("Unable to convert '%s' to boolean. Expected 'y' or 'n'", newValue)
+		}
+	case TegnParameterTypeString:
+		// usually always valid
+	}
+
+	return nil
+}
+
+func (p *TegnParameter) Validate(newValue string) error {
+	if err := p.validateBasedOnParameterType(newValue); err != nil {
+		return err
+	}
+
+	if p.validator == nil {
+		return nil
+	}
 	return p.validator(p, newValue)
 }
 
@@ -136,7 +178,7 @@ func TegnParameterFromBool(v bool) string {
 }
 
 func TegnParameterFromInt(v int) string {
-	return fmt.Sprintf("%d", v)
+	return strconv.Itoa(v)
 }
 
 func TegnParameterToBool(s string) bool {
@@ -144,11 +186,11 @@ func TegnParameterToBool(s string) bool {
 }
 
 func TegnParameterToInt(s string, fallback int) int {
-	var result *int
-	_, err := fmt.Sscanf(s, "%d", result)
-	if err != nil || result == nil {
+	var result int
+	_, err := strconv.Atoi(s)
+	if err != nil {
 		return fallback
 	}
 
-	return *result
+	return result
 }

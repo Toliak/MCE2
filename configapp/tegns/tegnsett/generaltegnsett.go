@@ -76,7 +76,7 @@ func (p *GenericTegnsett) GetAvailableOsType() *[]data.OSTypeE {
 // GetAvailability implements [tb.Tegnsett].
 func (p *GenericTegnsett) GetAvailability(
 	osInfo tb.OSInfoExt, 
-	before []tb.TegnFeature, 
+	before tb.TegnInstalledFeaturesMap, 
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	if p.availabilityFunc != nil {
@@ -99,7 +99,7 @@ func (p *GenericTegnsett) GetChildren() []tb.Tegn {
 func (p *GenericTegnsett) ExecPostInstall(
 	installedTegns []tb.Tegn, 
 	osInfo tb.OSInfoExt, 
-	already []tb.TegnFeature, 
+	already tb.TegnInstalledFeaturesMap, 
 	tegnToParams map[string]tb.TegnParameterMap,
 ) {
 	// Do nothing here
