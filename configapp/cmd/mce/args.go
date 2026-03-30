@@ -19,6 +19,9 @@ type Args struct {
 	DataDir               string
 	MceRepositoryURL      string
 	MceRepositoryBranch   string
+
+	JSONPreset			  JSONPreset
+	NoUI                  bool
 }
 
 func ParseArgs(args []string) (*Args, error) {
@@ -41,6 +44,8 @@ func ParseArgs(args []string) (*Args, error) {
 		true,
 		"Obtain all the available packages from the package manager",
 	)
+
+	noUI := flag.Bool("no-ui", false, "Disable UI")
 
 	// Template flag
 	var template *string
@@ -72,6 +77,22 @@ func ParseArgs(args []string) (*Args, error) {
 		verbosity = &v
 		return nil
 	})
+
+	// Verbosity flag
+	var jsonPreset *JSONPreset
+	flag.Func("preset", "JSON preset", func(s string) error {
+		preset, err := UnmarshalJSONPreset(s)
+		if err != nil {
+			return err
+		}
+
+		jsonPreset = &preset
+		return nil
+	})
+	if jsonPreset == nil {
+		preset := GetDefaultPreset()
+		jsonPreset = &preset
+	}
 
 	// New MCE2 flags
 	homeDir, err := os.UserHomeDir()
@@ -113,5 +134,7 @@ func ParseArgs(args []string) (*Args, error) {
 		DataDir:             *dataDir,
 		MceRepositoryURL:    *mceRepoURL,
 		MceRepositoryBranch: *mceRepoBranch,
+		JSONPreset:          *jsonPreset,
+		NoUI: *noUI,
 	}, nil
 }

@@ -137,7 +137,7 @@ func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbu
 	}
 
 	form.SetFocus(1); // Focus on the value
-	
+
 	form.SetBorder(true).
 		SetTitle("Edit Parameter").
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"maps"
 	"os"
 
 	"github.com/toliak/mce/cmd/mce/ui"
@@ -47,7 +46,6 @@ func mainInternal() error {
 	}
 
 	// Installed cache
-
 
 	// TODO: now we need to rework all the parameters shit
 
@@ -98,27 +96,61 @@ func mainInternal() error {
 		app.State.ParameterByIDMap[k] = make(tb.TegnParameterMap)
 	}
 
-	// TODO: add YAML or JSON support, where the default enabled Tegns and Tegnsetts can be set
-	// TODO: or at least make multiple variants in golang and let the user to select them using flag
-	// TODO: add the parameters supportg
-	for k, v := range DefaultEnables {
-		_, ok := app.State.EnabledIDsMap[k]
-		if !ok {
-			fmt.Println("")
-			continue
+	{
+		errorList := make([]string, 0)
+		for k, v := range args.JSONPreset {
+			if _, ok := initResult.AllIDsSet[k]; !ok {
+				errorList = append(errorList, fmt.Sprintf("Tegn or Tegnsett with ID '%s' not found", k))
+				continue
+			}
+
+			app.State.EnabledIDsMap[k] = v.Enabled
+			if v.Params == nil {
+				continue
+			}
+			tegn, ok := initResult.TegnByID[k]
+			if !ok {
+				errorList = append(errorList, fmt.Sprintf("Unable to set parameter to non-Tegn '%s'", k))
+				continue
+			}
+			params := tegn.GetParameters(builderData)
+			paramsByID := make(map[string]tb.TegnParameter, len(params))
+			for _, v := range params {
+				paramsByID[v.GetID()] = v
+			}
+			for pk, pv := range v.Params {
+				if _, ok := paramsByID[pk]; !ok {
+					errorList = append(errorList, fmt.Sprintf("Parameter with ID '%s' of Tegn '%s'", pk, k))
+					continue
+				}
+
+				if _, ok := app.State.ParameterByIDMap[k]; !ok {
+					app.State.ParameterByIDMap[k] = tb.TegnParameterMap{
+						pk: pv,
+					}
+				} else {
+					app.State.ParameterByIDMap[k][pk] = pv
+				}
+			}
 		}
 
-		app.State.EnabledIDsMap[k] = v
+		if len(errorList) != 0 {
+			fmt.Println("Preset apply errors:")
+			for _, v := range errorList {
+				fmt.Printf("- %s\n", v)
+			}
+			return fmt.Errorf("Preset apply error")
+		}
 	}
-	for k, v := range DefaultParameters {
-		maps.Copy(app.State.ParameterByIDMap[k], v)
-	}
-
 	// TODO: if any errors -- prompt before continue
 	
-	err = app.Run()
-	if err != nil {
-		return err
+	if !args.NoUI {
+		err = app.Run()
+		if err != nil {
+			return err
+		}
+	} else {
+		app.State.ExitConfirmed = true
 	}
 
 	if !app.State.ExitConfirmed {
@@ -195,6 +227,10 @@ func mainInternal() error {
 		app.State.InstalledFeatures,
 	)
 
+	// TODO: make this a struct like
+	// TegnsettID
+	// TegnIDList
+	// And list of that into the "to install"
 	toInstall := make([]string, 0)
 	// TODO: to post install
 	for _, id := range order.Tegnsett {
