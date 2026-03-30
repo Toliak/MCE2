@@ -68,7 +68,7 @@ func (p *ZshBaseConfig) GetAvailability(
 ) tb.TegnAvailability {
 	return tb.TegnAvailability{
 		Available: before["pkg:zsh"] == true /*|| platform.CommandExists("zsh")*/,
-		Reason:    fmt.Sprintf("Feature pkg:zsh not found"),
+		Reason:    "Feature pkg:zsh not found",
 	}
 }
 
