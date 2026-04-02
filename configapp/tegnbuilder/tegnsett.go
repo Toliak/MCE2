@@ -16,7 +16,12 @@ type Tegnsett interface {
 	// 
 	// The installedTegns contains only installed Tegns from the current Tegnsett.
 	// The "already" includes features that were added by the children Tegns.
-	ExecPostInstall(installedTegns []Tegn, osInfo OSInfoExt, already TegnInstalledFeaturesMap, tegnToParams map[string]TegnParameterMap)
+	ExecPostInstall(
+		installedTegns []Tegn,
+		osInfo OSInfoExt,
+		already TegnInstalledFeaturesMap,
+		tegnToParams map[string]TegnParameterMap,
+	) error
 }
 
 type TegnsettBuildFunc func() Tegnsett

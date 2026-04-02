@@ -4,8 +4,10 @@ import sys
 from typing import *
 from os_info import test_os_info
 from base_args import tests_args
+from install import tests_install
 
 test_list: List[Callable[[Path, Path], bool]] = [
+    *tests_install(),
     test_os_info,
     *tests_args(),
 ]

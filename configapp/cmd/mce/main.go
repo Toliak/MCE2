@@ -3,13 +3,64 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 
+	"github.com/toliak/mce/cmd/mce/confirmui"
 	"github.com/toliak/mce/cmd/mce/ui"
 	"github.com/toliak/mce/inspector"
 	tb "github.com/toliak/mce/tegnbuilder"
 	"github.com/toliak/mce/tegns"
 )
+
+func applyPresetToApp(initResult tb.TegnsettInitializeResult, osInfo tb.OSInfoExt, app ui.App, preset JSONPreset) error {
+	errorList := make([]string, 0)
+	for k, v := range preset {
+		if _, ok := initResult.AllIDsSet[k]; !ok {
+			errorList = append(errorList, fmt.Sprintf("Tegn or Tegnsett with ID '%s' not found", k))
+			continue
+		}
+
+		app.State.EnabledIDsMap[k] = v.Enabled
+		if v.Params == nil {
+			continue
+		}
+		tegn, ok := initResult.TegnByID[k]
+		if !ok {
+			errorList = append(errorList, fmt.Sprintf("Unable to set parameter to non-Tegn '%s'", k))
+			continue
+		}
+		params := tegn.GetParameters(osInfo)
+		paramsByID := make(map[string]tb.TegnParameter, len(params))
+		for _, v := range params {
+			paramsByID[v.GetID()] = v
+		}
+		for pk, pv := range v.Params {
+			if _, ok := paramsByID[pk]; !ok {
+				errorList = append(errorList, fmt.Sprintf("Parameter with ID '%s' of Tegn '%s'", pk, k))
+				continue
+			}
+
+			if _, ok := app.State.ParameterByIDMap[k]; !ok {
+				app.State.ParameterByIDMap[k] = tb.TegnParameterMap{
+					pk: pv,
+				}
+			} else {
+				app.State.ParameterByIDMap[k][pk] = pv
+			}
+		}
+	}
+
+	if len(errorList) != 0 {
+		fmt.Println("Preset apply errors:")
+		for _, v := range errorList {
+			fmt.Printf("- %s\n", v)
+		}
+		return fmt.Errorf("Preset apply error")
+	}
+
+	return nil
+}
 
 func mainInternal() error {
 	args, err := ParseArgs(os.Args[1:])
@@ -95,55 +146,13 @@ func mainInternal() error {
 	for k, _ := range tegnsetts.TegnByID {
 		app.State.ParameterByIDMap[k] = make(tb.TegnParameterMap)
 	}
-
-	{
-		errorList := make([]string, 0)
-		for k, v := range args.JSONPreset {
-			if _, ok := initResult.AllIDsSet[k]; !ok {
-				errorList = append(errorList, fmt.Sprintf("Tegn or Tegnsett with ID '%s' not found", k))
-				continue
-			}
-
-			app.State.EnabledIDsMap[k] = v.Enabled
-			if v.Params == nil {
-				continue
-			}
-			tegn, ok := initResult.TegnByID[k]
-			if !ok {
-				errorList = append(errorList, fmt.Sprintf("Unable to set parameter to non-Tegn '%s'", k))
-				continue
-			}
-			params := tegn.GetParameters(builderData)
-			paramsByID := make(map[string]tb.TegnParameter, len(params))
-			for _, v := range params {
-				paramsByID[v.GetID()] = v
-			}
-			for pk, pv := range v.Params {
-				if _, ok := paramsByID[pk]; !ok {
-					errorList = append(errorList, fmt.Sprintf("Parameter with ID '%s' of Tegn '%s'", pk, k))
-					continue
-				}
-
-				if _, ok := app.State.ParameterByIDMap[k]; !ok {
-					app.State.ParameterByIDMap[k] = tb.TegnParameterMap{
-						pk: pv,
-					}
-				} else {
-					app.State.ParameterByIDMap[k][pk] = pv
-				}
-			}
-		}
-
-		if len(errorList) != 0 {
-			fmt.Println("Preset apply errors:")
-			for _, v := range errorList {
-				fmt.Printf("- %s\n", v)
-			}
-			return fmt.Errorf("Preset apply error")
-		}
+	err = applyPresetToApp(initResult, builderData, app, args.JSONPreset)
+	if err != nil {
+		return err
 	}
+
 	// TODO: if any errors -- prompt before continue
-	
+
 	if !args.NoUI {
 		err = app.Run()
 		if err != nil {
@@ -227,14 +236,13 @@ func mainInternal() error {
 		app.State.InstalledFeatures,
 	)
 
-	// TODO: make this a struct like
-	// TegnsettID
-	// TegnIDList
 	// And list of that into the "to install"
-	toInstall := make([]string, 0)
+	toInstall := make([]confirmui.ToInstallData, 0)
 	// TODO: to post install
 	for _, id := range order.Tegnsett {
 		tegnList := order.TegnByTegnsettID[id]
+		
+		resultTegnIDList := make([]string, 0, len(tegnList))
 
 		for _, tegnID := range tegnList {
 			// tegn := initResult.TegnByID[tegnID]
@@ -252,21 +260,58 @@ func mainInternal() error {
 				continue
 			}
 			
-
-			toInstall = append(toInstall, tegnID)
+			resultTegnIDList = append(resultTegnIDList, tegnID)
 		}
+
+		toInstall = append(toInstall, confirmui.ToInstallData{
+			TegnsettID: id,
+			TegnIDList: resultTegnIDList,
+		})
 	}
 
 	// TODO: split install and the update
 	fmt.Println("----------\nWill be installed:")
-	for _, id := range toInstall {
-		fmt.Printf("- %s\n", id)
+	for _, d := range toInstall {
+		for _, id := range d.TegnIDList {
+			fmt.Printf("- %s\n", id)
+		}
 	}
 
-
 	// TODO: print also parameters
+	installedFeatures := make(tb.TegnInstalledFeaturesMap, len(alreadyInstalledFeatures))
+	maps.Copy(installedFeatures, alreadyInstalledFeatures)
+	for _, d := range toInstall {
+		installedTegns := make([]tb.Tegn, 0, len(d.TegnIDList))
 
-	// TODO: add one more app to confirm the 
+		for _, id := range d.TegnIDList {
+			tegn := initResult.TegnByID[id]
+			err := tegn.ExecInstall(
+				builderData, 
+				installedFeatures,
+				app.State.ParameterByIDMap[id],
+			)
+			if err != nil {
+				return err
+			}
+			
+			installedTegns = append(installedTegns, tegn)
+			for k, v := range tegn.GetFeatures() {
+				installedFeatures[k] = v
+			}
+		}
+
+		err := initResult.TegnsettByID[d.TegnsettID].ExecPostInstall(
+			installedTegns,
+			builderData,
+			installedFeatures,
+			app.State.ParameterByIDMap,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO: add one more app to confirm the
 	// TODO: add flag to skip confirmation
 
 

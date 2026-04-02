@@ -24,12 +24,12 @@ func NewApp(
 	osInfoExt tb.OSInfoExt, 
 	alreadyInstalled tb.AvailablePackagesMap,
 	alreadyInstalledFeatures tb.TegnInstalledFeaturesMap,
-) *App {
+) App {
 	app := tview.NewApplication()
 	state := NewUIState(initResult, osInfoExt, alreadyInstalled)
 	state.InstalledFeatures = alreadyInstalledFeatures
 
-	ui := &App{
+	ui := App{
 		app:       app,
 		State:     state,
 	}

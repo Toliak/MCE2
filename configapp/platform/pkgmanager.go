@@ -30,11 +30,7 @@ func execCommandUpdate(name string, arg ...string) error {
 	return err
 }
 
-func UpdateRepositories(info *data.PkgManager) error {
-	if info == nil {
-		return fmt.Errorf("pkgManager info cannot be nil")
-	}
-
+func UpdateRepositories(info data.PkgManager) error {
 	switch info.V {
 	case data.PkgMgrAptGet:
 		return execCommandUpdate(info.Raw, "update", "-y", "--allow-releaseinfo-change")
@@ -53,11 +49,7 @@ func UpdateRepositories(info *data.PkgManager) error {
 	}
 }
 
-func InstallPackages(info *data.PkgManager, packageNames []string) error {
-	if info == nil {
-		return fmt.Errorf("pkgManager info cannot be nil")
-	}
-
+func InstallPackages(info data.PkgManager, packageNames []string) error {
 	var cmd string
 	var argList []string
 	var env []string
@@ -95,14 +87,14 @@ func InstallPackages(info *data.PkgManager, packageNames []string) error {
 
 // WARNING: do not use this function if you have to search multiple packages
 // Use `SearchPackageFullNames` instead
-func SearchPackageFullName(info *data.PkgManager, packageName string) (bool, error) {
-	found, _, err := SearchPackageFullNames(info, []string{packageName})
-	if err != nil {
-		return false, err
-	}
+// func SearchPackageFullName(info *data.PkgManager, packageName string) (bool, error) {
+// 	found, _, err := SearchPackageFullNames(info, []string{packageName})
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return len(found) == 1, nil
-}
+// 	return len(found) == 1, nil
+// }
 
 type searchConfig struct {
 	command      string
@@ -113,7 +105,7 @@ type searchConfig struct {
 	execWrapper  func() ExecCommandWrapper
 }
 
-func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config searchConfig) ([]string, []string, error) {
+func searchPackagesGeneric(info data.PkgManager, packageNames []string, config searchConfig) ([]string, []string, error) {
 	execWrapperDefault := func() ExecCommandWrapper {
 		return NewExecCommandWrapper(
 			WithBufferStdout(true),
@@ -186,12 +178,7 @@ func searchPackagesGeneric(info *data.PkgManager, packageNames []string, config 
 	return resFound, resNotFound, nil
 }
 
-func SearchPackageFullNames(info *data.PkgManager, packageNames []string) ([]string, []string, error) {
-	if info == nil {
-		return make([]string, 0),
-			make([]string, 0),
-			&PkgManagerError{what: "SearchPackageFullNames: pkgManager info cannot be nil"}
-	}
+func SearchPackageFullNames(info data.PkgManager, packageNames []string) ([]string, []string, error) {
 	if len(packageNames) == 0 {
 		return make([]string, 0), make([]string, 0), nil
 	}

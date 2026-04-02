@@ -1,0 +1,44 @@
+import json
+from pathlib import Path
+import subprocess
+from typing import *
+
+def test_install_ohmyzsh(binary_e2e: Path, binary_prod: Path) -> bool:
+    preset = {
+        "os-packages": {"en": True},
+        "package-git": {"en": True},
+        "package-psmisc": {"en": True},
+        "package-tmux": {"en": True},
+        "package-zsh": {"en": True},
+        "zsh-config": {"en": True},
+        "base-cfg-zsh": {"en": True},
+    }
+    try:
+        output = subprocess.check_output(
+            [
+                binary_prod.as_posix(), 
+                "-preset", 
+                json.dumps(preset), 
+                "-no-ui",
+                "-y",
+             ], 
+            text=True, 
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Binary execution failed: {e}")
+        print(e.output)
+        return False
+    
+    print(output)
+    cond = (
+        'verbosity' in output and
+        'no-ui' in output and
+        'preset' in output
+    )
+    return cond
+
+def tests_install() -> List[Callable[[Path, Path], bool]]:
+    return [
+        test_install_ohmyzsh,
+    ]

@@ -79,7 +79,7 @@ func InspectAndHarvest(options InspectAndHarvestConfig) (*HarvestData, error) {
 			if osInfo.PkgManager.V == data.PkgMgrUnknown {
 				fmt.Printf("PkgManager repository metadata update will be skipped, due to the unknown PkgManager %s\n", osInfo.PkgManager)
 			} else {
-				err := platform.UpdateRepositories(&osInfo.PkgManager)
+				err := platform.UpdateRepositories(osInfo.PkgManager)
 				if err != nil {
 					return nil, fmt.Errorf("InspectAndHarvest UpdateRepositories error: %w", err)
 				}

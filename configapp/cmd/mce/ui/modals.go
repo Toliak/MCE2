@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -173,15 +172,9 @@ func NewSearchModal(state *UIState, app *tview.Application, closer func()) *tvie
 func NewConfirmModal(state *UIState, app *tview.Application, closer func()) *tview.Modal {
 	// tsCount, tegnCount, paramCount := state.GetEnabledSummary()
 	
-	confirmText := fmt.Sprintf(`
-[::b]Confirmation Summary[::]
+	confirmText := `[::b]Confirmation Summary[::]
 
-Enabled Tegnsetts: [green]%d[white]
-Enabled Tegns:     [green]%d[white]
-Parameters:        [green]%d[white]
-
-Do you want to apply these configuration changes?
-`, -1, -1, -1)
+Do you want to apply these configuration changes?`
 
 	buttonYesClick := func() {
 		state.ExitConfirmed = true

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/toliak/mce/osinfo/data"
+	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 	"github.com/toliak/mce/tegns/tegn"
 )
@@ -85,13 +86,27 @@ func (p *OSPackages) GetChildren() []tb.Tegn {
 // we assume that the installedTegns are the children of the [OSPackages]
 // therefore they all implement the [tegn.GenericPackageTegn] interface
 func (p *OSPackages) ExecPostInstall(
-	_installedTegns []tb.Tegn, 
-	_osInfo tb.OSInfoExt, 
+	installedTegns []tb.Tegn, 
+	osInfo tb.OSInfoExt, 
 	_already tb.TegnInstalledFeaturesMap, 
 	_tegnToParams map[string]tb.TegnParameterMap,
-) {
-	// TODO: implement
-	panic("NOT IMPLEMENTED ExecPostInstall for OSPackages")
+) error {
+	if len(installedTegns) == 0 {
+		// nothing to install
+		return nil
+	}
+
+	packageTegns := make([]tegn.GenericPackageTegn, 0, len(installedTegns))
+	for _, v := range installedTegns {
+		packageTegns = append(packageTegns, v.(tegn.GenericPackageTegn))
+	}
+
+	pkgNames := make([]string, 0, len(packageTegns))
+	for _, pkg := range packageTegns {
+		pkgNames = append(pkgNames, pkg.GetPackageName())
+	}
+
+	return platform.InstallPackages(osInfo.PkgManager, pkgNames)
 }
 
 func (p *OSPackages) GoString(osInfo tb.OSInfoExt) string {

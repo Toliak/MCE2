@@ -60,7 +60,7 @@ func subCommandHarvestJson(info data.OSInfo, _ any) error {
 }
 
 func subCommandRepoList(info data.OSInfo, _ any) error {
-	err := platform.UpdateRepositories(&info.PkgManager)
+	err := platform.UpdateRepositories(info.PkgManager)
 	if err != nil {
 		return fmt.Errorf("Update error: %w", err)
 	}
@@ -113,13 +113,13 @@ func subCommandRepoInstall(info data.OSInfo, data any) error {
 
 	toInstall := **d.toInstall
 
-	err := platform.UpdateRepositories(&info.PkgManager)
+	err := platform.UpdateRepositories(info.PkgManager)
 	if err != nil {
 		return fmt.Errorf("Update error: %w", err)
 	}
 
 	found, notFound, err := platform.SearchPackageFullNames(
-		&info.PkgManager,
+		info.PkgManager,
 		toInstall,
 	)
 	if err != nil {
@@ -127,7 +127,7 @@ func subCommandRepoInstall(info data.OSInfo, data any) error {
 	}
 
 	if len(found) != 0 {
-		err = platform.InstallPackages(&info.PkgManager, found)
+		err = platform.InstallPackages(info.PkgManager, found)
 		if err != nil {
 			return fmt.Errorf("Install error: %w", err)
 		}

@@ -101,8 +101,9 @@ func (p *GenericTegnsett) ExecPostInstall(
 	osInfo tb.OSInfoExt, 
 	already tb.TegnInstalledFeaturesMap, 
 	tegnToParams map[string]tb.TegnParameterMap,
-) {
+) error {
 	// Do nothing here
+	return nil
 }
 
 func (p *GenericTegnsett) GoString(osInfo tb.OSInfoExt) string {

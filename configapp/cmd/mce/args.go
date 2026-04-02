@@ -22,6 +22,7 @@ type Args struct {
 
 	JSONPreset			  JSONPreset
 	NoUI                  bool
+	ForceConfirm          bool
 }
 
 func ParseArgs(args []string) (*Args, error) {
@@ -46,6 +47,7 @@ func ParseArgs(args []string) (*Args, error) {
 	)
 
 	noUI := flag.Bool("no-ui", false, "Disable UI")
+	forceConfirm := flag.Bool("y", false, "Forcefully confirm installation")
 
 	// Template flag
 	var template *string
@@ -136,5 +138,6 @@ func ParseArgs(args []string) (*Args, error) {
 		MceRepositoryBranch: *mceRepoBranch,
 		JSONPreset:          *jsonPreset,
 		NoUI: *noUI,
+		ForceConfirm: *forceConfirm,
 	}, nil
 }

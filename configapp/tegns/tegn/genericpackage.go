@@ -12,6 +12,8 @@ import (
 )
 
 type GenericPackageTegn interface {
+	tb.Tegn
+
 	// Gets the package name
 	GetPackageName() string
 }
