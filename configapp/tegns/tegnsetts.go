@@ -8,6 +8,14 @@ import (
 var Tegnsetts = []tegnbuilder.TegnsettBuildFunc{
 	tegnsett.NewOSPackages(AllPkgConstructors),
 	tegnsett.NewGeneralTegnsett(
+		"mce2",
+		"MCE2 General",
+		"General Make Configuration Easier 2 installation",
+		[]string{"os-packages"},
+		AllMCE2Tegns,
+		nil,
+	),
+	tegnsett.NewGeneralTegnsett(
 		"zsh-config",
 		"zsh-config",
 		"zsh-config",

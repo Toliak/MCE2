@@ -1,48 +1,45 @@
 services:
+  _template: &template
+    build:
+      context: ../
+      dockerfile: e2e/___template__.Dockerfile
+    working_dir: /test
+    volumes:
+      - ../:/test:ro
+      - ../../:/repo:ro
+
   alpine:
+    <<: *template
     build:
       context: ../
       dockerfile: e2e/alpine.Dockerfile
-    working_dir: /test
-    volumes:
-      - ../:/test:ro
 
   archlinux:
+    <<: *template
     build:
       context: ../
       dockerfile: e2e/archlinux.Dockerfile
-    working_dir: /test
-    volumes:
-      - ../:/test:ro
 
   debian:
+    <<: *template
     build:
       context: ../
       dockerfile: e2e/debian.Dockerfile
-    working_dir: /test
-    volumes:
-      - ../:/test:ro
 
   fedora:
+    <<: *template
     build:
       context: ../
       dockerfile: e2e/fedora.Dockerfile
-    working_dir: /test
-    volumes:
-      - ../:/test:ro
 
   rocky:
+    <<: *template
     build:
       context: ../
       dockerfile: e2e/rocky.Dockerfile
-    working_dir: /test
-    volumes:
-      - ../:/test:ro
 
   oraclelinux:
+    <<: *template
     build:
       context: ../
       dockerfile: e2e/oraclelinux.Dockerfile
-    working_dir: /test
-    volumes:
-      - ../:/test:ro

@@ -98,6 +98,11 @@ var AllZshConfig = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshBaseConfigBuilder(),
 }
 
+// Register packages here
+var AllMCE2Tegns = []tegnbuilder.TegnBuildFunc{
+	tegn.NewTegnCloneRepoBuilder(),
+}
+
 // We need categories here
 // In the categories there will be the packages
 

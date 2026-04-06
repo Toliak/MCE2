@@ -5,6 +5,8 @@ from typing import *
 
 def test_install_ohmyzsh(binary_e2e: Path, binary_prod: Path) -> bool:
     preset = {
+        "mce2": {"en": True},
+        "mce2-repo": {"en": True},
         "os-packages": {"en": True},
         "package-git": {"en": True},
         "package-psmisc": {"en": True},
@@ -19,6 +21,7 @@ def test_install_ohmyzsh(binary_e2e: Path, binary_prod: Path) -> bool:
                 binary_prod.as_posix(), 
                 "-preset", 
                 json.dumps(preset), 
+                "-mce-repo-url=file:///repo",
                 "-no-ui",
                 "-y",
              ], 
@@ -31,11 +34,9 @@ def test_install_ohmyzsh(binary_e2e: Path, binary_prod: Path) -> bool:
         return False
     
     print(output)
-    cond = (
-        'verbosity' in output and
-        'no-ui' in output and
-        'preset' in output
-    )
+    zshrc = (Path.home() / ".zshrc")
+    print("Zshrc exists: ", zshrc.exists())
+    cond = zshrc.exists()
     return cond
 
 def tests_install() -> List[Callable[[Path, Path], bool]]:

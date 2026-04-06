@@ -143,8 +143,15 @@ func mainInternal() error {
 	// TODO: add flag to skip the ui and just use the "TegnTemplate"
 	app := ui.NewApp(initResult, builderData, alreadyInstalled, alreadyInstalledFeatures)
 
-	for k, _ := range tegnsetts.TegnByID {
-		app.State.ParameterByIDMap[k] = make(tb.TegnParameterMap)
+	for k, tegn := range tegnsetts.TegnByID {
+		newParameterMap := make(tb.TegnParameterMap)
+		params := tegn.GetParameters(builderData)
+		for _, param := range params {
+			newParameterMap[param.GetID()] = param.GetDefaultValue()
+		}
+
+		app.State.ParameterByIDMap[k] = newParameterMap
+
 	}
 	err = applyPresetToApp(initResult, builderData, app, args.JSONPreset)
 	if err != nil {
@@ -295,9 +302,7 @@ func mainInternal() error {
 			}
 			
 			installedTegns = append(installedTegns, tegn)
-			for k, v := range tegn.GetFeatures() {
-				installedFeatures[k] = v
-			}
+			maps.Copy(installedFeatures, tegn.GetFeatures())
 		}
 
 		err := initResult.TegnsettByID[d.TegnsettID].ExecPostInstall(

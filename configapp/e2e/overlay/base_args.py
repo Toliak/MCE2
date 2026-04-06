@@ -38,9 +38,8 @@ def test_no_ui_just_exit(binary_e2e: Path, binary_prod: Path) -> bool:
     print(output)
     
     cond = (
-        'verbosity' in output and
-        'no-ui' in output and
-        'preset' in output
+        'Will be installed:' in output and
+        'Will be installed:\n- ' not in output
     )
     return cond
 
