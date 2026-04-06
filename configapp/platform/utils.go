@@ -58,7 +58,7 @@ func IsRoot() bool {
 
 func FileEntryExists(path string) bool {
 	_, err := os.Stat(path)
-	return err != nil && os.IsNotExist(err)
+	return !(err != nil && os.IsNotExist(err))
 }
 
 // See https://opensource.com/article/18/6/copying-files-go

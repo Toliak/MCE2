@@ -66,10 +66,11 @@ func (p *ZshBaseConfig) GetAvailability(
 	before tb.TegnInstalledFeaturesMap, 
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
-	return tb.TegnAvailability{
-		Available: before["pkg:zsh"] == true /*|| platform.CommandExists("zsh")*/,
-		Reason:    "Feature pkg:zsh not found",
+	if err := tb.CheckFeatures(before, []tb.TegnFeature{"pkg:zsh", "cfg:mce2"}); err != nil {
+		return tb.NewTegnNotAvailable(err.Error())
 	}
+
+	return tb.NewTegnAvailable()
 }
 
 // GetBeforeIDs implements [tb.Tegn].
@@ -114,6 +115,15 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithDescription("Oh-my-zsh Repository branch"),
 			tb.WithDefaultValue("master"),
 			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"install-dir",
+			"Installation path",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Oh-my-zsh Installation path (read-only)"),
+			tb.WithDefaultValue(p.getInstallDir(osInfo)),
+			tb.WithAvailabilityFalse("Read-only"),
+			tb.WithReadOnlyValidator(),
 		),
 		tb.NewTegnParameter(
 			"zshrc-backup",
@@ -201,6 +211,8 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	if err != nil {
 		return err
 	}
+
+	// TODO: here we have to do the config `export ZSH="$HOME/.oh-my-zsh"` replacement
 
 	return nil
 }

@@ -18,8 +18,8 @@ var Tegnsetts = []tegnbuilder.TegnsettBuildFunc{
 	tegnsett.NewGeneralTegnsett(
 		"zsh-config",
 		"zsh-config",
-		"zsh-config",
-		[]string{"os-packages"},
+		"ZSH configuration",
+		[]string{"os-packages", "mce2"},
 		AllZshConfig,
 		nil,
 	),

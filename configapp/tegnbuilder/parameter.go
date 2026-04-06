@@ -85,6 +85,17 @@ func WithValidator(validator TegnValidator) TegnParameterOption {
 	}
 }
 
+func ReadOnlyValidator(param *TegnParameter, newValue string) error {
+	return fmt.Errorf("The field '%s' is read-only", param.GetName())
+}
+
+// WithDescription overrides the description (useful if you want to set it optionally).
+func WithReadOnlyValidator() TegnParameterOption {
+	return func(p *TegnParameter) {
+		p.validator = ReadOnlyValidator
+	}
+}
+
 func (p *TegnParameter) GetID() string {
 	return p.id
 }

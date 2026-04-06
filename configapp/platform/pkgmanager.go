@@ -359,10 +359,10 @@ func GetAvailablePackages(info *data.PkgManager) ([]string, error) {
 			info,
 			getAvailablePackagesConfig{
 				command:    "microdnf",
-			baseArgs:   []string{"repoquery"},
-			// WARN: the same regexp in [SearchPackageFullNames]
-			// pkgRegex:   regexp.MustCompile(`^(.+)-[^-]+-[^-]+\.[^.]+\.[^.]+$`),
-			// regexGroup: 1,
+				baseArgs:   []string{"repoquery"},
+				// WARN: the same regexp in [SearchPackageFullNames]
+				pkgRegex:   regexp.MustCompile(`^(.+)-[^-]+-[^-]+\.[^.]+\.[^.]+$`),
+				regexGroup: 1,
 			},
 		)
 	case data.PkgMgrYum:

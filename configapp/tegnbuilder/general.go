@@ -7,6 +7,7 @@ package tegnbuilder
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
 )
@@ -110,4 +111,20 @@ func GetTegnGeneralAvailable(obj TegnGeneral, osInfo OSInfoExt, before TegnInsta
 	}
 
 	return obj.GetAvailability(osInfo, before, selectedIDs)
+}
+
+func CheckFeatures(before TegnInstalledFeaturesMap, expected []TegnFeature) error {
+	notBeforeNames := make([]string, 0)
+	for _, v := range expected {
+		if before[v] == false {
+			notBeforeNames = append(notBeforeNames, string(v))
+		}
+	}
+
+	if len(notBeforeNames) == 0 {
+		return nil
+	}
+
+	notBeforeStr := strings.Join(notBeforeNames, ", ")
+	return fmt.Errorf("Features not found: %s", notBeforeStr)
 }
