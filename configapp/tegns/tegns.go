@@ -96,6 +96,7 @@ var AllPkgConstructors = []tegnbuilder.TegnBuildFunc{
 // Register packages here
 var AllZshConfig = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshBaseConfigBuilder(),
+	tegn.NewTegnZshPowerLevel10kBuilder(),
 }
 
 // Register packages here
