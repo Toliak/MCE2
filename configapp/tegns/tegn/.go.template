@@ -1,0 +1,93 @@
+package tegn
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+
+	"github.com/toliak/mce/osinfo/data"
+	"github.com/toliak/mce/platform"
+	tb "github.com/toliak/mce/tegnbuilder"
+
+	git "github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
+)
+
+type __MYSTRUCT__ struct {
+	// TODO:
+}
+
+var _ tb.Tegn = (*__MYSTRUCT__)(nil)
+
+func NewTegn__MYSTRUCT__Builder() tb.TegnBuildFunc {
+	return func() tb.Tegn {
+		return &__MYSTRUCT__{}
+	}
+}
+
+// GetID implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetID() string {
+	return "__MYSTRUCT__-GetID-not-implemented"
+}
+
+// GetName implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetName() string {
+	return "__MYSTRUCT__ GetName not implemented"
+}
+
+// GetDescription implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetDescription() string {
+	return `__MYSTRUCT__ GetDescription not implemented
+`
+}
+
+// GetAvailableCPUArch implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetAvailableCPUArch() *[]data.CPUArchE {
+	fmt.Printf("__MYSTRUCT__ GetAvailableCPUArch not implemented\n")
+	return &[]data.CPUArchE{}
+}
+
+// GetAvailableOsType implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetAvailableOsType() *[]data.OSTypeE {
+	fmt.Printf("__MYSTRUCT__ GetAvailableOsType not implemented\n")
+	return &[]data.OSTypeE{}
+}
+
+// GetAvailability implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetAvailability(
+	osInfo tb.OSInfoExt, 
+	before tb.TegnInstalledFeaturesMap, 
+	enabledIds tb.TegnGeneralEnabledIDsMap,
+) tb.TegnAvailability {
+	return tb.NewTegnNotAvailable("ZshPowerLevel10k GetAvailability not implemented")
+}
+
+// GetBeforeIDs implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetBeforeIDs() []string {
+	fmt.Printf("__MYSTRUCT__ GetBeforeIDs not implemented\n")
+	return make([]string, 0)
+	// return []
+}
+
+// GetParameters implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+	fmt.Printf("__MYSTRUCT__ GetParameters not implemented\n")
+	return []tb.TegnParameter {}
+}
+
+// GetFeatures implements [tb.Tegn].
+func (p *__MYSTRUCT__) GetFeatures() tb.TegnInstalledFeaturesMap {
+	fmt.Printf("__MYSTRUCT__ GetFeatures not implemented\n")
+	return tb.TegnInstalledFeaturesMap{}
+}
+
+func (p *__MYSTRUCT__) IsInstalled(osInfo tb.OSInfoExt) bool {
+	fmt.Printf("__MYSTRUCT__ IsInstalled not implemented\n")
+	return false
+}
+
+func (p *__MYSTRUCT__) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+	return fmt.Errorf("__MYSTRUCT__ ExecInstall not implemented")
+}
