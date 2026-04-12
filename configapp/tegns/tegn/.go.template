@@ -61,14 +61,13 @@ func (p *__MYSTRUCT__) GetAvailability(
 	before tb.TegnInstalledFeaturesMap, 
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
-	return tb.NewTegnNotAvailable("ZshPowerLevel10k GetAvailability not implemented")
+	return tb.NewTegnNotAvailable("__MYSTRUCT__ GetAvailability not implemented")
 }
 
 // GetBeforeIDs implements [tb.Tegn].
 func (p *__MYSTRUCT__) GetBeforeIDs() []string {
 	fmt.Printf("__MYSTRUCT__ GetBeforeIDs not implemented\n")
 	return make([]string, 0)
-	// return []
 }
 
 // GetParameters implements [tb.Tegn].

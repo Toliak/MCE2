@@ -94,14 +94,36 @@ var AllPkgConstructors = []tegnbuilder.TegnBuildFunc{
 }
 
 // Register packages here
-var AllZshConfig = []tegnbuilder.TegnBuildFunc{
+var AllZshConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshBaseConfigBuilder(),
 	tegn.NewTegnZshPowerLevel10kBuilder(),
+	tegn.NewTegnZshSyntaxHighlightBuilder(),
+	tegn.NewTegnZshLocalConfigBuilder(),
+}
+
+// Register packages here
+var AllBashConfigTegns = []tegnbuilder.TegnBuildFunc{
+	tegn.NewTegnBashLocalConfigBuilder(),
 }
 
 // Register packages here
 var AllMCE2Tegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnCloneRepoBuilder(),
+}
+
+// Register packages here
+var AllSharedConfigTegns = []tegnbuilder.TegnBuildFunc{
+	tegn.NewTegnSharedLocalConfigBuilder(),
+}
+
+// Register packages here
+var AllVimConfigTegns = []tegnbuilder.TegnBuildFunc{
+	tegn.NewTegnUltimateVimBuilder(),
+}
+
+// Register packages here
+var AllTmuxConfigTegns = []tegnbuilder.TegnBuildFunc{
+	tegn.NewTegnOhMyTmuxBuilder(),
 }
 
 // We need categories here

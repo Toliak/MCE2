@@ -107,7 +107,7 @@ func ParseArgs(args []string) (*Args, error) {
 		"Directory to clone the MCE2 project (absolute path)",
 	)
 	dataDir := flag.String("data-dir", "data", "Path inside MainInstallDir where configs and other data will be put")
-	mceRepoURL := flag.String("mce-repo-url", "https://github.com/Toliak/MCE2", "MCE2 repository URL")
+	mceRepoURL := flag.String("mce-repo-url", "https://github.com/Toliak/mce2config", "MCE2 repository URL")
 	mceRepoBranch := flag.String("mce-repo-branch", "master", "MCE2 branch")
 
 	// Parse

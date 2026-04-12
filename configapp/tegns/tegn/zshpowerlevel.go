@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/toliak/mce/osinfo/data"
+	"github.com/toliak/mce/platform"
 	"github.com/toliak/mce/sedparody"
 	tb "github.com/toliak/mce/tegnbuilder"
 
@@ -30,10 +31,10 @@ func NewTegnZshPowerLevel10kBuilder() tb.TegnBuildFunc {
 	}
 }
 
-var themeName string = "powerlevel10k"
+var zshPowerLevel10kThemeName string = "powerlevel10k"
 
 func getInstallDirZshPowerLevel10k(osInfo tb.OSInfoExt) string {
-	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "themes", themeName)
+	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "themes", zshPowerLevel10kThemeName)
 }
 
 // GetID implements [tb.Tegn].
@@ -121,20 +122,10 @@ func (p *ZshPowerLevel10k) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *ZshPowerLevel10k) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getInstallDirZshPowerLevel10k(osInfo)
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-
-		// TODO: log the error somewhere
-		return false
-	} else {
-		return true
-	}
+	return platform.FileEntryExists(path)
 }
 
-var zshThemeRegexpReplace = regexp.MustCompile(`^(?:#\s*)?((?:export\s+)?ZSH_THEME=).+$`)
+var zshThemeRegexpReplace = regexp.MustCompile(`^(?:\s*#\s*)?((?:export\s+)?ZSH_THEME=).+$`)
 
 func prepareReplaceConfigTheme(zshrcPath string) error {
 	inputFile, err := os.Open(zshrcPath)
@@ -150,7 +141,7 @@ func prepareReplaceConfigTheme(zshrcPath string) error {
 			sedparody.ScannerToReplacerReader(scanner),
 		).Replace(
 			zshThemeRegexpReplace,
-			fmt.Sprintf("%s'%s'", "$1", filepath.Join(themeName, "powerlevel10k")),
+			fmt.Sprintf("%s'%s'", "$1", filepath.Join(zshPowerLevel10kThemeName, "powerlevel10k")),
 			1,
 		)
 
@@ -209,11 +200,10 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 		return fmt.Errorf("ExecInstall Checkout error: %w", err)
 	}
 
-	userHomeDir, err := os.UserHomeDir()
+	zshrcOrigPath, err := getZshrcPath()
 	if err != nil {
-		return fmt.Errorf("ExecInstall UserHomeDir error: %w", err)
+		return fmt.Errorf("ExecInstall failed to get zshrc path: %w", err)
 	}
-	zshrcOrigPath := filepath.Join(userHomeDir, ".zshrc")
 
 	err = prepareReplaceConfigTheme(zshrcOrigPath)
 	if err != nil {

@@ -6,7 +6,7 @@ services:
     working_dir: /test
     volumes:
       - ../:/test:ro
-      - ../../:/repo:ro
+      - ../../config/:/repo:ro
 
   alpine:
     <<: *template

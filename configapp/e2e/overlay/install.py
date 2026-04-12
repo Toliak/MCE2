@@ -102,3 +102,6 @@ def tests_install() -> List[Callable[[Path, Path], bool]]:
         test_install_ohmyzsh,
         test_install_zsh_p10k
     ]
+
+
+# TODO: test the local zsh config

@@ -87,3 +87,29 @@ func CopyFile(src, dst string) error {
 	_, err = io.Copy(destination, source)
 	return err
 }
+
+func OpenOrCreateFileAppend(path string) (*os.File, error) {
+	if FileEntryExists(path) {
+		v, err := os.OpenFile(path, os.O_APPEND | os.O_WRONLY, 0644)
+		return v, err
+	}
+
+	v, err := os.Create(path)
+	return v, err
+}
+
+
+func AppendFilepathString(path string, text string) error {
+	outputFile, err := OpenOrCreateFileAppend(path)
+    if err != nil {
+        return err
+    }
+    defer outputFile.Close()
+
+	_, err = outputFile.WriteString(text)
+	if err != nil {
+        return err
+    }
+
+	return nil
+}

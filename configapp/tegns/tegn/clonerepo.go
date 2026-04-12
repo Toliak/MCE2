@@ -2,10 +2,10 @@ package tegn
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/toliak/mce/osinfo/data"
+	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 
 	git "github.com/go-git/go-git/v6"
@@ -125,17 +125,7 @@ func (p *CloneRepo) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *CloneRepo) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := filepath.Join(osInfo.MainInstallDir, ".git")
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-
-		// TODO: log the error somewhere
-		return false
-	} else {
-		return true
-	}
+	return platform.FileEntryExists(path)
 }
 
 func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -144,12 +134,12 @@ func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFe
 	branch := params["repo-branch"]
 	installPath := osInfo.MainInstallDir
 
-	repo, err := git.PlainClone(installPath, &git.CloneOptions{
-		URL:      url,
-		Progress: os.Stdout,
-		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		NoCheckout: true,
-	})
+	repo, err := git.PlainClone(
+		installPath,
+		defaultGitCloneOptions(func(v *git.CloneOptions) {
+			v.URL = url
+		}),
+	)
 	if err != nil {
 		return fmt.Errorf("ExecInstall PlainClone error: %w", err)
 	}
