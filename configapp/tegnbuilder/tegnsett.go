@@ -165,7 +165,7 @@ func GetTegnsettsAvailability(
 		if !available.Available {
 			continue
 		}
-		if v, ok := selectedIDs[tegnsettID]; !ok || !v {
+		if v, ok := selectedIDs[tegnsettID]; !(ok && v) {
 			continue
 		}
 
@@ -177,7 +177,7 @@ func GetTegnsettsAvailability(
 			if !available.Available {
 				continue
 			}
-			if _, ok := selectedIDs[tegnID]; !ok {
+			if v, ok := selectedIDs[tegnID]; !(ok && v) {
 				continue
 			}
 
