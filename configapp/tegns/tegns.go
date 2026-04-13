@@ -234,7 +234,10 @@ var AllZshConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshSyntaxHighlightBuilder(),
 	tegn.NewTegnZshLocalConfigBuilder(),
 	tegn.NewTegnZshChshBuilder(),
-	tegn.NewTegnZshAutoSuggestionsBuilder(),
+
+	// TODO: Implement the `zsh-autosuggestions` installation
+	// See https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md
+	// tegn.NewTegnZshAutoSuggestionsBuilder(),
 }
 
 // Register packages here
