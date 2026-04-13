@@ -26,6 +26,12 @@ services:
       context: ../
       dockerfile: e2e/debian.Dockerfile
 
+  debian-prepared:
+    <<: *template
+    build:
+      context: ../
+      dockerfile: e2e/debian-prepared.Dockerfile
+
   fedora:
     <<: *template
     build:
