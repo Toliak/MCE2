@@ -15,6 +15,8 @@ type ExecCommandWrapper struct {
 	BufferStderr       bool
 	RetransmitStdout   bool
 	RetransmitStderr   bool
+	// Will be forcefully triggered, if NeedsRoot is true
+	CaptureStdin       bool
 	ThrowExitCodeError bool
 	AdditionalEnv      []string
 	NeedsRoot          bool
@@ -52,6 +54,12 @@ func WithThrowExitCodeError(v bool) ExecCommandOption {
 	}
 }
 
+func WithCaptureStdin(v bool) ExecCommandOption {
+	return func(w *ExecCommandWrapper) {
+		w.CaptureStdin = v
+	}
+}
+
 func WithAdditionalEnv(env string) ExecCommandOption {
 	return func(w *ExecCommandWrapper) {
 		w.AdditionalEnv = append(w.AdditionalEnv, env)
@@ -76,6 +84,7 @@ func NewExecCommandWrapper(opts ...ExecCommandOption) ExecCommandWrapper {
 		BufferStderr:       false,
 		RetransmitStdout:   true,
 		RetransmitStderr:   true,
+		CaptureStdin:   	false,
 		ThrowExitCodeError: false,
 		AdditionalEnv:      make([]string, 0),
 		NeedsRoot:          false,
@@ -138,6 +147,9 @@ func ExecCommand(config ExecCommandWrapper, name string, arg ...string) (*bytes.
 	}
 
 	cmd.Env = append(os.Environ(), config.AdditionalEnv...)
+	if config.CaptureStdin || config.NeedsRoot {
+		cmd.Stdin = os.Stdin
+	}
 
 	// Configure stdout writer(s)
 	var stdoutWriters []io.Writer
