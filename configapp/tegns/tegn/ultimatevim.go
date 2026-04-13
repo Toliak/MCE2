@@ -26,7 +26,7 @@ func NewTegnUltimateVimBuilder() tb.TegnBuildFunc {
 }
 
 func getInstallDirUltimateVim(osInfo tb.OSInfoExt) string {
-	return filepath.Join(osInfo.GetFullDataDir(), "vimrc-zmix")
+	return filepath.Join(osInfo.GetFullDataDir(), "vimrc-amix")
 }
 
 func getVimrcPath() (string, error) {
@@ -136,6 +136,11 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 	branch := params["repo-branch"]
 	path := getInstallDirUltimateVim(osInfo)
 	vimrcBackup := tb.TegnParameterToBool(params["vimrc-backup"])
+
+	err := MkdirAllParent(path)
+	if err != nil {
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", path, err)
+	}
 
 	repo, err := git.PlainClone(
 		path, 

@@ -1,12 +1,16 @@
 package tegns
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/tegnbuilder"
 	"github.com/toliak/mce/tegns/tegn"
 )
 
 // Register packages here
-var AllPkgConstructors = []tegnbuilder.TegnBuildFunc{
+var AllPkgTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewGenericPackageBuilder(
 		"vim",
 		"vim",
@@ -90,6 +94,136 @@ var AllPkgConstructors = []tegnbuilder.TegnBuildFunc{
 		"psmisc",
 		"psmisc",
 		nil,
+	),
+	tegn.NewGenericPackageBuilder(
+		"mc",
+		"mc",
+		"mc",
+		"mc",
+		nil,
+	),
+}
+
+var AllDownloadTegns = []tegnbuilder.TegnBuildFunc{
+	tegn.NewGenericDownloadBuilder(
+		"lf",
+		"lf r41",
+		"list files GoLang app r41",
+		"lf-r41.tar.gz",
+		func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+			var sb strings.Builder
+			// TODO: verify checksums
+			sb.WriteString("https://github.com/gokcehan/lf/releases/download/r41/lf-")
+
+			switch osInfo.OsType.V {
+			case data.OSTypeLinux: 
+				sb.WriteString("linux-")
+				switch osInfo.Arch.V {
+				case data.CPUArchAMD64:
+					sb.WriteString("amd64")
+				case data.CPUArchI386:
+					sb.WriteString("386")
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				case data.CPUArchARMv7:
+					sb.WriteString("arm")
+				case data.CPUArchMIPS64Le:
+					sb.WriteString("mips64le")
+				case data.CPUArchPPC64:
+					sb.WriteString("ppc64")
+				default:
+					return "", fmt.Errorf("OSTypeLinux Architecture not available: %s", &osInfo.Arch)
+				}
+			case data.OSTypeAndroid: 
+				sb.WriteString("android-")
+				switch osInfo.Arch.V {
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				default:
+					return "", fmt.Errorf("OSTypeAndroid Architecture not available: %s", &osInfo.Arch)
+				}
+			// TODO: support windows's zip archive
+			// case data.OSTypeWindows: 
+			// 	sb.WriteString("windows-")
+			// 	switch osInfo.Arch.V {
+			// 	case data.CPUArchAMD64:
+			// 		sb.WriteString("amd64")
+			// 	case data.CPUArchI386:
+			// 		sb.WriteString("386")
+			// 	default:
+			// 		return "", fmt.Errorf("OSTypeWindows Architecture not available: %s", &osInfo.Arch)
+			// 	}
+			case data.OSTypeDarwin: 
+				sb.WriteString("darwin-")
+				switch osInfo.Arch.V {
+				case data.CPUArchAMD64:
+					sb.WriteString("amd64")
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				default:
+					return "", fmt.Errorf("OSTypeDarwin Architecture not available: %s", &osInfo.Arch)
+				}
+			default:
+				return "", fmt.Errorf("OSType not available: %s", &osInfo.OsType)
+			}
+
+			sb.WriteString(".tar.gz")
+			return sb.String(), nil
+		},
+		tegn.GenericDownloadPostTarGzUnpack("lf"),
+	),
+	tegn.NewGenericDownloadBuilder(
+		"fzf",
+		"fzf 0.71.0",
+		"fzf GoLang app 0.71.0",
+		"fzf-0.71.0.tar.gz",
+		func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+			var sb strings.Builder
+			// TODO: verify checksums
+			sb.WriteString("https://github.com/junegunn/fzf/releases/download/v0.71.0/fzf-0.71.0-")
+
+			switch osInfo.OsType.V {
+			case data.OSTypeLinux: 
+				sb.WriteString("linux_")
+				switch osInfo.Arch.V {
+				case data.CPUArchAMD64:
+					sb.WriteString("amd64")
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				case data.CPUArchARMv7:
+					sb.WriteString("armv7")
+				case data.CPUArchRISCV64:
+					sb.WriteString("riscv64")
+				default:
+					return "", fmt.Errorf("OSTypeLinux Architecture not available: %s", &osInfo.Arch)
+				}
+			case data.OSTypeAndroid: 
+				sb.WriteString("android_")
+				switch osInfo.Arch.V {
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				default:
+					return "", fmt.Errorf("OSTypeAndroid Architecture not available: %s", &osInfo.Arch)
+				}
+			// TODO: support windows's zip archive
+			case data.OSTypeDarwin: 
+				sb.WriteString("darwin_")
+				switch osInfo.Arch.V {
+				case data.CPUArchAMD64:
+					sb.WriteString("amd64")
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				default:
+					return "", fmt.Errorf("OSTypeDarwin Architecture not available: %s", &osInfo.Arch)
+				}
+			default:
+				return "", fmt.Errorf("OSType not available: %s", &osInfo.OsType)
+			}
+
+			sb.WriteString(".tar.gz")
+			return sb.String(), nil
+		},
+		tegn.GenericDownloadPostTarGzUnpack("fzf"),
 	),
 }
 
@@ -99,6 +233,8 @@ var AllZshConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshPowerLevel10kBuilder(),
 	tegn.NewTegnZshSyntaxHighlightBuilder(),
 	tegn.NewTegnZshLocalConfigBuilder(),
+	tegn.NewTegnZshChshBuilder(),
+	tegn.NewTegnZshAutoSuggestionsBuilder(),
 }
 
 // Register packages here

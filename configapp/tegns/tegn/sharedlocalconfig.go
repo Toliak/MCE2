@@ -96,6 +96,10 @@ func (p *SharedLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 
 func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getSharedLocalConfigPath(osInfo)
+	err := MkdirAllParent(localConfigPath)
+	if err != nil {
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", localConfigPath, err)
+	}
 
 	{
 		outputFile, err := os.Create(localConfigPath)
@@ -114,14 +118,14 @@ func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInst
 		bashLocalConfigPath := getBashLocalConfigPath(osInfo)
 		platform.AppendFilepathString(
 			bashLocalConfigPath,
-			fmt.Sprintf(`\n# <BEGIN> MCE2 shared config\nsource '%s'\n# <END> MCE2 shared config\n\n"`, localConfigPath),
+			fmt.Sprintf("\n# <BEGIN> MCE2 shared config\nsource '%s'\n# <END> MCE2 shared config\n\n", localConfigPath),
 		)
 	}
 	if already["cfg:zsh-local"] {
 		bashLocalConfigPath := getZshLocalConfigPath(osInfo)
 		platform.AppendFilepathString(
 			bashLocalConfigPath,
-			fmt.Sprintf(`\n# <BEGIN> MCE2 shared config\nsource '%s'\n# <END> MCE2 shared config\n\n"`, localConfigPath),
+			fmt.Sprintf("\n# <BEGIN> MCE2 shared config\nsource '%s'\n# <END> MCE2 shared config\n\n", localConfigPath),
 		)
 	}
 

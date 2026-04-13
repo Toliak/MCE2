@@ -136,6 +136,11 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	url := params["repo-url"]
 	branch := params["repo-branch"]
 	installPath := getInstallDirOhMyTmux(osInfo)
+	err := MkdirAllParent(installPath)
+	if err != nil {
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", installPath, err)
+	}
+
 	tmuxConfigDir, err := getTmuxConfigDir(osInfo)
 	if err != nil {
 		return fmt.Errorf("ExecInstall getTmuxConfigDir error: %w", err)
@@ -187,17 +192,30 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	}
 
 	// Remove target if it exists (to avoid errors if it's a file or an existing symlink)
-	err = os.Remove(targetTmuxConf)
+	if platform.FileEntryExists(targetTmuxConf) {
+		err = os.Remove(targetTmuxConf)
+		if err != nil {
+			return fmt.Errorf("ExecInstall Remove targetTmuxConf error: %w", err)
+		}
+	}
+	err = MkdirAllParent(targetTmuxConf)
 	if err != nil {
-		return fmt.Errorf("ExecInstall Remove targetTmuxConf error: %w", err)
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
 
-	// On Windows, creating symlinks might require admin privileges. Consider copying if symlinks fail.
-	err = os.Symlink(sourceTmuxConf, targetTmuxConf)
-	// TODO: do not do symlink. Make source instead
+	tmuxConf, err := os.Create(targetTmuxConf)
 	if err != nil {
-		return fmt.Errorf("ExecInstall Symlink failed: %w", err)
+		return fmt.Errorf("ExecInstall os.Create failed: %w", err)
 	}
+	defer tmuxConf.Close()
+
+	fmt.Fprintf(
+		tmuxConf, 
+		"#### Auto-gen by MCE2\nset-environment -g TMUX_CONF \"%s\"\nset-environment -g TMUX_CONF_LOCAL \"%s.local\"\nsource-file \"%s\"\n\n", 
+		sourceTmuxConf,
+		targetTmuxConf,
+		sourceTmuxConf,
+	)
 
 	// Copy .tmux.conf.local template to the config directory
 	sourceLocalConf := filepath.Join(installPath, ".tmux.conf.local")

@@ -130,7 +130,7 @@ var zshThemeRegexpReplace = regexp.MustCompile(`^(?:\s*#\s*)?((?:export\s+)?ZSH_
 func prepareReplaceConfigTheme(zshrcPath string) error {
 	inputFile, err := os.Open(zshrcPath)
     if err != nil {
-        return fmt.Errorf("failed to open file: %w", err)
+        return fmt.Errorf("prepareReplaceConfigTheme failed to open file: %w", err)
     }
 
 	var lines []string
@@ -147,10 +147,10 @@ func prepareReplaceConfigTheme(zshrcPath string) error {
 
 	inputFile.Close()
 	if err != nil {
-		return fmt.Errorf("prepareReplaceConfig error: %w", err)
+		return fmt.Errorf("prepareReplaceConfigTheme error: %w", err)
 	}
 	if times == 0 {
-		return fmt.Errorf("Not found line to replace")
+		return fmt.Errorf("prepareReplaceConfigTheme: Not found line to replace")
 	}
 
 	// Write back to same file (truncates)
@@ -167,7 +167,13 @@ func prepareReplaceConfigTheme(zshrcPath string) error {
             writer.WriteString("\n")
         }
     }
-    return writer.Flush()
+
+	err = writer.Flush()
+	if err != nil {
+		return fmt.Errorf("prepareReplaceConfigTheme Flush error: %w", err)
+	}
+
+    return nil
 }
 
 func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {

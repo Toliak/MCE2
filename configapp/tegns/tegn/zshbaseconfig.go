@@ -127,6 +127,7 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 		),
 
 		// Oh-my-zsh related configuration
+		// TODO: move this into the local config
 		tb.NewTegnParameter(
 			"zshrc-editor",
 			"EDITOR",
@@ -271,6 +272,11 @@ func prepareReplaceConfig(zshrcPath string, ohMyZshDir string, textBeforePluginS
         }
     }
 
+	err = writer.Flush()
+	if err != nil {
+		return fmt.Errorf("prepareZshrcConfigToLinesWithReplace Flush error: %w", err)
+	}
+
 	return nil
 }
 
@@ -331,6 +337,11 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	zshrcBackup := tb.TegnParameterToBool(params["zshrc-backup"])
 
 	path := getInstallDirZshBaseConfig(osInfo)
+	err := MkdirAllParent(path)
+	if err != nil {
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", path, err)
+	}
+
 	repo, err := git.PlainClone(
 		path, 
 		defaultGitCloneOptions(func (v *git.CloneOptions) {

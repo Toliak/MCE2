@@ -69,6 +69,11 @@ func (p *BashLocalConfig) GetAvailability(
 	// 	return tb.NewTegnNotAvailable(err.Error())
 	// }
 
+	// TODO: due to the  `osInfo.GetFullDataDir()` in the `getBashLocalConfigPath`
+	// this Tegn must not be available without cloning `cfg:mce2`
+	// Because otherwise there can be an error:
+	// `ExecInstall PlainClone error: destination path already exists and is not empty /home/user/.local/share/MakeConfigurationEasier2`
+
 	return tb.NewTegnAvailable()
 }
 
@@ -107,6 +112,10 @@ func (p *BashLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 
 func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getBashLocalConfigPath(osInfo)
+	err := MkdirAllParent(localConfigPath)
+	if err != nil {
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", localConfigPath, err)
+	}
 
 	{
 		outputFile, err := os.Create(localConfigPath)
@@ -121,8 +130,10 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		}
 
 		if already["cfg:mce2"] {
-			_, err = outputFile.WriteString(
-				fmt.Sprintf("# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", filepath.Join(osInfo.MainInstallDir, "shell", "bash.sh")),
+			_, err = fmt.Fprintf(
+				outputFile,
+				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n",
+				filepath.Join(osInfo.MainInstallDir, "shell", "bash.sh"),
 			)
 			if err != nil {
 				return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localConfigPath, err)
@@ -137,7 +148,7 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 
 	platform.AppendFilepathString(
 		bashrcPath,
-		fmt.Sprintf(`\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n"`, localConfigPath),
+		fmt.Sprintf("\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n", localConfigPath),
 	)
 
 	return nil

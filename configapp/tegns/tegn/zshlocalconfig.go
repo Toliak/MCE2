@@ -29,6 +29,18 @@ func getZshLocalConfigPath(osInfo tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-cfg.zsh")
 }
 
+func getZshLocalPreConfigPlugins() []string {
+	return []string{
+		"git",
+		"git-lfs",
+		"docker",
+		"docker-compose",
+		"npm",
+		"python",
+		"tmux",
+	}
+}
+
 // GetID implements [tb.Tegn].
 func (p *ZshLocalConfig) GetID() string {
 	return "cfg-local-zsh"
@@ -61,6 +73,7 @@ func (p *ZshLocalConfig) GetAvailability(
 	before tb.TegnInstalledFeaturesMap, 
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
+	// fmt.Printf("before: %#v\n", before)
 	if err := tb.CheckFeatures(before, []tb.TegnFeature{"cfg:oh-my-zsh"}); err != nil {
 		return tb.NewTegnNotAvailable(err.Error())
 	}
@@ -88,6 +101,15 @@ func (p *ZshLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 		tb.NewTegnParameter(
 			"pre-path",
 			"Local config path",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Local config path (read-only)"),
+			tb.WithDefaultValue(getZshLocalConfigPath(osInfo)),
+			tb.WithAvailabilityFalse("Read-only"),
+			tb.WithReadOnlyValidator(),
+		),
+		tb.NewTegnParameter(
+			"enable-plugins",
+			"Enable featured plugins",
 			tb.TegnParameterTypeString,
 			tb.WithDescription("Local config path (read-only)"),
 			tb.WithDefaultValue(getZshLocalConfigPath(osInfo)),
@@ -127,7 +149,7 @@ func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath stri
 		if !foundPreConfigLine && zshSourceOhMyZshLine.MatchString(line) {
 			lines = append(
 				lines,
-				fmt.Sprintf(`\n\n# <BEGIN> MCE2 local pre-config\nsource '%s'\n# <END> MCE2 local pre-config\n\n"`, localPreConfigPath),
+				fmt.Sprintf("\n\n# <BEGIN> MCE2 local pre-config\nsource '%s'\n# <END> MCE2 local pre-config\n\n", localPreConfigPath),
 			)
 			foundPreConfigLine = true
 		} 
@@ -139,7 +161,7 @@ func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath stri
 
 	lines = append(
 		lines, 
-		fmt.Sprintf(`\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n"`, localConfigPath),
+		fmt.Sprintf("\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n", localConfigPath),
 	)
 	return lines, nil
 }
@@ -149,6 +171,11 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 
 	localConfigPath := getZshLocalConfigPath(osInfo)
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
+
+	err := MkdirAllParent(localConfigPath)
+	if err != nil {
+		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", localConfigPath, err)
+	}
 
 	{
 		outputFile, err := os.Create(localConfigPath)
@@ -217,6 +244,11 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
             writer.WriteString("\n")
         }
     }
+
+	err = writer.Flush()
+	if err != nil {
+		return fmt.Errorf("ExecInstall Flush error: %w", err)
+	}
 
 	return nil
 }

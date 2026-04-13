@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -110,6 +111,61 @@ func AppendFilepathString(path string, text string) error {
 	if err != nil {
         return err
     }
+
+	return nil
+}
+
+type ProgressWriter struct {
+	Total      int64
+	Downloaded int64
+	Url        string
+}
+
+func (pw *ProgressWriter) Write(p []byte) (int, error) {
+	n := len(p)
+	pw.Downloaded += int64(n)
+
+	if pw.Total > 0 {
+		percent := float64(pw.Downloaded) / float64(pw.Total) * 100
+		fmt.Printf("\rDownloading... %.2f%%", percent)
+	} else {
+		fmt.Printf("\rDownloading... %d bytes", pw.Downloaded)
+	}
+
+	return n, nil
+}
+
+// DownloadFile will download a url and store it in local filepath.
+// It writes to the destination file as it downloads it, without
+// loading the entire file into memory.
+// See: https://gist.github.com/cnu/026744b1e86c6d9e22313d06cba4c2e9
+func DownloadFile(url string, filepath string) error {
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("Downloading '%s' -> '%s'\n", url, filepath)
+	pw := &ProgressWriter{
+		Total: resp.ContentLength,
+		Url: url,
+	}
+
+	// Write the body to file
+	_, err = io.Copy(out, io.TeeReader(resp.Body, pw))
+	if err != nil {
+		return err
+	}
+	fmt.Println("")
 
 	return nil
 }

@@ -6,7 +6,15 @@ import (
 )
 
 var Tegnsetts = []tegnbuilder.TegnsettBuildFunc{
-	tegnsett.NewOSPackages(AllPkgConstructors),
+	tegnsett.NewOSPackages(AllPkgTegns),
+	tegnsett.NewGeneralTegnsett(
+		"apps-download",
+		"Downloaded apps",
+		"Applications that can be downloaded without package manager (static binaries usually)",
+		[]string{"os-packages"},
+		AllDownloadTegns,
+		nil,
+	),
 	tegnsett.NewGeneralTegnsett(
 		"mce2",
 		"MCE2 General",

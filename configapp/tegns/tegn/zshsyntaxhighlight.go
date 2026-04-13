@@ -153,7 +153,7 @@ func (p *ZshSyntaxHighlight) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 	zshLocalPreConfig := getZshLocalPreOhMyZshConfigPath(osInfo)
 	platform.AppendFilepathString(
 		zshLocalPreConfig,
-		fmt.Sprintf(`\n\n# <BEGIN> zsh-syntax-highlighting\nplugins+=(zsh-syntax-highlighting)\n# <END> zsh-syntax-highlighting\n\n"`, zshLocalPreConfig),
+		"\n\n# <BEGIN> zsh-syntax-highlighting\nplugins+=(zsh-syntax-highlighting)\n# <END> zsh-syntax-highlighting\n\n",
 	)
 
 	return nil

@@ -31,6 +31,8 @@ type OSInfoExt struct {
 	MceRepositoryBranch string
 }
 
+// TODO: save HOME directory here (to access without errors)
+
 func (data *OSInfoExt) GetFullDataDir() string {
 	return filepath.Join(data.MainInstallDir, data.DataDir)
 }
