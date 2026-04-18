@@ -225,6 +225,47 @@ var AllDownloadTegns = []tegnbuilder.TegnBuildFunc{
 		},
 		tegn.GenericDownloadPostTarGzUnpack("fzf"),
 	),
+	tegn.NewGenericDownloadBuilder(
+		"ls-go",
+		"ls-go 1.0.2",
+		"ls-go GoLang app 1.0.2",
+		"ls-go",
+		func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+			var sb strings.Builder
+			// TODO: verify checksums
+			sb.WriteString("https://github.com/acarl005/ls-go/releases/download/v1.0.2/ls-go-")
+
+			switch osInfo.OsType.V {
+			case data.OSTypeLinux: 
+				sb.WriteString("linux-")
+				switch osInfo.Arch.V {
+				case data.CPUArchAMD64:
+					sb.WriteString("amd64")
+				case data.CPUArchI386:
+					sb.WriteString("386")
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				default:
+					return "", fmt.Errorf("OSTypeLinux Architecture not available: %s", &osInfo.Arch)
+				}
+			case data.OSTypeDarwin: 
+				sb.WriteString("darwin-")
+				switch osInfo.Arch.V {
+				case data.CPUArchAMD64:
+					sb.WriteString("amd64")
+				case data.CPUArchAARCH64:
+					sb.WriteString("arm64")
+				default:
+					return "", fmt.Errorf("OSTypeDarwin Architecture not available: %s", &osInfo.Arch)
+				}
+			default:
+				return "", fmt.Errorf("OSType not available: %s", &osInfo.OsType)
+			}
+
+			return sb.String(), nil
+		},
+		tegn.GenericDownloadPostMove,
+	),
 }
 
 // Register packages here
