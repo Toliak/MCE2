@@ -1,11 +1,11 @@
 package tegn
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
+	"path/filepath"
 
+	git "github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -21,6 +21,10 @@ func NewTegnZshAutoSuggestionsBuilder() tb.TegnBuildFunc {
 	}
 }
 
+func getInstallDirZshAutoSuggestions(osInfo tb.OSInfoExt) string {
+	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "plugins", "zsh-autosuggestions")
+}
+
 // GetID implements [tb.Tegn].
 func (p *ZshAutoSuggestions) GetID() string {
 	return "cfg-zsh-autosuggestions"
@@ -28,14 +32,14 @@ func (p *ZshAutoSuggestions) GetID() string {
 
 // GetName implements [tb.Tegn].
 func (p *ZshAutoSuggestions) GetName() string {
-	return "cfg-zsh-autosuggestions"
+	return "ZSH Autosuggestions"
 }
 
 // GetDescription implements [tb.Tegn].
 func (p *ZshAutoSuggestions) GetDescription() string {
 	return `cfg-zsh-autosuggestions
 
-With enhancements
+URL: https://github.com/zsh-users/zsh-autosuggestions
 `
 }
 
@@ -71,12 +75,29 @@ func (p *ZshAutoSuggestions) GetBeforeIDs() []string {
 func (p *ZshAutoSuggestions) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 	return []tb.TegnParameter {
 		tb.NewTegnParameter(
-			"additional-config",
-			"Additional configuration",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("TODO:"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			"repo-url",
+			"Repository URL",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Repository URL"),
+			tb.WithDefaultValue("https://github.com/zsh-users/zsh-autosuggestions"),
 			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"repo-branch",
+			"Repository branch",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Repository branch"),
+			tb.WithDefaultValue("master"),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"install-dir",
+			"Installation path",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Installation path (read-only)"),
+			tb.WithDefaultValue(getInstallDirZshAutoSuggestions(osInfo)),
+			tb.WithAvailabilityFalse("Read-only"),
+			tb.WithReadOnlyValidator(),
 		),
 	}
 }
@@ -89,26 +110,8 @@ func (p *ZshAutoSuggestions) GetFeatures() tb.TegnInstalledFeaturesMap {
 }
 
 func (p *ZshAutoSuggestions) IsInstalled(osInfo tb.OSInfoExt) bool {
-	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
-	if !platform.FileEntryExists(localPreConfigPath) {
-		return false
-	}
-
-	inputFile, err := os.Open(localPreConfigPath)
-    if err != nil {
-        return false
-    }
-	defer inputFile.Close()
-
-	scanner := bufio.NewScanner(inputFile)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "<BEGIN> MCE2 zsh-autosuggestions") {
-			return true
-		}
-	}
-
-	return false
+	path := getInstallDirZshAutoSuggestions(osInfo)
+	return platform.FileEntryExists(path)
 }
 
 func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -116,25 +119,42 @@ func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 	// localConfigPath := getZshLocalConfigPath(osInfo)
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
 
-	// TODO: git clone, because it is not available by default in oh-my-zsh
+	url := params["repo-url"]
+	branch := params["repo-branch"]
 
-	err := platform.AppendFilepathString(
+	path := getInstallDirZshAutoSuggestions(osInfo)
+	repo, err := git.PlainClone(
+		path, 
+		defaultGitCloneOptions(func (v *git.CloneOptions) {
+			v.URL = url
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("PlainClone error: %w", err)
+	}
+
+	w, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("Worktree error: %w", err)
+	}
+
+	branchRefName := plumbing.NewBranchReferenceName(branch)
+	branchCoOpts := git.CheckoutOptions{
+		Branch: plumbing.ReferenceName(branchRefName),
+		Force:  false,
+	}
+
+	err = w.Checkout(&branchCoOpts)
+	if err != nil {
+		return fmt.Errorf("Checkout error: %w", err)
+	}
+
+	err = platform.AppendFilepathString(
 		localPreConfigPath,
 		"\n# <BEGIN> MCE2 zsh-autosuggestions\nplugins+=(zsh-autosuggestions)\n# <END> MCE2 zsh-autosuggestions\n",
 	)
 	if err != nil {
-		return fmt.Errorf("ExecInstall AppendFilepathString %s: %w", localPreConfigPath, err)
-	}
-
-	additionalConfig := tb.TegnParameterToBool(params["additional-config"])
-	if additionalConfig {
-		err := platform.AppendFilepathString(
-			localPreConfigPath,
-			"\n# <BEGIN> MCE2 zsh-autosuggestions cfg\nif [ \"$TERM\" = \"linux\" ]; then\n  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=\"fg=yellow\"\nfi\n# <END> MCE2 zsh-autosuggestions cfg\n",
-		)
-		if err != nil {
-			return fmt.Errorf("ExecInstall AppendFilepathString %s: %w", localPreConfigPath, err)
-		}
+		return fmt.Errorf("AppendFilepathString %s: %w", localPreConfigPath, err)
 	}
 
 	return nil

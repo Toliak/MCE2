@@ -104,6 +104,11 @@ var AllPkgTegns = []tegnbuilder.TegnBuildFunc{
 	),
 }
 
+// # https://github.com/mjakob-gh/build-static-tmux/releases/tag/v3.5d
+// # https://github.com/dtschan/vim-static/blob/master/build.sh
+// # https://github.com/romkatv/zsh-bin
+// # TODO: move the version into the parameters
+
 var AllDownloadTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewGenericDownloadBuilder(
 		"lf",
@@ -276,9 +281,7 @@ var AllZshConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshLocalConfigBuilder(),
 	tegn.NewTegnZshChshBuilder(),
 
-	// TODO: Implement the `zsh-autosuggestions` installation
-	// See https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md
-	// tegn.NewTegnZshAutoSuggestionsBuilder(),
+	tegn.NewTegnZshAutoSuggestionsBuilder(),
 }
 
 // Register packages here
