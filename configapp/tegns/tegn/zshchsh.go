@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
@@ -64,7 +65,16 @@ func (p *ZshChsh) GetBeforeIDs() []string {
 
 // GetParameters implements [tb.Tegn].
 func (p *ZshChsh) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter{}
+	return []tb.TegnParameter{
+		tb.NewTegnParameter(
+			"use-sudo",
+			"Use sudo with chsh",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Use sudo with chsh?"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
+	}
 }
 
 // GetFeatures implements [tb.Tegn].
@@ -79,21 +89,38 @@ func (p *ZshChsh) IsInstalled(_osInfo tb.OSInfoExt) bool {
 	return strings.Contains(shell, "zsh")
 }
 
-func (p *ZshChsh) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
+func (p *ZshChsh) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// get path to zshExecInstall
 	zshPath, err := exec.LookPath("zsh")
 	if err != nil {
-		return fmt.Errorf("ExecInstall failed to find zsh: %w", err)
+		return fmt.Errorf("failed to find zsh: %w", err)
+	}
+
+	useSudo := tb.TegnParameterToBool(params["use-sudo"])
+	userCurrent, err := user.Current()
+	if err != nil && useSudo {
+		fmt.Printf("Unable to get the user, sudo will not be used: %s\n", err)
 	}
 
 	// change shell
-	_, err = platform.ExecCommand(
-		platform.NewExecCommandWrapper(
-			platform.WithThrowExitCodeError(true),
-			platform.WithCaptureStdin(true),
-		),
-		"chsh", "-s", zshPath,
-	)
+	if useSudo {
+		_, err = platform.ExecCommand(
+			platform.NewExecCommandWrapper(
+				platform.WithThrowExitCodeError(true),
+				platform.WithCaptureStdin(true),
+				platform.WithNeedsRoot(true), // sudo
+			),
+			"chsh", "-s", zshPath, userCurrent.Username,
+		)
+	} else {
+		_, err = platform.ExecCommand(
+			platform.NewExecCommandWrapper(
+				platform.WithThrowExitCodeError(true),
+				platform.WithCaptureStdin(true),
+			),
+			"chsh", "-s", zshPath,
+		)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to change shell: %w", err)
 	}
