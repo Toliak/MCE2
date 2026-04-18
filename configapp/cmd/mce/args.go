@@ -23,6 +23,8 @@ type Args struct {
 	JSONPreset			  JSONPreset
 	NoUI                  bool
 	ForceConfirm          bool
+
+	SelectEverything      bool
 }
 
 func ParseArgs(args []string) (*Args, error) {
@@ -48,6 +50,8 @@ func ParseArgs(args []string) (*Args, error) {
 
 	noUI := flag.Bool("no-ui", false, "Disable UI")
 	forceConfirm := flag.Bool("y", false, "Forcefully confirm installation")
+
+	selectEverything := flag.Bool("ALL", false, "Select everything in the UI")
 
 	// Template flag
 	var template *string
@@ -91,10 +95,6 @@ func ParseArgs(args []string) (*Args, error) {
 		jsonPreset = &preset
 		return nil
 	})
-	if jsonPreset == nil {
-		preset := GetDefaultPreset()
-		jsonPreset = &preset
-	}
 
 	// New MCE2 flags
 	homeDir, err := os.UserHomeDir()
@@ -122,6 +122,14 @@ func ParseArgs(args []string) (*Args, error) {
 		verbosity = &v
 	}
 
+	if *selectEverything && jsonPreset != nil {
+		return nil, fmt.Errorf("Cannot use 'preset' alongside with 'ALL'")
+	}
+	if jsonPreset == nil {
+		preset := GetDefaultPreset()
+		jsonPreset = &preset
+	}
+
 	// Return parsed arguments
 	return &Args{
 		InspectorConfig: inspector.InspectAndHarvestConfig{
@@ -139,5 +147,6 @@ func ParseArgs(args []string) (*Args, error) {
 		JSONPreset:          *jsonPreset,
 		NoUI: *noUI,
 		ForceConfirm: *forceConfirm,
+		SelectEverything: *selectEverything,
 	}, nil
 }
