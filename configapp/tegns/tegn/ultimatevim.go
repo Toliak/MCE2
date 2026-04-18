@@ -139,7 +139,7 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 
 	err := MkdirAllParent(path)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", path, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", path, err)
 	}
 
 	repo, err := git.PlainClone(
@@ -149,12 +149,12 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 		}),
 	)
 	if err != nil {
-		return fmt.Errorf("ExecInstall PlainClone error: %w", err)
+		return fmt.Errorf("PlainClone error: %w", err)
 	}
 
 	w, err := repo.Worktree()
 	if err != nil {
-		return fmt.Errorf("ExecInstall Worktree error: %w", err)
+		return fmt.Errorf("Worktree error: %w", err)
 	}
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
@@ -164,25 +164,25 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 	}
 	err = w.Checkout(&branchCoOpts)
 	if err != nil {
-		return fmt.Errorf("ExecInstall Checkout error: %w", err)
+		return fmt.Errorf("Checkout error: %w", err)
 	}
 
 	vimrcOrigPath, err := getVimrcPath()
 	if err != nil {
-		return fmt.Errorf("ExecInstall failed to get vimrc path: %w", err)
+		return fmt.Errorf("failed to get vimrc path: %w", err)
 	}
 
 	if vimrcBackup && platform.FileEntryExists(vimrcOrigPath) {
 		err := platform.CopyFile(vimrcOrigPath, vimrcOrigPath + ".backup-mce")
 		if err != nil {
-			return fmt.Errorf("ExecInstall vimrc backup error: %w", err)
+			return fmt.Errorf("vimrc backup error: %w", err)
 		}
 	}
 
 	templateFile := filepath.Join(path, "vimrcs", "basic.vim")
 	err = platform.CopyFile(templateFile, vimrcOrigPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall platform.CopyFile error: %w", err)
+		return fmt.Errorf("platform.CopyFile error: %w", err)
 	}
 
 	return nil

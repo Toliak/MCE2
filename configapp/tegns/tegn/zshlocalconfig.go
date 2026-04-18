@@ -174,19 +174,19 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 
 	err := MkdirAllParent(localConfigPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", localConfigPath, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}
 
 	{
 		outputFile, err := os.Create(localConfigPath)
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to create config file %s: %w", localConfigPath, err)
+			return fmt.Errorf("failed to create config file %s: %w", localConfigPath, err)
 		}
 		defer outputFile.Close()
 
 		_, err = outputFile.WriteString("###### Config after the oh-my-zsh initialization.\n###### Managed by the MCE2\n\n")
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localConfigPath, err)
+			return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
 		}
 
 		if already["cfg:mce2"] {
@@ -194,20 +194,20 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 				fmt.Sprintf("# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", filepath.Join(osInfo.MainInstallDir, "shell", "zsh.sh")),
 			)
 			if err != nil {
-				return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localConfigPath, err)
+				return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
 			}
 		}
 	}
 	{
 		outputFile, err := os.Create(localPreConfigPath)
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to create config file %s: %w", localPreConfigPath, err)
+			return fmt.Errorf("failed to create config file %s: %w", localPreConfigPath, err)
 		}
 		defer outputFile.Close()
 
 		_, err = outputFile.WriteString("###### Config before the oh-my-zsh initialization.\n###### Managed by the MCE2\n\n")
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localPreConfigPath, err)
+			return fmt.Errorf("failed to write to config file %s: %w", localPreConfigPath, err)
 		}
 
 		if already["cfg:mce2"] {
@@ -215,14 +215,14 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 				fmt.Sprintf("# <BEGIN> MCE2 pre-config\nsource '%s'\n# <END> MCE2 pre-config\n", filepath.Join(osInfo.MainInstallDir, "shell", "pre-zsh.sh")),
 			)
 			if err != nil {
-				return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localPreConfigPath, err)
+				return fmt.Errorf("failed to write to config file %s: %w", localPreConfigPath, err)
 			}
 		}
 	}
 
 	zshrcPath, err := getZshrcPath()
 	if err != nil {
-		return fmt.Errorf("ExecInstall failed to get zshrc path: %w", err)
+		return fmt.Errorf("failed to get zshrc path: %w", err)
 	}
 
 	lines, err := prepareZshrcLocalConfigLinesWithReplace(osInfo, zshrcPath)
@@ -247,7 +247,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 
 	err = writer.Flush()
 	if err != nil {
-		return fmt.Errorf("ExecInstall Flush error: %w", err)
+		return fmt.Errorf("Flush error: %w", err)
 	}
 
 	return nil

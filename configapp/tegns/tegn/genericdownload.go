@@ -268,28 +268,28 @@ func GenericDownloadPostMove(data GenericDownloadPostProcessData) error {
 func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
 	appDir, err := getDownloadAppDir()
 	if err != nil {
-		return fmt.Errorf("ExecInstall: %w", err)
+		return fmt.Errorf("getDownloadAppDir error: %w", err)
 	}
 	err = os.MkdirAll(appDir, 0755)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll %s: %w", appDir, err)
+		return fmt.Errorf("MkdirAll %s: %w", appDir, err)
 	}
 
 	tempDownloadDir := getDownloadTempDir()
 	err = os.MkdirAll(tempDownloadDir, 0755)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll %s: %w", tempDownloadDir, err)
+		return fmt.Errorf("MkdirAll %s: %w", tempDownloadDir, err)
 	}
 
 	url, err := p.getUrl(osInfo)
 	if err != nil {
-		return fmt.Errorf("ExecInstall getUrl error: %w", err)
+		return fmt.Errorf("getUrl error: %w", err)
 	}
 
 	downloadPath := filepath.Join(tempDownloadDir, p.downloadFileName)
 	err = platform.DownloadFile(url, downloadPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall cannot download '%s' -> '%s': %w", url, downloadPath, err)
+		return fmt.Errorf("cannot download '%s' -> '%s': %w", url, downloadPath, err)
 	}
 
 	err = p.postProcess(GenericDownloadPostProcessData{
@@ -300,7 +300,7 @@ func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		appName: p.appName,
 	})
 	if err != nil {
-		return fmt.Errorf("ExecInstall postProcess: %w", err)
+		return fmt.Errorf("postProcess: %w", err)
 	}
 
 	return nil

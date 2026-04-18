@@ -339,7 +339,7 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	path := getInstallDirZshBaseConfig(osInfo)
 	err := MkdirAllParent(path)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", path, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", path, err)
 	}
 
 	repo, err := git.PlainClone(
@@ -349,12 +349,12 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 		}),
 	)
 	if err != nil {
-		return fmt.Errorf("ExecInstall PlainClone error: %w", err)
+		return fmt.Errorf("PlainClone error: %w", err)
 	}
 
 	w, err := repo.Worktree()
 	if err != nil {
-		return fmt.Errorf("ExecInstall Worktree error: %w", err)
+		return fmt.Errorf("Worktree error: %w", err)
 	}
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
@@ -364,35 +364,35 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	}
 	err = w.Checkout(&branchCoOpts)
 	if err != nil {
-		return fmt.Errorf("ExecInstall Checkout error: %w", err)
+		return fmt.Errorf("Checkout error: %w", err)
 	}
 	
 	zshrcOrigPath, err := getZshrcPath()
 	if err != nil {
-		return fmt.Errorf("ExecInstall failed to get zshrc path: %w", err)
+		return fmt.Errorf("failed to get zshrc path: %w", err)
 	}
 
 	if zshrcBackup && platform.FileEntryExists(zshrcOrigPath) {
 		err := platform.CopyFile(zshrcOrigPath, zshrcOrigPath + ".backup-mce")
 		if err != nil {
-			return fmt.Errorf("ExecInstall zshrc backup error: %w", err)
+			return fmt.Errorf("zshrc backup error: %w", err)
 		}
 	}
 
 	templateFile := filepath.Join(path, "templates", "zshrc.zsh-template")
 	if !platform.FileEntryExists(templateFile) {
-		return fmt.Errorf("ExecInstall .zshrc template file does not exist (%s)", templateFile)
+		return fmt.Errorf(".zshrc template file does not exist (%s)", templateFile)
 	}
 	err = platform.CopyFile(templateFile, zshrcOrigPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall platform.CopyFile error: %w", err)
+		return fmt.Errorf("platform.CopyFile error: %w", err)
 	}
 
 	textBeforeSource := prepareZshrcBeforeSourceLine(params)
 	err = prepareReplaceConfig(zshrcOrigPath, path, textBeforeSource)
 
 	if err != nil {
-		return fmt.Errorf("ExecInstall prepare config error: %w", err)
+		return fmt.Errorf("prepare config error: %w", err)
 	}
 	return nil
 }

@@ -98,19 +98,19 @@ func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInst
 	localConfigPath := getSharedLocalConfigPath(osInfo)
 	err := MkdirAllParent(localConfigPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", localConfigPath, err)
+		return fmt.Errorf(" MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}
 
 	{
 		outputFile, err := os.Create(localConfigPath)
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to create config file %s: %w", localConfigPath, err)
+			return fmt.Errorf(" failed to create config file %s: %w", localConfigPath, err)
 		}
 		defer outputFile.Close()
 
 		_, err = outputFile.WriteString("###### Shared Local MCE2 config file.\n###### Managed by the MCE2\n\n")
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localConfigPath, err)
+			return fmt.Errorf(" failed to write to config file %s: %w", localConfigPath, err)
 		}
 	}
 

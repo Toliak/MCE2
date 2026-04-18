@@ -141,12 +141,12 @@ func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFe
 		}),
 	)
 	if err != nil {
-		return fmt.Errorf("ExecInstall PlainClone error: %w", err)
+		return fmt.Errorf("PlainClone error: %w", err)
 	}
 
 	w, err := repo.Worktree()
 	if err != nil {
-		return fmt.Errorf("ExecInstall Worktree error: %w", err)
+		return fmt.Errorf("Worktree error: %w", err)
 	}
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
@@ -156,7 +156,7 @@ func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFe
 	}
 	err = w.Checkout(&branchCoOpts)
 	if err != nil {
-		return fmt.Errorf("ExecInstall Checkout error: %w", err)
+		return fmt.Errorf("Checkout error: %w", err)
 	}
 
 	return nil

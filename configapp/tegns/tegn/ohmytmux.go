@@ -138,19 +138,19 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	installPath := getInstallDirOhMyTmux(osInfo)
 	err := MkdirAllParent(installPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", installPath, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", installPath, err)
 	}
 
 	tmuxConfigDir, err := getTmuxConfigDir(osInfo)
 	if err != nil {
-		return fmt.Errorf("ExecInstall getTmuxConfigDir error: %w", err)
+		return fmt.Errorf("getTmuxConfigDir error: %w", err)
 	}
 	tmuxConfBackup := tb.TegnParameterToBool(params["tmux-conf-backup"])
 
 	// Ensure target tmux config directory exists
 	err = os.MkdirAll(tmuxConfigDir, 0755)
 	if err != nil {
-		return fmt.Errorf("ExecInstall failed to create tmux config dir: %w", err)
+		return fmt.Errorf("failed to create tmux config dir: %w", err)
 	}
 
 	// Clone the repository
@@ -161,13 +161,13 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 		}),
 	)
 	if err != nil {
-		return fmt.Errorf("ExecInstall PlainClone error: %w", err)
+		return fmt.Errorf("PlainClone error: %w", err)
 	}
 
 	// Checkout the specified branch
 	w, err := repo.Worktree()
 	if err != nil {
-		return fmt.Errorf("ExecInstall Worktree error: %w", err)
+		return fmt.Errorf("Worktree error: %w", err)
 	}
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
@@ -177,7 +177,7 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	}
 	err = w.Checkout(&branchCoOpts)
 	if err != nil {
-		return fmt.Errorf("ExecInstall Checkout error: %w", err)
+		return fmt.Errorf("Checkout error: %w", err)
 	}
 
 	// Create symbolic link for .tmux.conf
@@ -187,7 +187,7 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	if tmuxConfBackup && platform.FileEntryExists(targetTmuxConf) {
 		err := platform.CopyFile(targetTmuxConf, targetTmuxConf + ".backup-mce")
 		if err != nil {
-			return fmt.Errorf("ExecInstall targetTmuxConf backup error: %w", err)
+			return fmt.Errorf("targetTmuxConf backup error: %w", err)
 		}
 	}
 
@@ -195,17 +195,17 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	if platform.FileEntryExists(targetTmuxConf) {
 		err = os.Remove(targetTmuxConf)
 		if err != nil {
-			return fmt.Errorf("ExecInstall Remove targetTmuxConf error: %w", err)
+			return fmt.Errorf("Remove targetTmuxConf error: %w", err)
 		}
 	}
 	err = MkdirAllParent(targetTmuxConf)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", targetTmuxConf, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
 
 	tmuxConf, err := os.Create(targetTmuxConf)
 	if err != nil {
-		return fmt.Errorf("ExecInstall os.Create failed: %w", err)
+		return fmt.Errorf("os.Create failed: %w", err)
 	}
 	defer tmuxConf.Close()
 
@@ -224,14 +224,14 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	if tmuxConfBackup && platform.FileEntryExists(targetLocalConf) {
 		err := platform.CopyFile(targetLocalConf, targetLocalConf + ".backup-mce")
 		if err != nil {
-			return fmt.Errorf("ExecInstall targetLocalConf backup error: %w", err)
+			return fmt.Errorf("targetLocalConf backup error: %w", err)
 		}
 	}
 
 	// Only copy if the target doesn't already exist, preserving user customizations
 	err = platform.CopyFile(sourceLocalConf, targetLocalConf)
 	if err != nil {
-		return fmt.Errorf("ExecInstall platform.CopyFile for tmux.conf.local error: %w", err)
+		return fmt.Errorf("platform.CopyFile for tmux.conf.local error: %w", err)
 	}
 
 	return nil

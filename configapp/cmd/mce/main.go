@@ -298,7 +298,7 @@ func mainInternal() error {
 				app.State.ParameterByIDMap[id],
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("ExecInstall '%s' error: %w", id, err)
 			}
 			
 			installedTegns = append(installedTegns, tegn)
@@ -312,7 +312,7 @@ func mainInternal() error {
 			app.State.ParameterByIDMap,
 		)
 		if err != nil {
-			return err
+			return fmt.Errorf("ExecPostInstall '%s' error: %w", d.TegnsettID, err)
 		}
 	}
 

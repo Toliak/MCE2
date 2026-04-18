@@ -114,19 +114,19 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 	localConfigPath := getBashLocalConfigPath(osInfo)
 	err := MkdirAllParent(localConfigPath)
 	if err != nil {
-		return fmt.Errorf("ExecInstall MkdirAll parent '%s' error: %w", localConfigPath, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}
 
 	{
 		outputFile, err := os.Create(localConfigPath)
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to create config file %s: %w", localConfigPath, err)
+			return fmt.Errorf("failed to create config file %s: %w", localConfigPath, err)
 		}
 		defer outputFile.Close()
 
 		_, err = outputFile.WriteString("###### Config at the end of bashrc initialization.\n###### Managed by the MCE2\n\n")
 		if err != nil {
-			return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localConfigPath, err)
+			return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
 		}
 
 		if already["cfg:mce2"] {
@@ -136,14 +136,14 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 				filepath.Join(osInfo.MainInstallDir, "shell", "bash.sh"),
 			)
 			if err != nil {
-				return fmt.Errorf("ExecInstall failed to write to config file %s: %w", localConfigPath, err)
+				return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
 			}
 		}
 	}
 
 	bashrcPath, err := getBashrcPath()
 	if err != nil {
-		return fmt.Errorf("ExecInstall failed to get bashrc path: %w", err)
+		return fmt.Errorf("failed to get bashrc path: %w", err)
 	}
 
 	platform.AppendFilepathString(
