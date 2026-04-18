@@ -20,7 +20,10 @@ type UIState struct {
 	InstalledCache       tb.AvailablePackagesMap
 	InstalledFeatures	 tb.TegnInstalledFeaturesMap
 
+	// This field is saved if the installation fails
 	EnabledIDsMap       tb.TegnGeneralEnabledIDsMap
+
+	// This field is saved if the installation fails
 	ParameterByIDMap     map[string]tb.TegnParameterMap
 
 	CurrentView       UIView
