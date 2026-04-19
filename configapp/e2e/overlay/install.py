@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 import subprocess
 from typing import *
 import util
@@ -128,43 +129,44 @@ def test_install_downloads(binary_e2e: Path, binary_prod: Path) -> bool:
     
     return True
 
-def test_install_zsh_vim_tmux_local(binary_e2e: Path, binary_prod: Path) -> bool:
-    preset = {
-        "base-cfg-tmux": {"en": True},
-        "base-cfg-zsh": {"en": True},
-        "bash-config": {"en": True},
-        "cfg-local-bash": {"en": True},
-        "cfg-local-shared": {"en": True},
-        "cfg-local-zsh": {"en": True},
-        "cfg-vim-zmix": {"en": True},
-        "cfg-zsh-p10k": {"en": True},
-        "cfg-zsh-syntax-highlighting": {"en": True},
-        "mce2": {"en": True},
-        "mce2-repo": {"en": True},
-        "os-packages": {"en": True},
-        "package-curl": {"en": True},
-        "package-git": {"en": True},
-        "package-psmisc": {"en": True},
-        "package-tmux": {"en": True},
-        "package-vim": {"en": True},
-        "package-zsh": {"en": True},
-        "shared-shell-config": {"en": True},
-        "tmux-config": {"en": True},
-        "vim-config": {"en": True},
-        "zsh-config": {"en": True}
-    }
-    print("dump:", json.dumps(preset))
+def test_install_ALL(binary_e2e: Path, binary_prod: Path) -> bool:
+    # preset = {
+    #     "base-cfg-tmux": {"en": True},
+    #     "base-cfg-zsh": {"en": True},
+    #     "bash-config": {"en": True},
+    #     "cfg-local-bash": {"en": True},
+    #     "cfg-local-shared": {"en": True},
+    #     "cfg-local-zsh": {"en": True},
+    #     "base-cfg-vim": {"en": True},
+    #     "cfg-zsh-p10k": {"en": True},
+    #     "cfg-zsh-syntax-highlighting": {"en": True},
+    #     "mce2": {"en": True},
+    #     "mce2-repo": {"en": True},
+    #     "os-packages": {"en": True},
+    #     "package-curl": {"en": True},
+    #     "package-git": {"en": True},
+    #     "package-psmisc": {"en": True},
+    #     "package-tmux": {"en": True},
+    #     "package-vim": {"en": True},
+    #     "package-zsh": {"en": True},
+    #     "shared-shell-config": {"en": True},
+    #     "tmux-config": {"en": True},
+    #     "vim-config": {"en": True},
+    #     "zsh-config": {"en": True}
+    # }
+    # print("dump:", json.dumps(preset))
 
     try:
         output = util.check_output_with_live_echo(
             [
                 binary_prod.as_posix(), 
-                "-preset", 
-                json.dumps(preset), 
+                # "-preset", 
+                # json.dumps(preset), 
                 "-mce-repo-url=file:///repo",
                 "-no-ui",
                 "-y",
-             ],
+                "-ALL",
+            ],
         )
     except subprocess.CalledProcessError as e:
         print(f"Binary execution failed: {e}")
@@ -182,8 +184,9 @@ def test_install_zsh_vim_tmux_local(binary_e2e: Path, binary_prod: Path) -> bool
         return False
     
     zshrc_text = zshrc.read_text()
-    if "ZSH_THEME='powerlevel10k/powerlevel10k'" not in zshrc_text:
-        print("Unable to find the correct zshrc line")
+    t1 = "ZSH_THEME='powerlevel10k/powerlevel10k'"
+    if t1 not in zshrc_text:
+        print("Unable to find the correct local_pre_cfg_text line:", t1)
         return False
 
     p10k_path = Path.home() / ".local/share/MakeConfigurationEasier2/data/oh-my-zsh/custom/themes/powerlevel10k"
@@ -219,12 +222,35 @@ def test_install_zsh_vim_tmux_local(binary_e2e: Path, binary_prod: Path) -> bool
         return False
 
     t2 = "\nsource '/home/user/.local/share/MakeConfigurationEasier2/data/local-pre-cfg.zsh'"
-    zshrc_text = zshrc.read_text()
     if t2 not in zshrc_text:
         print("Unable to find the correct zshrc line: ", t2)
         return False
     
-    
+    local_pre_cfg_text = Path("/home/user/.local/share/MakeConfigurationEasier2/data/local-pre-cfg.zsh").read_text()
+    t3 = re.compile(r'plugins.+zsh-syntax-highlighting')
+    if not t3.findall(local_pre_cfg_text):
+        print("Unable to find the correct local_pre_cfg_text line: ", t3)
+        return False
+    t3 = re.compile(r'plugins.+zsh-autosuggestions')
+    if not t3.findall(local_pre_cfg_text):
+        print("Unable to find the correct local_pre_cfg_text line: ", t3)
+        return False
+    t3 = re.compile(r'shell/pre-zsh.sh')
+    if not t3.findall(local_pre_cfg_text):
+        print("Unable to find the correct local_pre_cfg_text line: ", t3)
+        return False
+    t3 = re.compile(r'CASE_SENSITIVE=(true|false)')
+    if not t3.findall(local_pre_cfg_text):
+        print("Unable to find the correct local_pre_cfg_text line: ", t3)
+        return False
+        
+
+    local_shared_cfg_text = Path("/home/user/.local/share/MakeConfigurationEasier2/data/local-cfg.shared").read_text()
+    t3 = re.compile(r'export\s+EDITOR=')
+    if not t3.findall(local_shared_cfg_text):
+        print("Unable to find the correct local_shared_cfg_text line: ", t3)
+        return False
+
     return True
 
 def test_install_p10k_without_oh_my_zsh_must_fail(binary_e2e: Path, binary_prod: Path) -> bool:
@@ -272,7 +298,7 @@ def tests_install() -> List[Callable[[Path, Path], bool]]:
         test_install_ohmyzsh,
         test_install_zsh_p10k,
         test_install_downloads,
-        test_install_zsh_vim_tmux_local,
+        test_install_ALL,
     ]
 
 

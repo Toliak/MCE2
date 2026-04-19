@@ -244,58 +244,7 @@ func mainInternal() error {
 
 	// TODO: if any during the installation errors -- prompt before continue
 
-	fmt.Printf("App: %#v\n", app)
-
-	// fmt.Printf("%#v\n", tegnsetts)
-
-	// err = RunTUI(tegnsetts, builderData)
-	// if err != nil {
-	// 	return err
-	// }
-
-	tegnsettsObjs := make([]map[string]any, 0, len(app.State.InitResult.TegnsettByID))
-	for id, tegnsett := range app.State.InitResult.TegnsettByID {
-		children := tegnsett.GetChildren()
-		childrenObjs := make([]map[string]any, len(children))
-		for j, v := range children {
-			params := v.GetParameters(app.State.OSInfExt)
-			paramsObjs := make([]map[string]any, len(params))
-			for i, p := range params {
-				id := v.GetID()
-				paramID := p.GetID()
-				// paramName := p.GetName()
-				paramValue, ok := app.State.ParameterByIDMap[id][paramID]
-				if !ok {
-					continue
-				}
-				paramsObjs[i] = map[string]any {
-					"id": id,
-					"name": p.GetName(),
-					"value": paramValue,
-					"type": p.GetParamType().String(),
-				}
-			}
-
-			childrenObjs[j] = map[string]any{
-				"id":     v.GetID(),
-				"name":   v.GetName(),
-				"params": paramsObjs,
-			}
-		}
-
-		tegnsettsObjs = append(tegnsettsObjs, map[string]any{
-			"id":       id,
-			"name":     tegnsett.GetName(),
-			"children": childrenObjs,
-		})
-	}
-
-	marshalled, _ := json.MarshalIndent(tegnsettsObjs, "", "  ")
-	fmt.Println(string(marshalled))
-	fmt.Println("-----------------------------")
-	marshalled, _ = json.MarshalIndent(app.State.EnabledIDsMap, "", "  ")
-	fmt.Println(string(marshalled))
-
+	// TODO: encapsulate that
 	order, err := tb.GetTegnsettsOrder(app.State.InitResult.TegnsettByID)
 	if err != nil {
 		return err
@@ -349,6 +298,7 @@ func mainInternal() error {
 			fmt.Printf("- %s\n", id)
 		}
 	}
+	// TODO: confirm ui?????
 
 	// TODO: print also parameters
 	installedFeatures := make(tb.TegnInstalledFeaturesMap, len(app.State.InstalledFeatures))

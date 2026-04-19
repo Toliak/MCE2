@@ -57,6 +57,9 @@ func IsRoot() bool {
     return os.Geteuid() == 0
 }
 
+// TODO: FileEntryExists vs FileExists
+// Why have I create two similar functions???
+
 func FileEntryExists(path string) bool {
 	_, err := os.Stat(path)
 	return !(err != nil && os.IsNotExist(err))
@@ -99,7 +102,8 @@ func OpenOrCreateFileAppend(path string) (*os.File, error) {
 	return v, err
 }
 
-
+// Safe function to append text into the file.
+// It will create the file if it does not exist.
 func AppendFilepathString(path string, text string) error {
 	outputFile, err := OpenOrCreateFileAppend(path)
     if err != nil {
