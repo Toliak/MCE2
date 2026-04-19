@@ -302,11 +302,13 @@ var AllSharedConfigTegns = []tegnbuilder.TegnBuildFunc{
 // Register packages here
 var AllVimConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnUltimateVimBuilder(),
+	tegn.NewTegnVimLocalConfigBuilder(),
 }
 
 // Register packages here
 var AllTmuxConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnOhMyTmuxBuilder(),
+	tegn.NewTegnTmuxLocalConfigBuilder(),
 }
 
 // We need categories here
