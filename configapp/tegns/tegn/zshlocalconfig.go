@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
@@ -29,6 +30,7 @@ func getZshLocalConfigPath(osInfo tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-cfg.zsh")
 }
 
+// TODO: use
 func getZshLocalPreConfigPlugins() []string {
 	return []string{
 		"git",
@@ -107,14 +109,41 @@ func (p *ZshLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
+		// TODO: implement
 		tb.NewTegnParameter(
 			"enable-plugins",
 			"Enable featured plugins",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Enable plugins: :TODO:"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
+
+		// Oh-my-zsh related configuration
+		// Assuming there is a feature-dependency `cfg:oh-my-zsh`
+		tb.NewTegnParameter(
+			"zshrc-update",
+			"Enable auto-update",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Enable auto-update (with the confirmation)"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(false)),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"zshrc-case-sensitive",
+			"Enable case-sensitive completion",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Set to true to force case-sensitive completion"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"zshrc-hist-stamps",
+			"History stamp format",
 			tb.TegnParameterTypeString,
-			tb.WithDescription("Local config path (read-only)"),
-			tb.WithDefaultValue(getZshLocalConfigPath(osInfo)),
-			tb.WithAvailabilityFalse("Read-only"),
-			tb.WithReadOnlyValidator(),
+			tb.WithDescription("Oh My Zsh provides a wrapper for the history command.\nYou can use this setting to decide whether to show a timestamp for each command in the history output.\nLeave the string empty to leave the variable unchanged"),
+			tb.WithDefaultValue("yyyy-mm-dd"),
+			tb.WithAvailabilityTrue(),
 		),
 	}
 }
@@ -166,6 +195,33 @@ func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath stri
 	return lines, nil
 }
 
+func prepareZshPreLocalConfigText(params tb.TegnParameterMap) string {
+	var sb strings.Builder
+	sb.Grow(1024)
+
+	sb.WriteString("###### Config inserted before the oh-my-zsh initialization.\n###### Managed by MCE2\n###### DO NOT EDIT. This file may be overwritten or removed at any time\n\n")
+	sb.WriteString("# <BEGIN> oh-my-zsh config options\n")
+
+	if !tb.TegnParameterToBool(params["zshrc-update"]) {
+		sb.WriteString("zstyle ':omz:update' mode disabled\nzstyle ':omz:update' frequency 999999\nUPDATE_ZSH_DAYS=999999\nDISABLE_AUTO_UPDATE=true\n\n")
+	}
+	sb.WriteString("CASE_SENSITIVE=")
+	if tb.TegnParameterToBool(params["zshrc-case-sensitive"]) {
+		sb.WriteString("true\n")
+	} else {
+		sb.WriteString("false\n")
+	}
+	
+	if stamp := params["zshrc-hist-stamps"]; stamp != "" {
+		sb.WriteString("HIST_STAMPS=\"")
+		sb.WriteString(stamp)
+		sb.WriteString("\"\n")
+	}
+	sb.WriteString("# <END> oh-my-zsh config options\n\n")
+
+	return sb.String()
+}
+
 func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// TODO: if _already contains mce2 configs, then use it
 
@@ -184,14 +240,17 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 		defer outputFile.Close()
 
-		_, err = outputFile.WriteString("###### Config after the oh-my-zsh initialization.\n###### Managed by the MCE2\n\n")
+		_, err = outputFile.WriteString("###### Config inserted after oh-my-zsh initialization.\n###### Managed by MCE2\n###### DO NOT EDIT. This file may be overwritten or removed at any time\n\n")
 		if err != nil {
 			return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
 		}
 
-		if already["cfg:mce2"] {
-			_, err = outputFile.WriteString(
-				fmt.Sprintf("# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", filepath.Join(osInfo.MainInstallDir, "shell", "zsh.sh")),
+		mce2zshConfig := filepath.Join(osInfo.MainInstallDir, "shell", "zsh.sh")
+		if already["cfg:mce2"] && platform.FileEntryExists(mce2zshConfig) {
+			_, err = fmt.Fprintf(
+				outputFile,
+				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", 
+				mce2zshConfig,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
@@ -205,14 +264,17 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 		defer outputFile.Close()
 
-		_, err = outputFile.WriteString("###### Config before the oh-my-zsh initialization.\n###### Managed by the MCE2\n\n")
+		_, err = outputFile.WriteString(prepareZshPreLocalConfigText(params))
 		if err != nil {
 			return fmt.Errorf("failed to write to config file %s: %w", localPreConfigPath, err)
 		}
 
-		if already["cfg:mce2"] {
-			_, err = outputFile.WriteString(
-				fmt.Sprintf("# <BEGIN> MCE2 pre-config\nsource '%s'\n# <END> MCE2 pre-config\n", filepath.Join(osInfo.MainInstallDir, "shell", "pre-zsh.sh")),
+		mce2zshConfig := filepath.Join(osInfo.MainInstallDir, "shell", "pre-zsh.sh")
+		if already["cfg:mce2"] && platform.FileEntryExists(mce2zshConfig) {
+			_, err = fmt.Fprintf(
+				outputFile,
+				"# <BEGIN> MCE2 pre-config\nsource '%s'\n# <END> MCE2 pre-config\n", 
+				mce2zshConfig,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to write to config file %s: %w", localPreConfigPath, err)

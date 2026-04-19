@@ -38,6 +38,14 @@ func getTmuxConfigDir(osInfo tb.OSInfoExt) (string, error) {
 	return path, nil
 }
 
+func getTmuxConfigPath(osInfo tb.OSInfoExt) (string, error) {
+	dir, err := getTmuxConfigDir(osInfo)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "tmux.conf"), nil
+}
+
 // GetID implements [tb.Tegn].
 func (p *OhMyTmux) GetID() string {
 	return "base-cfg-tmux"
@@ -108,14 +116,6 @@ func (p *OhMyTmux) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
-		tb.NewTegnParameter(
-			"tmux-conf-backup",
-			"Do tmux.conf backup",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Backup current tmux.conf configuration?"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
 	}
 }
 
@@ -141,16 +141,13 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", installPath, err)
 	}
 
-	tmuxConfigDir, err := getTmuxConfigDir(osInfo)
+	targetTmuxConf, err := getTmuxConfigPath(osInfo)
 	if err != nil {
-		return fmt.Errorf("getTmuxConfigDir error: %w", err)
+		return fmt.Errorf("getTmuxConfigPath error: %w", err)
 	}
-	tmuxConfBackup := tb.TegnParameterToBool(params["tmux-conf-backup"])
-
-	// Ensure target tmux config directory exists
-	err = os.MkdirAll(tmuxConfigDir, 0755)
+	err = MkdirAllParent(targetTmuxConf)
 	if err != nil {
-		return fmt.Errorf("failed to create tmux config dir: %w", err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
 
 	// Clone the repository
@@ -182,57 +179,39 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 
 	// Create symbolic link for .tmux.conf
 	sourceTmuxConf := filepath.Join(installPath, ".tmux.conf")
-	targetTmuxConf := filepath.Join(tmuxConfigDir, "tmux.conf")
 
-	if tmuxConfBackup && platform.FileEntryExists(targetTmuxConf) {
-		err := platform.CopyFile(targetTmuxConf, targetTmuxConf + ".backup-mce")
-		if err != nil {
-			return fmt.Errorf("targetTmuxConf backup error: %w", err)
-		}
-	}
-
-	// Remove target if it exists (to avoid errors if it's a file or an existing symlink)
-	if platform.FileEntryExists(targetTmuxConf) {
-		err = os.Remove(targetTmuxConf)
-		if err != nil {
-			return fmt.Errorf("Remove targetTmuxConf error: %w", err)
-		}
-	}
 	err = MkdirAllParent(targetTmuxConf)
 	if err != nil {
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
 
-	tmuxConf, err := os.Create(targetTmuxConf)
-	if err != nil {
-		return fmt.Errorf("os.Create failed: %w", err)
-	}
-	defer tmuxConf.Close()
-
-	fmt.Fprintf(
-		tmuxConf, 
-		"#### Auto-gen by MCE2\nset-environment -g TMUX_CONF \"%s\"\nset-environment -g TMUX_CONF_LOCAL \"%s.local\"\nsource-file \"%s\"\n\n", 
-		sourceTmuxConf,
+	err = platform.AppendFilepathString(
 		targetTmuxConf,
-		sourceTmuxConf,
+		fmt.Sprintf(
+			"# <BEGIN> Oh-my-tmux config (autogen mce2)\nset-environment -g TMUX_CONF \"%s\"\nset-environment -gu TMUX_CONF_LOCAL\nsource-file \"%s\"\n# <END> Oh-my-tmux config (autogen mce2)\n\n", 
+			sourceTmuxConf,
+			sourceTmuxConf,
+		),
 	)
 
-	// Copy .tmux.conf.local template to the config directory
-	sourceLocalConf := filepath.Join(installPath, ".tmux.conf.local")
-	targetLocalConf := filepath.Join(tmuxConfigDir, "tmux.conf.local")
+	// We are not using .local file here! Just put your configs into the tmux.conf
 
-	if tmuxConfBackup && platform.FileEntryExists(targetLocalConf) {
-		err := platform.CopyFile(targetLocalConf, targetLocalConf + ".backup-mce")
-		if err != nil {
-			return fmt.Errorf("targetLocalConf backup error: %w", err)
-		}
-	}
+	// Copy .tmux.conf.local template to the config directory
+	// sourceLocalConf := filepath.Join(installPath, ".tmux.conf.local")
+	// targetLocalConf := filepath.Join(tmuxConfigDir, "tmux.conf.local")
+
+	// if tmuxConfBackup && platform.FileEntryExists(targetLocalConf) {
+	// 	err := platform.CopyFile(targetLocalConf, targetLocalConf + ".backup-mce")
+	// 	if err != nil {
+	// 		return fmt.Errorf("targetLocalConf backup error: %w", err)
+	// 	}
+	// }
 
 	// Only copy if the target doesn't already exist, preserving user customizations
-	err = platform.CopyFile(sourceLocalConf, targetLocalConf)
-	if err != nil {
-		return fmt.Errorf("platform.CopyFile for tmux.conf.local error: %w", err)
-	}
+	// err = platform.CopyFile(sourceLocalConf, targetLocalConf)
+	// if err != nil {
+	// 	return fmt.Errorf("platform.CopyFile for tmux.conf.local error: %w", err)
+	// }
 
 	return nil
 }

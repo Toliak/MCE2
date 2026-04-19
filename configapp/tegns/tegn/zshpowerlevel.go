@@ -110,6 +110,14 @@ func (p *ZshPowerLevel10k) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
+		tb.NewTegnParameter(
+			"additional-config",
+			"Auto config p10k",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Configure p10k prompt automatically (skip `p10k configure`)"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
 	}
 }
 
@@ -127,11 +135,12 @@ func (p *ZshPowerLevel10k) IsInstalled(osInfo tb.OSInfoExt) bool {
 
 var zshThemeRegexpReplace = regexp.MustCompile(`^(?:\s*#\s*)?((?:export\s+)?ZSH_THEME=).+$`)
 
-func prepareReplaceConfigTheme(zshrcPath string) error {
+func prepareReplaceConfigThemeText(zshrcPath string) ([]string, error) {
 	inputFile, err := os.Open(zshrcPath)
     if err != nil {
-        return fmt.Errorf("prepareReplaceConfigTheme failed to open file: %w", err)
+        return nil, fmt.Errorf("prepareReplaceConfigTheme failed to open file: %w", err)
     }
+	defer inputFile.Close()
 
 	var lines []string
 	scanner := bufio.NewScanner(inputFile)
@@ -145,12 +154,20 @@ func prepareReplaceConfigTheme(zshrcPath string) error {
 			1,
 		)
 
-	inputFile.Close()
 	if err != nil {
-		return fmt.Errorf("prepareReplaceConfigTheme error: %w", err)
+		return nil, fmt.Errorf("prepareReplaceConfigTheme error: %w", err)
 	}
 	if times == 0 {
-		return fmt.Errorf("prepareReplaceConfigTheme: Not found line to replace")
+		return nil, fmt.Errorf("prepareReplaceConfigTheme: Not found line to replace")
+	}
+
+	return lines, nil
+}
+
+func prepareReplaceConfigTheme(zshrcPath string) error {
+	lines, err := prepareReplaceConfigThemeText(zshrcPath)
+	if err != nil {
+		return err
 	}
 
 	// Write back to same file (truncates)
@@ -170,15 +187,28 @@ func prepareReplaceConfigTheme(zshrcPath string) error {
 
 	err = writer.Flush()
 	if err != nil {
-		return fmt.Errorf("prepareReplaceConfigTheme Flush error: %w", err)
+		return fmt.Errorf("Flush error: %w", err)
 	}
 
     return nil
 }
 
+var zshrcP10kInstantPromptBlock string = `
+# <BEGIN> p10k instant prompt
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+	source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+# <END> p10k instant prompt
+`
+var zshrcP10kInstantPromptBlockBytes = []byte(zshrcP10kInstantPromptBlock)
+
 func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
+	autoConf := tb.TegnParameterToBool(params["additional-config"])
 
 	path := getInstallDirZshPowerLevel10k(osInfo)
 	repo, err := git.PlainClone(
@@ -215,5 +245,37 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 	if err != nil {
 		return fmt.Errorf("prepare config error: %w", err)
 	}
+
+	if autoConf {
+		zshrcBytes, err := os.ReadFile(zshrcOrigPath)
+		zshrcText := string(zshrcBytes)
+		if err != nil {
+			return fmt.Errorf("os.ReadFile error '%s': %w", zshrcOrigPath, err)
+		}
+		
+		purePromptPath := filepath.Join(getInstallDirZshPowerLevel10k(osInfo), "config", "p10k-pure.zsh")
+		purePromptCopyPath := filepath.Join(osInfo.GetFullDataDir(), "local-p10k-prompt.zsh")
+		promptConfig := ""
+		if !platform.FileEntryExists(purePromptPath) {
+			fmt.Printf("Unable to find pure p10k prompt config: %s\n", purePromptPath)
+		} else {
+			err = platform.CopyFile(purePromptPath, purePromptCopyPath)
+			if err != nil {
+				fmt.Printf("platform.CopyFile '%s' -> '%s' error: %s\n", purePromptPath, purePromptCopyPath, err)
+			} else {
+				promptConfig = fmt.Sprintf("# <BEGIN> p10k prompt config\nsource '%s'\n# <END> p10k prompt config", purePromptCopyPath)
+			}
+		}
+
+		err = os.WriteFile(
+			zshrcOrigPath,
+			fmt.Append(zshrcP10kInstantPromptBlockBytes, zshrcText, promptConfig),
+			0644,
+		)
+		if err != nil {
+			return fmt.Errorf("os.WriteFile error '%s': %w", zshrcOrigPath, err)
+		}
+	}
+
 	return nil
 }

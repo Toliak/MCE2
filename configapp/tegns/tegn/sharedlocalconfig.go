@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
@@ -65,6 +67,8 @@ func (p *SharedLocalConfig) GetBeforeIDs() []string {
 	return []string{}
 }
 
+var sharedConfigPATHValidator *regexp.Regexp = regexp.MustCompile(`^[^"']+$`)
+
 // GetParameters implements [tb.Tegn].
 func (p *SharedLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 	return []tb.TegnParameter {
@@ -77,9 +81,40 @@ func (p *SharedLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParamete
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
-	}
 
-	// TODO: move PATH and EDITOR here
+		// Shared variables
+		tb.NewTegnParameter(
+			"editor",
+			"EDITOR",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("EDITOR variable.\nLeave the string empty to leave the variable unchanged"),
+			tb.WithDefaultValue("vim"),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"add-local-bin-path",
+			"PATH += HOME/.local/bin",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Add \"$HOME/.local/bin\" to the PATH variable"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"path-additional",
+			"Additional PATHs",
+			tb.TegnParameterTypeString,
+			tb.WithDescription("Add paths into the PATH variable (separated by the colon).\nLeave the string empty to leave the variable unchanged"),
+			tb.WithDefaultValue(""),
+			tb.WithAvailabilityTrue(),
+			tb.WithValidator(func(self *tb.TegnParameter, newValue string) error {
+				if !sharedConfigPATHValidator.MatchString(newValue) {
+					return fmt.Errorf("The value '%s' did not match the regexp '%v'", newValue, sharedConfigPATHValidator)
+				}
+
+				return nil
+			}),
+		),
+	}
 }
 
 // GetFeatures implements [tb.Tegn].
@@ -92,6 +127,37 @@ func (p *SharedLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 func (p *SharedLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getSharedLocalConfigPath(osInfo)
 	return platform.FileEntryExists(path)
+}
+
+func prepareSharedLocalConfigText(params tb.TegnParameterMap) string {
+	var sb strings.Builder
+	sb.Grow(1024)
+
+	sb.WriteString("###### Shared Local MCE2 config file.\n###### Managed by MCE2\n###### DO NOT EDIT. This file may be overwritten or removed at any time\n\n")
+	sb.WriteString("# <BEGIN> Shared config options\n")
+
+	if editor := params["editor"]; editor != "" {
+		sb.WriteString("export EDITOR=\"")
+		sb.WriteString(editor)
+		sb.WriteString("\"\n")
+	}
+	addLocalBin := tb.TegnParameterToBool(params["add-local-bin-path"])
+	additionsPath := params["path-additional"]
+	if addLocalBin || additionsPath != "" {
+		sb.WriteString("export PATH=\"$PATH")
+		if addLocalBin {
+			sb.WriteString(":$HOME/.local/bin")
+		}
+		if additionsPath != "" {
+			sb.WriteString(":")
+			sb.WriteString(additionsPath)
+		}
+		sb.WriteString("\"\n")
+	}
+
+	sb.WriteString("# <END> Shared config options\n\n")
+
+	return sb.String()
 }
 
 func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -107,8 +173,7 @@ func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInst
 			return fmt.Errorf(" failed to create config file %s: %w", localConfigPath, err)
 		}
 		defer outputFile.Close()
-
-		_, err = outputFile.WriteString("###### Shared Local MCE2 config file.\n###### Managed by the MCE2\n\n")
+		_, err = outputFile.WriteString(prepareSharedLocalConfigText(params))
 		if err != nil {
 			return fmt.Errorf(" failed to write to config file %s: %w", localConfigPath, err)
 		}

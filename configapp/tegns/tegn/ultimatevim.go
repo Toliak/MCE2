@@ -40,7 +40,7 @@ func getVimrcPath() (string, error) {
 
 // GetID implements [tb.Tegn].
 func (p *UltimateVim) GetID() string {
-	return "cfg-vim-zmix"
+	return "base-cfg-vim"
 }
 
 // GetName implements [tb.Tegn].
@@ -108,20 +108,13 @@ func (p *UltimateVim) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
-		tb.NewTegnParameter(
-			"vimrc-backup",
-			"Do vimrc backup",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Backup current .vimrc configuration?"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
 	}
 }
 
 // GetFeatures implements [tb.Tegn].
 func (p *UltimateVim) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
+		tb.TegnFeature("cfg:vim-base"): true,
 		tb.TegnFeature("cfg:vim-ultimate"): true,
 	}
 }
@@ -135,7 +128,6 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 	url := params["repo-url"]
 	branch := params["repo-branch"]
 	path := getInstallDirUltimateVim(osInfo)
-	vimrcBackup := tb.TegnParameterToBool(params["vimrc-backup"])
 
 	err := MkdirAllParent(path)
 	if err != nil {
@@ -172,17 +164,17 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 		return fmt.Errorf("failed to get vimrc path: %w", err)
 	}
 
-	if vimrcBackup && platform.FileEntryExists(vimrcOrigPath) {
-		err := platform.CopyFile(vimrcOrigPath, vimrcOrigPath + ".backup-mce")
-		if err != nil {
-			return fmt.Errorf("vimrc backup error: %w", err)
-		}
+	templateFile := filepath.Join(path, "vimrcs", "basic.vim")
+	if !platform.FileEntryExists(templateFile) {
+		return fmt.Errorf("templateFile '%s' does not exist", templateFile)
 	}
 
-	templateFile := filepath.Join(path, "vimrcs", "basic.vim")
-	err = platform.CopyFile(templateFile, vimrcOrigPath)
+	err = platform.AppendFilepathString(
+		vimrcOrigPath, 
+		fmt.Sprintf("\" <BEGIN> Ultimate vim config (autogen mce2)\nsource %s\n\" <END> Ultimate vim config (autogen mce2)\n", templateFile),
+	)
 	if err != nil {
-		return fmt.Errorf("platform.CopyFile error: %w", err)
+		return fmt.Errorf("AppendFilepathString error '%s': %w", vimrcOrigPath, err)
 	}
 
 	return nil

@@ -124,7 +124,7 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		}
 		defer outputFile.Close()
 
-		_, err = outputFile.WriteString("###### Config at the end of bashrc initialization.\n###### Managed by the MCE2\n\n")
+		_, err = outputFile.WriteString("###### Config appended at the end of bashrc initialization.\n###### Managed by MCE2\n###### DO NOT EDIT. This file may be overwritten or removed at any time\n\n")
 		if err != nil {
 			return fmt.Errorf("failed to write to config file %s: %w", localConfigPath, err)
 		}

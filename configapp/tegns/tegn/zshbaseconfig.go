@@ -1,17 +1,13 @@
 package tegn
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
-	"strings"
 
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
-	"github.com/toliak/mce/sedparody"
 	tb "github.com/toliak/mce/tegnbuilder"
 
 	git "github.com/go-git/go-git/v6"
@@ -117,73 +113,6 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
-		tb.NewTegnParameter(
-			"zshrc-backup",
-			"Do zshrc backup",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Backup current .zshrc configuration?"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
-
-		// Oh-my-zsh related configuration
-		// TODO: move this into the local config
-		tb.NewTegnParameter(
-			"zshrc-editor",
-			"EDITOR",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("EDITOR variable.\nLeave the string empty to leave the variable unchanged"),
-			tb.WithDefaultValue("vim"),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"zshrc-add-local-bin-path",
-			"PATH += HOME/.local/bin",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Add \"$HOME/.local/bin\" to the PATH variable"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"zshrc-path-additional",
-			"Additional PATHs",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Add paths into the PATH variable (separated by the colon).\nLeave the string empty to leave the variable unchanged"),
-			tb.WithDefaultValue(""),
-			tb.WithAvailabilityTrue(),
-			tb.WithValidator(func(self *tb.TegnParameter, newValue string) error {
-				re := regexp.MustCompile(`^[^"']+$`)
-				if !re.MatchString(newValue) {
-					return fmt.Errorf("The value '%s' did not match the regexp '%v'", newValue, re)
-				}
-
-				return nil
-			}),
-		),
-		tb.NewTegnParameter(
-			"zshrc-update",
-			"Enable auto-update",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Enable auto-update (with the confirmation)"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(false)),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"zshrc-case-sensitive",
-			"Enable case-sensitive completion",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Set to true to force case-sensitive completion"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"zshrc-hist-stamps",
-			"History stamp format",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Oh My Zsh provides a wrapper for the history command.\nYou can use this setting to decide whether to show a timestamp for each command in the history output.\nLeave the string empty to leave the variable unchanged"),
-			tb.WithDefaultValue("yyyy-mm-dd"),
-			tb.WithAvailabilityTrue(),
-		),
 	}
 }
 
@@ -200,133 +129,21 @@ func (p *ZshBaseConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	return platform.FileEntryExists(path)
 }
 
-var zshExportRegexpReplace = regexp.MustCompile(`^(?:\s*#\s*)?((?:export\s+)?ZSH=).+$`)
 var zshSourceOhMyZshLine = regexp.MustCompile(`^\s*source\s+.+/oh-my-zsh.sh\s*$`)
 
-func prepareZshrcConfigToLinesWithReplace(zshrcPath string, ohMyZshDir string, textBeforePluginSource string) ([]string, error) {
-	inputFile, err := os.Open(zshrcPath)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open file: %w", err)
-    }
-	defer inputFile.Close()
+func getOhMyZshTemplateConfig(ohMyZshDir string) string {
+	return fmt.Sprintf(`
+# <BEGIN> oh-my-zsh config (autogen mce2)
+export ZSH='%s'
+ZSH_THEME="robbyrussell"
 
-	scanner := bufio.NewScanner(inputFile)
+plugins=(git)
 
-	lines, times, err := sedparody.
-		NewReplacer(
-			sedparody.ScannerToReplacerReader(scanner),
-		).Replace(
-			zshExportRegexpReplace,
-			fmt.Sprintf("%s'%s'", "$1", ohMyZshDir),
-			1,
-		)
-	if err != nil {
-		return nil, fmt.Errorf("Replacer error: %w", err)
-	}
-
-	// TODO: looks like we can union the replacements, but for now I don't know how
-	// Maybe 
-	// 1. Scan all lines
-	// 2. Traverse all of them and replace
-	if textBeforePluginSource != "" {
-		replaced := false
-		for i, line := range lines {
-			if zshSourceOhMyZshLine.MatchString(line) {
-				lines = slices.Insert(lines, i, textBeforePluginSource)
-				replaced = true
-				break
-			}
-		}
-		if !replaced {
-			return nil, fmt.Errorf("Unable to find line by regexp '%v' in .zshrc", zshSourceOhMyZshLine)
-		}
-	}
-
-	if times == 0 {
-		return nil, fmt.Errorf("Not found line to replace")
-	}
-
-	return lines, nil
-}
-
-// TODO: encapsulate into the separated function with the [prepareReplaceConfigTheme]
-func prepareReplaceConfig(zshrcPath string, ohMyZshDir string, textBeforePluginSource string) error {
-	linesToWrite, err := prepareZshrcConfigToLinesWithReplace(zshrcPath, ohMyZshDir, textBeforePluginSource)
-	if err != nil {
-		return fmt.Errorf("prepareZshrcConfigToLinesWithReplace error: %w", err)
-	}
-
-	// Write back to same file (truncates)
-    outputFile, err := os.Create(zshrcPath)
-    if err != nil {
-        return err
-    }
-    defer outputFile.Close()
-
-	writer := bufio.NewWriter(outputFile)
-    for i, line := range linesToWrite {
-		// TODO: handle errors (?)
-        writer.WriteString(line)
-        if i < len(linesToWrite)-1 {
-            writer.WriteString("\n")
-        }
-    }
-
-	err = writer.Flush()
-	if err != nil {
-		return fmt.Errorf("prepareZshrcConfigToLinesWithReplace Flush error: %w", err)
-	}
-
-	return nil
-}
-
-func prepareZshrcBeforeSourceLine(params tb.TegnParameterMap) string {
-	var sb strings.Builder
-	sb.Grow(512)
-
-	if editor := params["zshrc-editor"]; editor != "" {
-		sb.WriteString("export EDITOR=\"")
-		sb.WriteString(editor)
-		sb.WriteString("\"\n")
-	}
-	addLocalBin := tb.TegnParameterToBool(params["zshrc-add-local-bin-path"])
-	additionsPath := params["zshrc-path-additional"]
-	if addLocalBin || additionsPath != "" {
-		sb.WriteString("export PATH=\"$PATH")
-		if addLocalBin {
-			sb.WriteString(":$HOME/.local/bin")
-		}
-		if additionsPath != "" {
-			sb.WriteString(":")
-			sb.WriteString(additionsPath)
-		}
-		sb.WriteString("\"\n")
-	}
-	if !tb.TegnParameterToBool(params["zshrc-update"]) {
-		sb.WriteString(`
-zstyle ':omz:update' mode disabled
-zstyle ':omz:update' frequency 999999
-UPDATE_ZSH_DAYS=999999
-DISABLE_AUTO_UPDATE=true`)
-		sb.WriteString("\n\n")
-	}
-	sb.WriteString("CASE_SENSITIVE=")
-	if tb.TegnParameterToBool(params["zshrc-case-sensitive"]) {
-		sb.WriteString("true\n")
-	} else {
-		sb.WriteString("false\n")
-	}
-	
-	if stamp := params["zshrc-hist-stamps"]; stamp != "" {
-		sb.WriteString("HIST_STAMPS=\"")
-		sb.WriteString(stamp)
-		sb.WriteString("\"\n")
-	}
-	if sb.Len() != 0 {
-		sb.WriteString("\n")
-	}
-
-	return sb.String()
+source $ZSH/oh-my-zsh.sh
+# <END> oh-my-zsh config (autogen mce2)
+`,
+		ohMyZshDir,
+	)
 }
 
 // TODO: shouldn't this thing be idempotent
@@ -334,16 +151,15 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]
-	zshrcBackup := tb.TegnParameterToBool(params["zshrc-backup"])
 
-	path := getInstallDirZshBaseConfig(osInfo)
-	err := MkdirAllParent(path)
+	ohmyzshDir := getInstallDirZshBaseConfig(osInfo)
+	err := MkdirAllParent(ohmyzshDir)
 	if err != nil {
-		return fmt.Errorf("MkdirAll parent '%s' error: %w", path, err)
+		return fmt.Errorf("MkdirAll parent '%s' error: %w", ohmyzshDir, err)
 	}
 
 	repo, err := git.PlainClone(
-		path, 
+		ohmyzshDir, 
 		defaultGitCloneOptions(func (v *git.CloneOptions) {
 			v.URL = url
 		}),
@@ -371,29 +187,11 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	if err != nil {
 		return fmt.Errorf("failed to get zshrc path: %w", err)
 	}
-
-	if zshrcBackup && platform.FileEntryExists(zshrcOrigPath) {
-		err := platform.CopyFile(zshrcOrigPath, zshrcOrigPath + ".backup-mce")
-		if err != nil {
-			return fmt.Errorf("zshrc backup error: %w", err)
-		}
-	}
-
-	templateFile := filepath.Join(path, "templates", "zshrc.zsh-template")
-	if !platform.FileEntryExists(templateFile) {
-		return fmt.Errorf(".zshrc template file does not exist (%s)", templateFile)
-	}
-	err = platform.CopyFile(templateFile, zshrcOrigPath)
+	err = platform.AppendFilepathString(zshrcOrigPath, getOhMyZshTemplateConfig(ohmyzshDir))
 	if err != nil {
-		return fmt.Errorf("platform.CopyFile error: %w", err)
+		return fmt.Errorf("AppendFilepathString error '%s': %w", zshrcOrigPath, err)
 	}
 
-	textBeforeSource := prepareZshrcBeforeSourceLine(params)
-	err = prepareReplaceConfig(zshrcOrigPath, path, textBeforeSource)
-
-	if err != nil {
-		return fmt.Errorf("prepare config error: %w", err)
-	}
 	return nil
 }
 
