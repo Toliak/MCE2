@@ -166,6 +166,33 @@ func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFe
 
 // }
 
-// func (p *ZshBaseConfig)  ExecUninstall() error {
+func (p *CloneRepo) ExecUninstall(osInfo tb.OSInfoExt) error {
+	// We do not remove the entire data folder, if there are any files inside
 
-// }
+
+	// installPath := osInfo.MainInstallDir
+	// // Assuming that installPath is the part of the data dir
+	// dataDir := osInfo.GetFullDataDir()
+
+	// if platform.FileEntryExists(dataDir) {
+	// 	// Check if directory is empty or only contains files we created
+	// 	entries, err := os.ReadDir(dataDir)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to read data directory '%s': %w", dataDir, err)
+	// 	}
+
+	// 	// If directory is empty, remove it
+	// 	if len(entries) == 0 {
+	// 		// Remove the entire MCE2 installation directory
+	// 		if platform.FileEntryExists(installPath) {
+	// 			err := os.RemoveAll(installPath)
+	// 			if err != nil {
+	// 				return fmt.Errorf("failed to remove installation directory '%s': %w", installPath, err)
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	fmt.Printf("Tegn 'CloneRepo' is not removable")
+	return nil
+}

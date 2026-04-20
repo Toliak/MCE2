@@ -2,6 +2,7 @@ package tegn
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/toliak/mce/osinfo/data"
@@ -155,6 +156,29 @@ func (p *ZshSyntaxHighlight) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 		zshLocalPreConfig,
 		"\n\n# <BEGIN> zsh-syntax-highlighting\nplugins+=(zsh-syntax-highlighting)\n# <END> zsh-syntax-highlighting\n\n",
 	)
+
+	return nil
+}
+
+func (p *ZshSyntaxHighlight) ExecUninstall(osInfo tb.OSInfoExt) error {
+
+	// Remove the plugin registration from zsh local pre-config
+	zshLocalPreConfig := getZshLocalPreOhMyZshConfigPath(osInfo)
+	if platform.FileEntryExists(zshLocalPreConfig) {
+		err := removeConfigBlockFromFile(zshLocalPreConfig, "zsh-syntax-highlighting")
+		if err != nil {
+			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshLocalPreConfig, err)
+		}
+	}
+
+	// Remove the cloned plugin
+	installPath := getInstallDirZshSyntaxHighlight(osInfo)
+	if platform.FileEntryExists(installPath) {
+		err := os.RemoveAll(installPath)
+		if err != nil {
+			return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)
+		}
+	}
 
 	return nil
 }

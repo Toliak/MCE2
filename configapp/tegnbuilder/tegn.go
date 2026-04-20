@@ -29,7 +29,7 @@ type Tegn interface {
 	// ExecUpdate() error
 
 	// WARN: this function does not check, is Tegn already installed
-	// ExecUninstall() error
+	ExecUninstall(osInfo OSInfoExt) error
 }
 
 type TegnBuildFunc func() Tegn

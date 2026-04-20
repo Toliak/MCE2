@@ -113,6 +113,7 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}
 
+	// Create the local config
 	{
 		outputFile, err := os.Create(localConfigPath)
 		if err != nil {
@@ -138,6 +139,7 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 	}
 
+	// Insert the local config entry
 	vimrcConfPath, err := getVimrcPath()
 	if err != nil {
 		return fmt.Errorf("failed to get vimrc path: %w", err)
@@ -147,6 +149,32 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		vimrcConfPath,
 		fmt.Sprintf("\n\n\" <BEGIN> MCE2 local config\nsource %s\n\" <END> MCE2 local config\n\n", localConfigPath),
 	)
+
+	return nil
+}
+
+func (p *VimLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+	// Remove the entry from .vimrc
+	vimrcPath, err := getVimrcPath()
+	if err != nil {
+		return fmt.Errorf("getVimrcPath error: %w", err)
+	}
+
+	if platform.FileEntryExists(vimrcPath) {
+		err = removeConfigBlockFromFile(vimrcPath, "MCE2 local config")
+		if err != nil {
+			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", vimrcPath, err)
+		}
+	}
+
+	// Remove the local config file
+	localConfigPath := getVimLocalConfigPath(osInfo)
+	if platform.FileEntryExists(localConfigPath) {
+		err := os.Remove(localConfigPath)
+		if err != nil {
+			return fmt.Errorf("os.Remove error '%s': %w", localConfigPath, err)
+		}
+	}
 
 	return nil
 }

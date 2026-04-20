@@ -25,6 +25,7 @@ func getBashLocalConfigPath(osInfo tb.OSInfoExt) string {
 }
 
 func getBashrcPath() (string, error) {
+	// TODO: move User Home dir into the OsInfoExt method
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -117,6 +118,7 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}
 
+	// Create the local config
 	{
 		outputFile, err := os.Create(localConfigPath)
 		if err != nil {
@@ -141,15 +143,43 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		}
 	}
 
+	// Add the source entry in the .bashrc
 	bashrcPath, err := getBashrcPath()
 	if err != nil {
 		return fmt.Errorf("failed to get bashrc path: %w", err)
 	}
 
-	platform.AppendFilepathString(
+	err = platform.AppendFilepathString(
 		bashrcPath,
 		fmt.Sprintf("\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n", localConfigPath),
 	)
+	if err != nil {
+		return fmt.Errorf("AppendFilepathString error: %w", err)
+	}
+
+	return nil
+}
+
+func (p *BashLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+	bashrcPath, err := getBashrcPath()
+	if err != nil {
+		return fmt.Errorf("failed to get bashrc path: %w", err)
+	}
+
+	if platform.FileEntryExists(bashrcPath) {
+		err = removeConfigBlockFromFile(bashrcPath, "MCE2 local config")
+		if err != nil {
+			return fmt.Errorf("failed to remove MCE2 local config block from '%s': %w", bashrcPath, err)
+		}
+	}
+
+	localConfigPath := getBashLocalConfigPath(osInfo)
+	if platform.FileEntryExists(localConfigPath) {
+		err := os.Remove(localConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to remove local config file '%s': %w", localConfigPath, err)
+		}
+	}
 
 	return nil
 }

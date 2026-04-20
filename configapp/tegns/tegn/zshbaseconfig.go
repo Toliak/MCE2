@@ -199,6 +199,28 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 
 // }
 
-// func (p *ZshBaseConfig)  ExecUninstall() error {
+func (p *ZshBaseConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+	// Remove the configuration block from .zshrc
+	zshrcPath, err := getZshrcPath()
+	if err != nil {
+		return fmt.Errorf("getZshrcPath error: %w", err)
+	}
 
-// }
+	if platform.FileEntryExists(zshrcPath) {
+		err = removeConfigBlockFromFile(zshrcPath, "oh-my-zsh config (autogen mce2)")
+		if err != nil {
+			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshrcPath, err)
+		}
+	}
+
+	// Remove the Oh My ZSH installation
+	ohmyzshDir := getInstallDirZshBaseConfig(osInfo)
+	if platform.FileEntryExists(ohmyzshDir) {
+		err := os.RemoveAll(ohmyzshDir)
+		if err != nil {
+			return fmt.Errorf("os.RemoveAll error '%s': %w", ohmyzshDir, err)
+		}
+	}
+
+	return nil
+}

@@ -314,3 +314,44 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 
 	return nil
 }
+
+func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+	// Remove the entries from .zshrc
+	zshrcPath, err := getZshrcPath()
+	if err != nil {
+		return fmt.Errorf("failed to get zshrc path: %w", err)
+	}
+
+	if platform.FileEntryExists(zshrcPath) {
+		// Remove pre-config block
+		err = removeConfigBlockFromFile(zshrcPath, "MCE2 local pre-config")
+		if err != nil {
+			return fmt.Errorf("removeBlockFromFile error '%s': %w", zshrcPath, err)
+		}
+
+		// Remove config block
+		err = removeConfigBlockFromFile(zshrcPath, "MCE2 local config")
+		if err != nil {
+			return fmt.Errorf("removeBlockFromFile error '%s': %w", zshrcPath, err)
+		}
+	}
+
+	// Remove the local config files
+	localConfigPath := getZshLocalConfigPath(osInfo)
+	if platform.FileEntryExists(localConfigPath) {
+		err := os.Remove(localConfigPath)
+		if err != nil {
+			return fmt.Errorf("os.Remove error '%s': %w", localConfigPath, err)
+		}
+	}
+	
+	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
+	if platform.FileEntryExists(localPreConfigPath) {
+		err := os.Remove(localPreConfigPath)
+		if err != nil {
+			return fmt.Errorf("os.Remove error '%s': %w", localPreConfigPath, err)
+		}
+	}
+
+	return nil
+}

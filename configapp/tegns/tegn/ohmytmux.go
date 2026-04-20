@@ -215,3 +215,29 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 
 	return nil
 }
+
+func (p *OhMyTmux) ExecUninstall(osInfo tb.OSInfoExt) error {
+	// Remove the configuration block from tmux.conf
+	tmuxConfPath, err := getTmuxConfigPath(osInfo)
+	if err != nil {
+		return fmt.Errorf("getTmuxConfigPath error: %w", err)
+	}
+
+	if platform.FileEntryExists(tmuxConfPath) {
+		err = removeConfigBlockFromFile(tmuxConfPath, "Oh-my-tmux config (autogen mce2)")
+		if err != nil {
+			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", tmuxConfPath, err)
+		}
+	}
+
+	// Remove the cloned repository
+	installPath := getInstallDirOhMyTmux(osInfo)
+	if platform.FileEntryExists(installPath) {
+		err := os.RemoveAll(installPath)
+		if err != nil {
+			return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)
+		}
+	}
+
+	return nil
+}

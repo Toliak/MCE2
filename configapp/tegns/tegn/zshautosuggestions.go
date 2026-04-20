@@ -2,6 +2,7 @@ package tegn
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	git "github.com/go-git/go-git/v6"
@@ -156,6 +157,28 @@ func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 	if err != nil {
 		return fmt.Errorf("AppendFilepathString %s: %w", localPreConfigPath, err)
 	}
+
+	return nil
+}
+
+func (p *ZshAutoSuggestions) ExecUninstall(osInfo tb.OSInfoExt) error {
+	// Remove the plugin registration from zsh local pre-config
+	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
+	if platform.FileEntryExists(localPreConfigPath) {
+		err := removeConfigBlockFromFile(localPreConfigPath, "MCE2 zsh-autosuggestions")
+		if err != nil {
+			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", localPreConfigPath, err)
+		}
+	}
+
+		// Remove the cloned plugin
+		installPath := getInstallDirZshAutoSuggestions(osInfo)
+		if platform.FileEntryExists(installPath) {
+			err := os.RemoveAll(installPath)
+			if err != nil {
+				return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)
+			}
+		}
 
 	return nil
 }
