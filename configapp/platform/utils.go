@@ -173,3 +173,8 @@ func DownloadFile(url string, filepath string) error {
 
 	return nil
 }
+
+// SplitPath splits a file path into its components
+func SplitPath(path string) []string {
+	return strings.Split(path, string(os.PathSeparator))
+}

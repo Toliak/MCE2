@@ -7,70 +7,58 @@ import (
 	"path/filepath"
 
 	"github.com/toliak/mce/inspector"
+	"github.com/toliak/mce/platform"
 )
 
-type Args struct {
-	InspectorConfig       inspector.InspectAndHarvestConfig
-
-	Template              string
+type ArgsShared struct {
 	Verbosity             int
 
+	InspectorConfig       inspector.InspectAndHarvestConfig
 	MainInstallDir        string
 	DataDir               string
-	MceRepositoryURL      string
-	MceRepositoryBranch   string
+	UserHomeDir           string
 
-	JSONPreset			  JSONPreset
 	NoUI                  bool
 	ForceConfirm          bool
 
 	SelectEverything      bool
 }
 
-func ParseArgs(args []string) (*Args, error) {
-	availableTemplates := []string{"basic", "advanced", "custom"}
-	// TODO: where to harvest availableTemplates?
-	if len(availableTemplates) == 0 {
-		return nil, fmt.Errorf("no available templates")
-	}
+type ArgsInstall struct {
+	ArgsShared
 
+	MceRepositoryURL      string
+	MceRepositoryBranch   string
+
+	JSONPreset			  JSONPreset
+}
+
+type ArgsUninstall struct {
+	ArgsShared
+	JSONPreset			  JSONUninstallPreset
+}
+
+func parseSharedArgs(object *ArgsShared) {
 	// Inspector flags
-	checkEnable := flag.Bool("check-enable", true, "Enable platform check")
-	harvestEnable := flag.Bool("harvest-enable", true, "Enable harvesting the OS information")
-	pkgManagerUpdateEnable := flag.Bool(
+	flag.BoolVar(&object.InspectorConfig.Check, "check-enable", true, "Enable platform check")
+	flag.BoolVar(&object.InspectorConfig.Harvest, "harvest-enable", true, "Enable harvesting the OS information")
+	flag.BoolVar(
+		&object.InspectorConfig.PkgManagerUpdate, 
 		"repo-update-enable",
 		true,
 		"Update the package manager repositories metadata (may require privilege evaluation)",
 	)
-	pkgManagerGetAvailablePackagesEnable := flag.Bool(
+	flag.BoolVar(
+		&object.InspectorConfig.PkgManagerGetAvailablePackages,
 		"repo-packages-enable",
 		true,
 		"Obtain all the available packages from the package manager",
 	)
 
-	noUI := flag.Bool("no-ui", false, "Disable UI")
-	forceConfirm := flag.Bool("y", false, "Forcefully confirm installation")
+	flag.BoolVar(&object.NoUI, "no-ui", false, "Disable UI")
+	flag.BoolVar(&object.ForceConfirm, "y", false, "Forcefully confirm installation")
+	flag.BoolVar(&object.SelectEverything, "ALL", false, "Select everything in the UI")
 
-	selectEverything := flag.Bool("ALL", false, "Select everything in the UI")
-
-	// Template flag
-	var template *string
-	flag.Func(
-		"template",
-		fmt.Sprintf("Selected Tegns template (one of: %v)", availableTemplates),
-		func(s string) error {
-			for _, t := range availableTemplates {
-				if s == t {
-					template = &s
-					return nil
-				}
-			}
-			return fmt.Errorf("template must be one of %v", availableTemplates)
-		},
-	)
-
-	// Verbosity flag
-	var verbosity *int
 	flag.Func("verbosity", "Verbosity level (0-100, default: 80)", func(s string) error {
 		var v int
 		_, err := fmt.Sscanf(s, "%d", &v)
@@ -80,73 +68,121 @@ func ParseArgs(args []string) (*Args, error) {
 		if v < 0 || v > 100 {
 			return fmt.Errorf("verbosity must be between 0 and 100")
 		}
-		verbosity = &v
+		object.Verbosity = v
 		return nil
 	})
 
-	// Verbosity flag
-	var jsonPreset *JSONPreset
+	flag.StringVar(
+		&object.UserHomeDir,
+		"home-dir",
+		object.UserHomeDir,
+		"User's home directory",
+	)
+	flag.StringVar(
+		&object.MainInstallDir,
+		"main-install-dir",
+		filepath.Join("~", ".local", "share", "MakeConfigurationEasier2"),
+		"Directory to clone the MCE2 project (absolute path)",
+	)
+	flag.StringVar(
+		&object.DataDir, 
+		"data-dir",
+		"data", 
+		"Path inside '-main-install-dir' where configs and other data will be put",
+	)
+}
+
+func postParseSharedArgs(object *ArgsShared) error {
+	if object.UserHomeDir == "" {
+		return fmt.Errorf("Unable to determine the user's home directory. Provide it using '-home-dir' argument")
+	}
+
+	splitPath := platform.SplitPath(filepath.Clean(object.MainInstallDir))
+	for i, v := range splitPath {
+		if v == "~" {
+			splitPath[i] = object.UserHomeDir
+		}
+	}
+
+	return nil
+}
+
+func parseInstallArgs(object *ArgsInstall) {
+	
+
+	// JSON preset flag
 	flag.Func("preset", "JSON preset", func(s string) error {
 		preset, err := UnmarshalJSONPreset(s)
 		if err != nil {
 			return err
 		}
 
-		jsonPreset = &preset
+		object.JSONPreset = preset
 		return nil
 	})
 
-	// New MCE2 flags
+	flag.StringVar(&object.MceRepositoryURL, "mce-repo-url", "https://github.com/Toliak/mce2config", "MCE2 repository URL")
+	flag.StringVar(&object.MceRepositoryBranch, "mce-repo-branch", "master", "MCE2 branch")
+}
+
+func parseUninstallArgs(object *ArgsUninstall) {
+	flag.Func("preset", "JSON preset", func(s string) error {
+		preset, err := UnmarshalJSONUninstallPreset(s)
+		if err != nil {
+			return err
+		}
+
+		object.JSONPreset = preset
+		return nil
+	})
+}
+
+func ParseInstallArgs(args []string) (*ArgsInstall, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("ParseArgs: UserHomeDir error: %w", err)
-	}
-	mainInstallDir := flag.String(
-		"main-install-dir",
-		filepath.Join(homeDir, ".local", "share", "MakeConfigurationEasier2"),
-		"Directory to clone the MCE2 project (absolute path)",
-	)
-	dataDir := flag.String("data-dir", "data", "Path inside MainInstallDir where configs and other data will be put")
-	mceRepoURL := flag.String("mce-repo-url", "https://github.com/Toliak/mce2config", "MCE2 repository URL")
-	mceRepoBranch := flag.String("mce-repo-branch", "master", "MCE2 branch")
-
-	// Parse
-	flag.CommandLine.Parse(args)
-
-	// Set defaults
-	if template == nil {
-		template = &availableTemplates[0]
-	}
-	if verbosity == nil {
-		v := 80
-		verbosity = &v
+		fmt.Printf("UserHomeDir error, skipped: %s", err)
+		homeDir = ""
 	}
 
-	if *selectEverything && jsonPreset != nil {
-		return nil, fmt.Errorf("Cannot use 'preset' alongside with 'ALL'")
-	}
-	if jsonPreset == nil {
-		preset := GetDefaultPreset()
-		jsonPreset = &preset
-	}
-
-	// Return parsed arguments
-	return &Args{
-		InspectorConfig: inspector.InspectAndHarvestConfig{
-			Check:                         *checkEnable,
-			Harvest:                       *harvestEnable,
-			PkgManagerUpdate:               *pkgManagerUpdateEnable,
-			PkgManagerGetAvailablePackages: *pkgManagerGetAvailablePackagesEnable,
+	object := ArgsInstall{
+		ArgsShared: ArgsShared{
+			Verbosity: 80,
+			UserHomeDir: homeDir,
 		},
-		Template:            *template,
-		Verbosity:           *verbosity,
-		MainInstallDir:      *mainInstallDir,
-		DataDir:             *dataDir,
-		MceRepositoryURL:    *mceRepoURL,
-		MceRepositoryBranch: *mceRepoBranch,
-		JSONPreset:          *jsonPreset,
-		NoUI: *noUI,
-		ForceConfirm: *forceConfirm,
-		SelectEverything: *selectEverything,
-	}, nil
+		JSONPreset: GetDefaultPreset(),
+	}
+
+	parseInstallArgs(&object)
+	flag.CommandLine.Parse(args)
+	err = postParseSharedArgs(&object.ArgsShared)
+	if err != nil {
+		return nil, err
+	}
+
+	return &object, nil
+}
+
+func ParseUninstallArgs(args []string) (*ArgsUninstall, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("UserHomeDir error, skipped: %s", err)
+		homeDir = ""
+	}
+
+	object := ArgsUninstall{
+		ArgsShared: ArgsShared{
+			Verbosity: 80,
+			UserHomeDir: homeDir,
+		},
+		JSONPreset: make(JSONUninstallPreset),
+	}
+
+	parseUninstallArgs(&object)
+	flag.CommandLine.Parse(args)
+	err = postParseSharedArgs(&object.ArgsShared)
+	if err != nil {
+		return nil, err
+	}
+
+	return &object, nil
 }

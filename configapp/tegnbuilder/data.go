@@ -24,6 +24,10 @@ type OSInfoExt struct {
 	// Where the configs and other data will be put
 	DataDir string
 
+	// User home dir.
+	// Use this instead of os.UserHomeDir
+	HomeDir string
+
 	// MCE2 repository URL
 	MceRepositoryURL string
 

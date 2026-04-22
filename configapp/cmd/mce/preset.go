@@ -30,3 +30,22 @@ func GetDefaultPreset() JSONPreset {
 		"package-wget": {Enabled: true},
 	}
 }
+
+
+type jsonUninstallPresetRaw []string
+type JSONUninstallPreset map[string]bool
+
+func UnmarshalJSONUninstallPreset(raw string) (JSONUninstallPreset, error) {
+	var entries jsonUninstallPresetRaw
+    err := json.Unmarshal([]byte(raw), &entries)
+	if err != nil {
+		return nil, err
+	}
+
+	resultPreset := make(JSONUninstallPreset, 0)
+	for _, v := range entries {
+		resultPreset[v] = true
+	}
+
+    return resultPreset, err
+}

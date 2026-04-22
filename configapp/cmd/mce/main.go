@@ -111,7 +111,7 @@ func saveTempState(stateFilePath string, state *ui.UIState) error {
 	return nil
 }
 
-func prepareApp(args *Args) (*ui.App, error) {
+func prepareApp(args *ArgsInstall) (*ui.App, error) {
 	data, err := inspector.InspectAndHarvest(args.InspectorConfig)
 	if err != nil {
 		return nil, fmt.Errorf("InspectAndHarvest error: %w", err)
@@ -143,6 +143,7 @@ func prepareApp(args *Args) (*ui.App, error) {
 		AvailableManagerPackages: availablePackagesMap,
 		MainInstallDir: args.MainInstallDir,
 		DataDir: args.DataDir,
+		HomeDir: args.UserHomeDir,
 		MceRepositoryURL: args.MceRepositoryURL,
 		MceRepositoryBranch: args.MceRepositoryBranch,
 	}
@@ -213,21 +214,10 @@ func prepareApp(args *Args) (*ui.App, error) {
 	return &app, nil
 }
 
-func mainInternal() error {
-	if len(os.Args) < 2 {
-		return fmt.Errorf("Expected at least 1 argument")
-	}
-	actionType, startIdx, err := ParseActionTypeFromArgv1(os.Args[1])
+func runInstall(argv []string) error {
+	args, err := ParseInstallArgs(argv)
 	if err != nil {
-		return fmt.Errorf("ParseActionTypeFromArgv1 error: %w", err)
-	}
-	// TODO: process actionType
-	fmt.Printf("Action: %s\n", actionType)
-
-	// TODO: first arg is the "action" (install, uninstall/remove)
-	args, err := ParseArgs(os.Args[startIdx:])
-	if err != nil {
-		return fmt.Errorf("ParseArgs error: %w", err)
+		return fmt.Errorf("ParseInstallArgs error: %w", err)
 	}
 
 	app, err := prepareApp(args)
@@ -348,6 +338,139 @@ func mainInternal() error {
 
 
 	return nil
+}
+
+func runUninstall(argv []string) error {
+	args, err := ParseUninstallArgs(argv)
+	if err != nil {
+		return fmt.Errorf("ParseInstallArgs error: %w", err)
+	}
+
+	harvestData, err := inspector.InspectAndHarvest(args.InspectorConfig)
+	if err != nil {
+		return  fmt.Errorf("InspectAndHarvest error: %w", err)
+	}
+	if harvestData == nil {
+		return fmt.Errorf("No harvest data obtained, internal error")
+	}
+
+	fmt.Println("Performed checks and harvested platform information")
+
+	if harvestData.OSInfo == nil {
+		return fmt.Errorf("Unable to continue without the OSInfo")
+	}
+
+
+	builderData := tb.OSInfoExt {
+		OSInfo: *harvestData.OSInfo,
+		AvailableManagerPackages: make(tb.AvailablePackagesMap),
+		MainInstallDir: args.MainInstallDir,
+		DataDir: args.DataDir,
+		HomeDir: args.UserHomeDir,
+		MceRepositoryURL: "__NO__",
+		MceRepositoryBranch: "__NO__",
+	}
+
+	tegnsetts, err := tb.InitializeAllTegnsetts(
+		tegns.Tegnsetts,
+	)
+	if err != nil {
+		return fmt.Errorf("InitializeAllTegnsetts error: %w", err)
+	}
+	initResult := *tegnsetts
+
+	// Just check that we do not have errors
+	_, err = tb.GetTegnsettsOrder(initResult.TegnsettByID)
+	if err != nil {
+		return fmt.Errorf("GetTegnsettsOrder error: %w", err)
+	}
+
+	// Installed cache
+	alreadyInstalled := make(tb.AvailablePackagesMap)
+	alreadyInstalledFeatures := make(tb.TegnInstalledFeaturesMap, len(alreadyInstalled))
+	for k, v := range tegnsetts.TegnByID {
+		if v.IsInstalled(builderData) {
+			alreadyInstalled[k] = true
+			features := v.GetFeatures()
+			for ft, _ := range features {
+				alreadyInstalledFeatures[ft] = true
+			}
+		}
+	}
+
+	app := ui.NewApp(initResult, builderData, alreadyInstalled, alreadyInstalledFeatures)
+
+	// TODO:
+	// if args.SelectEverything {
+	// 	for k := range initResult.TegnByID {
+	// 		app.State.EnabledIDsMap[k] = true
+	// 	}
+	// 	for k := range initResult.TegnsettByID {
+	// 		app.State.EnabledIDsMap[k] = true
+	// 	}
+	// }
+
+	// TODO: HERE!!
+	uninstallUI := ui.NewUninstallApp(app, installedTegns)
+	
+	if !args.NoUI {
+		err = uninstallUI.Run()
+		if err != nil {
+			return err
+		}
+	} else {
+		// In no-UI mode, we need a way to select Tegns; for simplicity, we assume nothing selected
+		// Or we could uninstall all? Better to require UI for uninstall.
+		return fmt.Errorf("Uninstall requires UI interaction; --no-ui not supported for uninstall")
+	}
+
+	if !uninstallUI.State.ExitConfirmed {
+		fmt.Println("Uninstall cancelled.")
+		return nil
+	}
+
+	selectedIDs := uninstallUI.State.SelectedTegns
+	if len(selectedIDs) == 0 {
+		fmt.Println("No Tegns selected for uninstallation.")
+		return nil
+	}
+
+	// Determine uninstall order: reverse of installation order (or topological)
+	// For simplicity, we'll just use the order as they were selected, but reverse might be safer.
+	// We'll use the order from the UI list (which is sorted by ID) reversed.
+	// Actually, to respect dependencies, we could compute a reverse topological order.
+	// For now, we'll just uninstall in reverse order of the list (assuming last in list might depend on earlier).
+	for i := len(selectedIDs) - 1; i >= 0; i-- {
+		id := selectedIDs[i]
+		tegn := app.State.InitResult.TegnByID[id]
+		fmt.Printf("Uninstalling %s...\n", id)
+		err := tegn.ExecUninstall(app.State.OSInfExt)
+		if err != nil {
+			return fmt.Errorf("ExecUninstall '%s' error: %w", id, err)
+		}
+	}
+
+	fmt.Println("Uninstallation completed successfully.")
+	return nil
+}
+
+func mainInternal() error {
+	if len(os.Args) < 2 {
+		return fmt.Errorf("Expected at least 1 argument")
+	}
+	actionType, startIdx, err := ParseActionTypeFromArgv1(os.Args[1])
+	if err != nil {
+		return fmt.Errorf("ParseActionTypeFromArgv1 error: %w", err)
+	}
+
+	switch actionType {
+	case ActionInstall:
+		return runInstall(os.Args[startIdx:])
+	case ActionUninstall:
+		return runUninstall(os.Args[startIdx:])
+	default:
+		return fmt.Errorf("Unknown action type: %s", actionType)
+	}
 }
 
 func main() {
