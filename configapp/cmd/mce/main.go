@@ -214,7 +214,18 @@ func prepareApp(args *Args) (*ui.App, error) {
 }
 
 func mainInternal() error {
-	args, err := ParseArgs(os.Args[1:])
+	if len(os.Args) < 2 {
+		return fmt.Errorf("Expected at least 1 argument")
+	}
+	actionType, startIdx, err := ParseActionTypeFromArgv1(os.Args[1])
+	if err != nil {
+		return fmt.Errorf("ParseActionTypeFromArgv1 error: %w", err)
+	}
+	// TODO: process actionType
+	fmt.Printf("Action: %s\n", actionType)
+
+	// TODO: first arg is the "action" (install, uninstall/remove)
+	args, err := ParseArgs(os.Args[startIdx:])
 	if err != nil {
 		return fmt.Errorf("ParseArgs error: %w", err)
 	}
