@@ -193,6 +193,6 @@ func (p *CloneRepo) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// 	}
 	// }
 
-	fmt.Printf("Tegn 'CloneRepo' is not removable")
+	fmt.Printf("Tegn '%s' is not removable\n", p.GetID())
 	return nil
 }

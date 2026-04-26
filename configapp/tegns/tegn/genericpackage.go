@@ -195,6 +195,6 @@ func (p *GenericPackage) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInsta
 }
 
 func (p *GenericPackage) ExecUninstall(osInfo tb.OSInfoExt) error {
-	fmt.Printf("Tegn 'GenericPackage' is not removable")
+	fmt.Printf("Tegn '%s' (pkgName: %s) is not removable\n", p.GetID(), p.pkgName)
 	return nil
 }

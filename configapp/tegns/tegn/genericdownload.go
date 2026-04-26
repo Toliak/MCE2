@@ -307,6 +307,6 @@ func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 }
 
 func (p *GenericDownload) ExecUninstall(osInfo tb.OSInfoExt) error {
-	fmt.Printf("Tegn 'GenericDownload' is not removable")
+	fmt.Printf("Tegn '%s' (appName: %s) is not removable\n", p.GetID(), p.appName)
 	return nil
 }

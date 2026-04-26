@@ -129,6 +129,6 @@ func (p *ZshChsh) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 }
 
 func (p *ZshChsh) ExecUninstall(osInfo tb.OSInfoExt) error {
-	fmt.Printf("Tegn 'ZshChsh' is not removable")
+	fmt.Printf("Tegn '%s' is not removable\n", p.GetID())
 	return nil
 }
