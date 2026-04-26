@@ -1,4 +1,5 @@
 build:
+	CGO_ENABLED=0 go build -gcflags=all="-N -l" -o bin/mce-dbg ./cmd/mce
 	CGO_ENABLED=0 go build -o bin/mce ./cmd/mce
 	CGO_ENABLED=0 go build -o bin/mce-e2e ./cmd/mce-e2e
 

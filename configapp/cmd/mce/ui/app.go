@@ -75,16 +75,16 @@ func (a *App) createButtonBar() *tview.Flex {
 	
 	buttons := tview.NewFlex().SetDirection(tview.FlexColumn)
 	
-	helpBtn := tview.NewButton(" (F1) Help ").
+	helpBtn := tview.NewButton(" (F1) (?) Help ").
 		SetSelectedFunc(func() { a.showHelpModal(nil, nil) })
 	
 	// searchBtn := tview.NewButton(" (F3) Search ").
 	// 	SetSelectedFunc(func() { a.showSearchModal() })
 	
-	confirmBtn := tview.NewButton(" (F5) Confirm ").
+	confirmBtn := tview.NewButton(" (F5) (C-x) Confirm ").
 		SetSelectedFunc(func() { a.showConfirmModal() })
 	
-	exitBtn := tview.NewButton(" (F10) Exit ").
+	exitBtn := tview.NewButton(" (F10) (C-c) Exit ").
 		SetSelectedFunc(func() { a.showExitModal() })
 	
 	buttons.AddItem(helpBtn, 0, 1, false)
@@ -167,7 +167,7 @@ func (a *App) showTegnsettList() {
 
 	list := NewTegnsettList(a.State, order.Tegnsett, availability, a)
 	a.pages.AddPage("tegnsettList", list, true, true)
-	removeAllPagesExceptOne(*a.pages, "tegnsettList")
+	removeAllPagesExceptOne(a.pages, "tegnsettList")
 	a.State.CurrentView = ViewTegnsettList
 	a.updateStatusBar()
 }
@@ -191,7 +191,7 @@ func (a *App) showTegnList(tegnsettID string) {
 
 	list := NewTegnList(a.State, tegnsettID, order.TegnByTegnsettID[tegnsettID], availability, a)
 	a.pages.AddPage("tegnList", list, true, true)
-	removeAllPagesExceptOne(*a.pages, "tegnList")
+	removeAllPagesExceptOne(a.pages, "tegnList")
 	a.State.CurrentView = ViewTegnList
 	a.State.CurrentTegnsettID = tegnsettID
 	a.updateStatusBar()
@@ -200,14 +200,14 @@ func (a *App) showTegnList(tegnsettID string) {
 func (a *App) showParameterList(tegnID string) {
 	list := NewParameterList(a.State, tegnID, a)
 	a.pages.AddPage("parameterList", list, true, true)
-	removeAllPagesExceptOne(*a.pages, "parameterList")
+	removeAllPagesExceptOne(a.pages, "parameterList")
 	a.State.CurrentView = ViewParameterList
 	a.State.CurrentTegnID = tegnID
 	a.updateStatusBar()
 }
 
 func (a *App) showHelpModal(tegnGeneral *tb.TegnGeneral, availability *tb.TegnAvailability) {
-	modal := NewHelpModal(a.State, a.app, tegnGeneral, availability, func () {a.closeModals()})
+	modal := NewHelpModal(a.State.InstalledCache, a.app, tegnGeneral, availability, func () {a.closeModals()})
 	a.pages.AddPage("helpModal", modal, true, true)
 }
 
@@ -236,7 +236,7 @@ func (a *App) navigateBack() {
 	a.updateStatusBar()
 }
 
-func removeAllPagesExceptOne(pages tview.Pages, nameToLeave string) {
+func removeAllPagesExceptOne(pages *tview.Pages, nameToLeave string) {
 	allNames := pages.GetPageNames(false)
 	namesToDelete := make([]string, 0, len(allNames))
 	for _, name := range namesToDelete {
@@ -258,11 +258,11 @@ func removeAllPagesExceptOne(pages tview.Pages, nameToLeave string) {
 func (a *App) closeModals() {
 	switch a.State.CurrentView {
 	case ViewTegnsettList:
-		removeAllPagesExceptOne(*a.pages, "tegnsettList")
+		removeAllPagesExceptOne(a.pages, "tegnsettList")
 	case ViewTegnList:
-		removeAllPagesExceptOne(*a.pages, "tegnList")
+		removeAllPagesExceptOne(a.pages, "tegnList")
 	case ViewParameterList:
-		removeAllPagesExceptOne(*a.pages, "parameterList")
+		removeAllPagesExceptOne(a.pages, "parameterList")
 	}
 }
 

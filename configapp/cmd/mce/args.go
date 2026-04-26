@@ -104,11 +104,12 @@ func postParseSharedArgs(object *ArgsShared) error {
 		}
 	}
 
+	object.MainInstallDir = filepath.Join(splitPath...)
 	return nil
 }
 
 func parseInstallArgs(object *ArgsInstall) {
-	
+	parseSharedArgs(&object.ArgsShared)
 
 	// JSON preset flag
 	flag.Func("preset", "JSON preset", func(s string) error {
@@ -126,6 +127,8 @@ func parseInstallArgs(object *ArgsInstall) {
 }
 
 func parseUninstallArgs(object *ArgsUninstall) {
+	parseSharedArgs(&object.ArgsShared)
+
 	flag.Func("preset", "JSON preset", func(s string) error {
 		preset, err := UnmarshalJSONUninstallPreset(s)
 		if err != nil {

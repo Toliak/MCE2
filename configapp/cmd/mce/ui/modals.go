@@ -10,7 +10,7 @@ import (
 )
 
 // NewHelpModal creates a help modal
-func NewHelpModal(state *UIState, app *tview.Application, tegnGeneralPtr *tb.TegnGeneral, availability *tb.TegnAvailability, closer func()) *tview.Flex {
+func NewHelpModal(installedCache tb.AvailablePackagesMap, app *tview.Application, tegnGeneralPtr *tb.TegnGeneral, availability *tb.TegnAvailability, closer func()) *tview.Flex {
 	var helpText string
 
 	if tegnGeneralPtr == nil {
@@ -88,7 +88,7 @@ func NewHelpModal(state *UIState, app *tview.Application, tegnGeneralPtr *tb.Teg
 			}
 
 			sb.WriteString("\n[::b]Tegn Already installed[::-]: ")
-			if state.InstalledCache[tegnGeneral.GetID()] {
+			if installedCache[tegnGeneral.GetID()] {
 				sb.WriteString("yes\n")
 			} else {
 				sb.WriteString("no\n")

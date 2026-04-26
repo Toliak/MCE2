@@ -1,20 +1,38 @@
 package ui
 
 import (
+	"maps"
 	"fmt"
-	"sort"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-// UninstallState holds the state for the uninstall UI
-type UninstallState struct {
-	App            *App                 // Reference to the main app for data
-	InstalledTegns []string             // List of installed Tegn IDs (sorted)
-	SelectedTegns  []string             // IDs selected for uninstall
-	ExitConfirmed  bool
+// UninstallUIState holds the state for the uninstall UI
+type UninstallUIState struct {
+	InitResult        tb.TegnsettInitializeResult
+	OSInfExt          tb.OSInfoExt
+	InstalledCache    tb.AvailablePackagesMap
+
+	OriginalOrder     tb.TegnsettsOrderResult
+
+	// Tegn IDs, installed only. In the "reversed" order
+	FilteredOrder     []string
+
+	// This field is saved if the installation fails
+	EnabledIDsMap tb.TegnGeneralEnabledIDsMap
+
+	ExitConfirmed bool
+	ExitError     error
+
+	SelectionTegnID  int
+}
+
+func (s *UninstallUIState) GetAndResetTegnSelection() int {
+	result := s.SelectionTegnID
+	s.SelectionTegnID = -1
+	return result
 }
 
 // UninstallApp wraps the uninstall UI
@@ -23,25 +41,101 @@ type UninstallApp struct {
 	pages     *tview.Pages
 	rootView  *tview.Flex
 	statusBar *tview.TextView
-	State     *UninstallState
+	State     *UninstallUIState
+}
+
+type UninstallAppInitData struct {
+	InitResult               tb.TegnsettInitializeResult
+	OSInfExt                tb.OSInfoExt
+	AlreadyInstalled         tb.AvailablePackagesMap
+	OriginalOrder     tb.TegnsettsOrderResult
+	FilteredOrder     []string
+	EnabledIDsMap tb.TegnGeneralEnabledIDsMap
+}
+
+// Returns bool and the tegn-blocker
+func canTegnBeSelected(state *UninstallUIState, tegnIdToSelect string) (bool, string, string) {
+	m := make(tb.TegnGeneralEnabledIDsMap)
+	m[tegnIdToSelect] = true
+	return CanTegnBeSelected(state, m)
+}
+
+// Returns bool and the tegn-blocker id and reason
+func CanTegnBeSelected(state *UninstallUIState, tegnIdToSelect tb.TegnGeneralEnabledIDsMap) (bool, string, string) {
+	remainedFeatures := make(tb.TegnInstalledFeaturesMap)
+	mustRemainAvailable := make([]string, 0, len(state.FilteredOrder))
+	for _, tegnId := range state.FilteredOrder {
+		if state.EnabledIDsMap[tegnId] == true {
+			// Do not include the features of the removing Tegn candidate
+			continue
+		}
+		if tegnIdToSelect[tegnId] {
+			// Do not include the features of the new candidate
+			continue
+		}
+
+		mustRemainAvailable = append(mustRemainAvailable, tegnId)
+
+		tegn := state.InitResult.TegnByID[tegnId]
+		maps.Copy(remainedFeatures, tegn.GetFeatures())
+	}
+
+	// Workaround: we must pretend that all Tegnsetts are selected
+	tegnsettEnabledIDsMap := make(tb.TegnGeneralEnabledIDsMap, len(state.InitResult.TegnsettByID))
+	for k, _ := range state.InitResult.TegnsettByID {
+		tegnsettEnabledIDsMap[k] = true
+	}
+
+	remainedFeaturesWithCandidate := make(tb.TegnInstalledFeaturesMap, len(remainedFeatures))
+	maps.Copy(remainedFeaturesWithCandidate, remainedFeatures)
+	for tegnId, _ := range tegnIdToSelect {
+		maps.Copy(remainedFeaturesWithCandidate, state.InitResult.TegnByID[tegnId].GetFeatures())
+	}
+
+	availabilityWithCandidate := tb.GetTegnsettsAvailability(
+		state.OSInfExt,
+		state.OriginalOrder,
+		state.InitResult.TegnsettByID,
+		state.InitResult.TegnByID,
+		tegnsettEnabledIDsMap,
+		remainedFeaturesWithCandidate,
+	)
+
+	availability := tb.GetTegnsettsAvailability(
+		state.OSInfExt,
+		state.OriginalOrder,
+		state.InitResult.TegnsettByID,
+		state.InitResult.TegnByID,
+		tegnsettEnabledIDsMap,
+		remainedFeatures,
+	)
+
+	for _, tegnId := range mustRemainAvailable {
+		av := availability[tegnId]
+		avWithCandidate := availabilityWithCandidate[tegnId]
+		if !av.Available && avWithCandidate.Available {
+			// Check, that it is not available. And it will be available without the candidate selection
+			return false, tegnId, av.Reason
+		}
+	}
+	return true, "", ""
 }
 
 // NewUninstallApp creates a new uninstall UI application
 func NewUninstallApp(
-	initResult tb.TegnsettInitializeResult, 
-	osInfoExt tb.OSInfoExt, 
-	alreadyInstalled tb.AvailablePackagesMap,
-	alreadyInstalledFeatures tb.TegnInstalledFeaturesMap,
+	data *UninstallAppInitData,
 ) *UninstallApp {
 	// Sort installed Tegns for consistent order
-	// TODO: here
-	sort.Strings(installedTegns)
 
-	state := &UninstallState{
-		App:            mainApp,
-		InstalledTegns: installedTegns,
-		SelectedTegns:  make([]string, 0),
+	state := &UninstallUIState{
+		InitResult: data.InitResult,
+		OSInfExt: data.OSInfExt,
+		InstalledCache: data.AlreadyInstalled,
+		OriginalOrder: data.OriginalOrder,
+		FilteredOrder: data.FilteredOrder,
+		EnabledIDsMap:     data.EnabledIDsMap,
 		ExitConfirmed:  false,
+		SelectionTegnID: -1,
 	}
 
 	ui := &UninstallApp{
@@ -82,13 +176,13 @@ func (u *UninstallApp) createButtonBar() *tview.Flex {
 	buttonBar := tview.NewFlex().SetDirection(tview.FlexRow)
 	buttons := tview.NewFlex().SetDirection(tview.FlexColumn)
 
-	helpBtn := tview.NewButton(" (F1) Help ").
+	helpBtn := tview.NewButton(" (F1) (?) Help ").
 		SetSelectedFunc(func() { u.showHelpModal(nil) })
 
-	confirmBtn := tview.NewButton(" (F5) Confirm ").
+	confirmBtn := tview.NewButton(" (F5) (C-x) Confirm ").
 		SetSelectedFunc(func() { u.showConfirmModal() })
 
-	exitBtn := tview.NewButton(" (F10) Exit ").
+	exitBtn := tview.NewButton(" (F10) (C-c) Exit ").
 		SetSelectedFunc(func() { u.showExitModal() })
 
 	buttons.AddItem(helpBtn, 0, 1, false)
@@ -102,81 +196,32 @@ func (u *UninstallApp) createButtonBar() *tview.Flex {
 func (u *UninstallApp) setupGlobalKeyBindings() {
 	u.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyF1:
-			// Show help for currently selected item if any
-			index := u.getCurrentListIndex()
-			if index >= 0 && index < len(u.State.InstalledTegns) {
-				id := u.State.InstalledTegns[index]
-				tegn := u.State.App.State.InitResult.TegnByID[id].(tb.TegnGeneral)
-				u.showHelpModal(&tegn)
-			} else {
-				u.showHelpModal(nil)
-			}
-			return nil
-		case tcell.KeyF5:
+		case tcell.KeyF5, tcell.KeyCtrlX:
 			u.showConfirmModal()
 			return nil
 		case tcell.KeyF10, tcell.KeyCtrlC:
 			u.showExitModal()
 			return nil
-		case tcell.KeyRune:
-			if event.Rune() == ' ' {
-				// Toggle selection
-				index := u.getCurrentListIndex()
-				if index >= 0 && index < len(u.State.InstalledTegns) {
-					id := u.State.InstalledTegns[index]
-					u.toggleSelection(id)
-					u.refreshList()
-				}
-				return nil
-			}
-			if event.Rune() == '?' {
-				index := u.getCurrentListIndex()
-				if index >= 0 && index < len(u.State.InstalledTegns) {
-					id := u.State.InstalledTegns[index]
-					tegn := u.State.App.State.InitResult.TegnByID[id].(tb.TegnGeneral)
-					u.showHelpModal(&tegn)
-				} else {
-					u.showHelpModal(nil)
-				}
-				return nil
-			}
 		}
 		return event
 	})
 }
 
 func (u *UninstallApp) getCurrentListIndex() int {
-    primitive := u.pages.GetPage("tegnList")
-    if primitive == nil {
-        return -1
-    }
-    if list, ok := primitive.(*tview.List); ok {
-        return list.GetCurrentItem()
-    }
-    return -1
-}
-
-func (u *UninstallApp) toggleSelection(id string) {
-	found := false
-	for i, selID := range u.State.SelectedTegns {
-		if selID == id {
-			// Remove
-			u.State.SelectedTegns = append(u.State.SelectedTegns[:i], u.State.SelectedTegns[i+1:]...)
-			found = true
-			break
-		}
+	primitive := u.pages.GetPage("tegnList")
+	if primitive == nil {
+		return -1
 	}
-	if !found {
-		u.State.SelectedTegns = append(u.State.SelectedTegns, id)
+	if list, ok := primitive.(*tview.List); ok {
+		return list.GetCurrentItem()
 	}
-	u.updateStatusBar()
+	return -1
 }
 
 func (u *UninstallApp) updateStatusBar() {
-	selectedCount := len(u.State.SelectedTegns)
-	statusText := fmt.Sprintf("Selected: %d Tegns | [yellow]Space[white]: Toggle | [yellow]F1[white]: Help | [yellow]F5[white]: Confirm | [yellow]F10[white]: Exit", selectedCount)
-	u.statusBar.SetText(statusText)
+	u.statusBar.SetText(
+		"[yellow]Space[white]: Toggle | [yellow]F1[white]: Help | [yellow]F5[white]: Confirm | [yellow]F10[white]: Exit",
+	)
 }
 
 func (u *UninstallApp) showTegnList() {
@@ -184,43 +229,58 @@ func (u *UninstallApp) showTegnList() {
 		ShowSecondaryText(false).
 		SetHighlightFullLine(true)
 
-	for _, id := range u.State.InstalledTegns {
-		tegn := u.State.App.State.InitResult.TegnByID[id]
+	for _, id := range u.State.FilteredOrder {
+		tegn := u.State.InitResult.TegnByID[id]
 		name := tegn.GetName()
-		selected := false
-		for _, selID := range u.State.SelectedTegns {
-			if selID == id {
-				selected = true
-				break
-			}
-		}
+		selected := u.State.EnabledIDsMap[id]
+		canBeSelected, blocker, reason := canTegnBeSelected(u.State, id)
 
 		status := "[red]( )[white]"
-		if selected {
+		if !canBeSelected {
+			status = "[grey]---[white]"
+		} else if selected {
 			status = "[green](*)[white]"
 		}
 
+		// TODO: the availability
+
 		secondaryText := fmt.Sprintf("%s %s", status, name)
+		if !canBeSelected {
+			secondaryText = fmt.Sprintf("%s %s [%s -- %s]", status, name, blocker, reason)
+		}
 		list.AddItem(secondaryText, "", 0, nil)
 	}
 
+	if sel := u.State.GetAndResetTegnSelection(); sel != -1 && sel < list.GetItemCount() {
+		list.SetCurrentItem(sel)
+	}
+
+	// TODO: focus on the Tegn that was focused before
+
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		currentItem := list.GetCurrentItem()
+		u.State.SelectionTegnID = currentItem
+
 		switch event.Key() {
 		case tcell.KeyRune:
 			if event.Rune() == ' ' {
-				index := list.GetCurrentItem()
-				if index >= 0 && index < len(u.State.InstalledTegns) {
-					id := u.State.InstalledTegns[index]
-					u.toggleSelection(id)
-					u.refreshList()
+				index := currentItem
+				if index >= 0 && index < len(u.State.FilteredOrder) {
+					id := u.State.FilteredOrder[index]
+
+					canBeSelected, _, _ := canTegnBeSelected(u.State, id)
+					if canBeSelected {
+						u.State.EnabledIDsMap[id] = !u.State.EnabledIDsMap[id]
+						u.refreshList()
+					}
 				}
 				return nil
 			}
 			if event.Rune() == '?' {
-				index := list.GetCurrentItem()
-				if index >= 0 && index < len(u.State.InstalledTegns) {
-					id := u.State.InstalledTegns[index]
-					tegn := u.State.App.State.InitResult.TegnByID[id].(tb.TegnGeneral)
+				index := currentItem
+				if index >= 0 && index < len(u.State.FilteredOrder) {
+					id := u.State.FilteredOrder[index]
+					tegn := u.State.InitResult.TegnByID[id].(tb.TegnGeneral)
 					u.showHelpModal(&tegn)
 				} else {
 					u.showHelpModal(nil)
@@ -232,7 +292,7 @@ func (u *UninstallApp) showTegnList() {
 	})
 
 	u.pages.AddPage("tegnList", list, true, true)
-	removeAllPagesExceptOne(*u.pages, "tegnList")
+	// removeAllPagesExceptOne(u.pages, "tegnList")
 	u.updateStatusBar()
 }
 
@@ -242,15 +302,21 @@ func (u *UninstallApp) refreshList() {
 
 func (u *UninstallApp) showHelpModal(tegnGeneral *tb.TegnGeneral) {
 	// Reuse the existing HelpModal from modals.go
-	modal := NewHelpModal(u.State.App.State, u.app, tegnGeneral, nil, func() {
+	modal := NewHelpModal(u.State.InstalledCache, u.app, tegnGeneral, nil, func() {
 		u.pages.RemovePage("helpModal")
 	})
 	u.pages.AddPage("helpModal", modal, true, true)
 }
 
 func (u *UninstallApp) showConfirmModal() {
-	selected := u.State.SelectedTegns
-	text := fmt.Sprintf("Uninstall %d selected Tegns?\n\nThis action cannot be undone.", len(selected))
+	selected := 0
+	for _, v := range u.State.EnabledIDsMap {
+		if v {
+			selected += 1
+		}
+	}
+
+	text := fmt.Sprintf("Uninstall %d selected Tegns?\n\nThis action cannot be undone.", selected)
 	modal := tview.NewModal().
 		SetText(text).
 		AddButtons([]string{"Yes", "No"}).
@@ -262,7 +328,10 @@ func (u *UninstallApp) showConfirmModal() {
 				u.pages.RemovePage("confirmModal")
 			}
 		})
-	modal.SetBorder(true).SetTitle("Confirm Uninstall")
+	modal.
+		SetBorder(true).
+		SetTitle("Confirm Uninstall").
+		SetBorderColor(tcell.ColorRed)
 	u.pages.AddPage("confirmModal", modal, true, true)
 }
 
@@ -277,7 +346,9 @@ func (u *UninstallApp) showExitModal() {
 				u.pages.RemovePage("exitModal")
 			}
 		})
-	modal.SetBorder(true).SetTitle("Exit")
+	modal.
+		SetBorder(true).
+		SetTitle("Exit")
 	u.pages.AddPage("exitModal", modal, true, true)
 }
 

@@ -57,7 +57,7 @@ func NewTegnList(
 		})
 	}
 
-	if sel := state.GetAndResetTegnSelection(); sel != -1 && sel < list.GetItemCount(){
+	if sel := state.GetAndResetTegnSelection(); sel != -1 && sel < list.GetItemCount() {
 		list.SetCurrentItem(sel)
 	}
 

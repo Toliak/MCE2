@@ -13,6 +13,8 @@ const (
 	ActionUninstall                 // Uninstall = 1
 )
 
+var DefaultActionType ActionType = ActionInstall
+
 // String returns the string representation of the ActionType
 func (a ActionType) String() string {
 	switch a {
@@ -46,7 +48,7 @@ func ParseActionTypeFromArgv1(argv1 string) (ActionType, int, error) {
 		return ActionInstall, 1, nil
 	}
 
-	actionType, err := ParseActionType(argv1)
+	actionType, err := ParseActionType(strings.ToUpper(argv1))
 	if err != nil {
 		return -1, 1, err
 	}

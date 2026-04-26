@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/toliak/mce/cmd/mce/confirmui"
 	"github.com/toliak/mce/cmd/mce/ui"
@@ -380,7 +381,7 @@ func runUninstall(argv []string) error {
 	initResult := *tegnsetts
 
 	// Just check that we do not have errors
-	_, err = tb.GetTegnsettsOrder(initResult.TegnsettByID)
+	order, err := tb.GetTegnsettsOrder(initResult.TegnsettByID)
 	if err != nil {
 		return fmt.Errorf("GetTegnsettsOrder error: %w", err)
 	}
@@ -398,55 +399,99 @@ func runUninstall(argv []string) error {
 		}
 	}
 
-	app := ui.NewApp(initResult, builderData, alreadyInstalled, alreadyInstalledFeatures)
+	filteredOrder := make([]string, 0, len(order.Tegnsett) * 4)
+	for _, tegnsettID := range order.Tegnsett {
+		for _, tegnID := range order.TegnByTegnsettID[tegnsettID] {
+			if alreadyInstalled[tegnID] {
+				filteredOrder = append(filteredOrder, tegnID)
+			}
+		}
+	}
+	slices.Reverse(filteredOrder)
 
-	// TODO:
-	// if args.SelectEverything {
-	// 	for k := range initResult.TegnByID {
-	// 		app.State.EnabledIDsMap[k] = true
-	// 	}
-	// 	for k := range initResult.TegnsettByID {
-	// 		app.State.EnabledIDsMap[k] = true
-	// 	}
-	// }
+	// app := ui.NewApp(initResult, builderData, alreadyInstalled, alreadyInstalledFeatures)
+
+	enabledIDsMap := make(tb.TegnGeneralEnabledIDsMap)
+	if args.SelectEverything {
+		for _, k := range filteredOrder {
+			enabledIDsMap[k] = true
+		}
+		// TODO: do not all Tegnsetts, because we care only about the Tegns
+	} else {
+		for tegnId, v := range args.JSONPreset {
+			if !v {
+				continue
+			}
+
+			enabledIDsMap[tegnId] = true
+		}
+	}
+
+	if len(filteredOrder) == 0 {
+		fmt.Println("Nothing is installed.")
+		return nil
+	}
 
 	// TODO: HERE!!
-	uninstallUI := ui.NewUninstallApp(app, installedTegns)
+	uninstallUI := ui.NewUninstallApp(&ui.UninstallAppInitData{
+		InitResult: initResult,
+		OSInfExt: builderData,
+		AlreadyInstalled: alreadyInstalled,
+		OriginalOrder: *order,
+		FilteredOrder: filteredOrder,
+		EnabledIDsMap: enabledIDsMap,
+	})
 	
 	if !args.NoUI {
 		err = uninstallUI.Run()
 		if err != nil {
 			return err
 		}
-	} else {
-		// In no-UI mode, we need a way to select Tegns; for simplicity, we assume nothing selected
-		// Or we could uninstall all? Better to require UI for uninstall.
-		return fmt.Errorf("Uninstall requires UI interaction; --no-ui not supported for uninstall")
+
+		if !uninstallUI.State.ExitConfirmed {
+			fmt.Println("Uninstall cancelled.")
+			return nil
+		}
 	}
 
-	if !uninstallUI.State.ExitConfirmed {
-		fmt.Println("Uninstall cancelled.")
-		return nil
-	}
-
-	selectedIDs := uninstallUI.State.SelectedTegns
+	selectedIDs := uninstallUI.State.EnabledIDsMap
 	if len(selectedIDs) == 0 {
 		fmt.Println("No Tegns selected for uninstallation.")
 		return nil
 	}
 
-	// Determine uninstall order: reverse of installation order (or topological)
-	// For simplicity, we'll just use the order as they were selected, but reverse might be safer.
-	// We'll use the order from the UI list (which is sorted by ID) reversed.
-	// Actually, to respect dependencies, we could compute a reverse topological order.
-	// For now, we'll just uninstall in reverse order of the list (assuming last in list might depend on earlier).
-	for i := len(selectedIDs) - 1; i >= 0; i-- {
-		id := selectedIDs[i]
-		tegn := app.State.InitResult.TegnByID[id]
-		fmt.Printf("Uninstalling %s...\n", id)
-		err := tegn.ExecUninstall(app.State.OSInfExt)
+	for k, v := range uninstallUI.State.EnabledIDsMap {
+		if !v || alreadyInstalled[k] {
+			continue
+		}
+
+		fmt.Printf("Removed %s from the installation list, it is not installed\n", k)
+		uninstallUI.State.EnabledIDsMap[k] = false
+	}
+	for _, tegnId := range filteredOrder {
+		if !uninstallUI.State.EnabledIDsMap[tegnId] {
+			continue
+		}
+
+		m := make(tb.TegnGeneralEnabledIDsMap)
+		m[tegnId] = true
+		verdict, blockerId, blockerReason := ui.CanTegnBeSelected(uninstallUI.State, m)
+		if verdict {
+			continue
+		}
+
+		fmt.Printf("Removed %s from the installation list due to the blocker: %s -- %s\n", tegnId, blockerId, blockerReason)
+		uninstallUI.State.EnabledIDsMap[tegnId] = false
+	}
+
+	for _, tegnId := range filteredOrder {
+		if !uninstallUI.State.EnabledIDsMap[tegnId] {
+			continue
+		}
+
+		err := initResult.TegnByID[tegnId].ExecUninstall(builderData)
 		if err != nil {
-			return fmt.Errorf("ExecUninstall '%s' error: %w", id, err)
+			return fmt.Errorf("ExecUninstall error: %w", err)
 		}
 	}
 
@@ -455,12 +500,19 @@ func runUninstall(argv []string) error {
 }
 
 func mainInternal() error {
-	if len(os.Args) < 2 {
-		return fmt.Errorf("Expected at least 1 argument")
+	yesArgv := false
+	argv1 := DefaultActionType.String()
+	if len(os.Args) >= 2 {
+		yesArgv = true
+		argv1 = os.Args[1]
 	}
-	actionType, startIdx, err := ParseActionTypeFromArgv1(os.Args[1])
+	actionType, startIdx, err := ParseActionTypeFromArgv1(argv1)
 	if err != nil {
 		return fmt.Errorf("ParseActionTypeFromArgv1 error: %w", err)
+	}
+
+	if !yesArgv {
+		startIdx = 1
 	}
 
 	switch actionType {

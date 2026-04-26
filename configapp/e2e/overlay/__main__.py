@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import sys
 from typing import *
+from uninstall import tests_uninstall
 from os_info import test_os_info
 from base_args import tests_args
 from install import tests_install
@@ -11,6 +12,7 @@ from dataclasses import dataclass
 TestFunT = Callable[[Path, Path], bool]
 
 test_list: List[TestFunT] = [
+    *tests_uninstall(),
     *tests_install(),
     test_os_info,
     *tests_args(),
