@@ -136,11 +136,11 @@ func (a *App) updateStatusBar() {
 	
 	switch currentView {
 	case ViewTegnsettList:
-		statusText = "View: Tegnsetts | [yellow]Space[white]: Toggle | [yellow]Enter[white]: Open | [yellow]F1[white]: Help"
+		statusText = "View: Tegnsetts | [yellow]Space[-]: Toggle | [yellow]Enter[-]: Open | [yellow]F1[-]: Help"
 	case ViewTegnList:
-		statusText = "View: Tegns | [yellow]Space[white]: Toggle | [yellow]Enter[white]: Properties | [yellow]F1[white]: Help"
+		statusText = "View: Tegns | [yellow]Space[-]: Toggle | [yellow]Enter[-]: Properties | [yellow]F1[-]: Help"
 	case ViewParameterList:
-		statusText = "View: Parameters | [yellow]Enter[white]: Edit | [yellow]Esc[white]: Back"
+		statusText = "View: Parameters | [yellow]Enter[-]: Edit | [yellow]Esc[-]: Back"
 	}
 	
 	a.statusBar.SetText(statusText)

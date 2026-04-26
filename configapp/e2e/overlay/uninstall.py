@@ -17,7 +17,7 @@ def test_uninstall_not_installed(binary_e2e: Path, binary_prod: Path) -> bool:
                 "-repo-update-enable=0",
                 "-no-ui",
                 "-y",
-             ], 
+             ],
         )
     except subprocess.CalledProcessError as e:
         print(f"Binary execution failed: {e}")

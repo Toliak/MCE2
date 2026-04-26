@@ -29,12 +29,12 @@ func NewTegnsettList(
 		enabled := state.EnabledIDsMap[id]
 		canBeOpened := isAvailable && enabled && len(tegnsett.GetChildren()) != 0
 
-		status := "[gray]---[white]"
+		status := "[gray]---[-]"
 		if isAvailable {
 			if enabled {
-				status = "[green](*)[white]"
+				status = "[green](*)[-]"
 			} else {
-				status = "[red]( )[white]"
+				status = "[red]( )[-]"
 			}
 		}
 

@@ -220,7 +220,7 @@ func (u *UninstallApp) getCurrentListIndex() int {
 
 func (u *UninstallApp) updateStatusBar() {
 	u.statusBar.SetText(
-		"[yellow]Space[white]: Toggle | [yellow]F1[white]: Help | [yellow]F5[white]: Confirm | [yellow]F10[white]: Exit",
+		"[yellow]Space[-]: Toggle | [yellow]F1[-]: Help | [yellow]F5[-]: Confirm | [yellow]F10[-]: Exit",
 	)
 }
 
@@ -235,11 +235,11 @@ func (u *UninstallApp) showTegnList() {
 		selected := u.State.EnabledIDsMap[id]
 		canBeSelected, blocker, reason := canTegnBeSelected(u.State, id)
 
-		status := "[red]( )[white]"
+		status := "[red]( )[-]"
 		if !canBeSelected {
-			status = "[grey]---[white]"
+			status = "[grey]---[-]"
 		} else if selected {
-			status = "[green](*)[white]"
+			status = "[green](*)[-]"
 		}
 
 		// TODO: the availability
@@ -331,7 +331,7 @@ func (u *UninstallApp) showConfirmModal() {
 	modal.
 		SetBorder(true).
 		SetTitle("Confirm Uninstall").
-		SetBorderColor(tcell.ColorRed)
+		SetBackgroundColor(tcell.ColorDarkRed)
 	u.pages.AddPage("confirmModal", modal, true, true)
 }
 

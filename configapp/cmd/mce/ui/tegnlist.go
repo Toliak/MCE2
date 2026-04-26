@@ -29,15 +29,15 @@ func NewTegnList(
 		isInstalled := state.InstalledCache[id]
 		canBeOpened := !isInstalled && isAvailable && enabled && len(tegn.GetParameters(state.OSInfExt)) > 0
 
-		status := "[gray]---[white]"
+		status := "[gray]---[-]"
 		
 		if isInstalled {
-			status = "[yellow]-+-[white]"
+			status = "[yellow]-+-[-]"
 		} else if isAvailable {
 			if enabled {
-				status = "[green](*)[white]"
+				status = "[green](*)[-]"
 			} else {
-				status = "[red]( )[white]"
+				status = "[red]( )[-]"
 			}
 		}
 

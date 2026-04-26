@@ -34,7 +34,7 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 		}
 		paramType := param.GetParamType().String()
 		
-		secondaryText := fmt.Sprintf("%s = [yellow]%s[white]", paramName, paramValue)
+		secondaryText := fmt.Sprintf("%s = [yellow]%s[-]", paramName, paramValue)
 		if param.GetAvailable().Available {
 			secondaryText = fmt.Sprintf("(%- 8s) %s", paramType, secondaryText)
 		} else {
