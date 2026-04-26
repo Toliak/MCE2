@@ -37,6 +37,10 @@ func getInstallDirZshPowerLevel10k(osInfo tb.OSInfoExt) string {
 	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "themes", zshPowerLevel10kThemeName)
 }
 
+func getZshLocalP10kPromptPath(osInfo tb.OSInfoExt) string {
+	return filepath.Join(osInfo.GetFullDataDir(), "local-p10k-prompt.zsh")
+}
+
 // GetID implements [tb.Tegn].
 func (p *ZshPowerLevel10k) GetID() string {
 	return "cfg-zsh-p10k"
@@ -256,8 +260,8 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 			return fmt.Errorf("os.ReadFile error '%s': %w", zshrcOrigPath, err)
 		}
 		
-		purePromptPath := filepath.Join(getInstallDirZshPowerLevel10k(osInfo), "config", "p10k-pure.zsh")
-		purePromptCopyPath := filepath.Join(osInfo.GetFullDataDir(), "local-p10k-prompt.zsh")
+		purePromptPath := filepath.Join(getInstallDirZshPowerLevel10k(osInfo), "config", "p10k-lean.zsh")
+		purePromptCopyPath := getZshLocalP10kPromptPath(osInfo)
 		promptConfig := ""
 		if !platform.FileEntryExists(purePromptPath) {
 			fmt.Printf("Unable to find pure p10k prompt config: %s\n", purePromptPath)
@@ -314,7 +318,7 @@ func (p *ZshPowerLevel10k) ExecUninstall(osInfo tb.OSInfoExt) error {
 	}
 
 	// Remove the p10k prompt config file if it was created
-	purePromptCopyPath := filepath.Join(osInfo.GetFullDataDir(), "local-p10k-prompt.zsh")
+	purePromptCopyPath := getZshLocalP10kPromptPath(osInfo)
 	if platform.FileEntryExists(purePromptCopyPath) {
 		err := os.Remove(purePromptCopyPath)
 		if err != nil {

@@ -160,6 +160,26 @@ func prepareSharedLocalConfigText(params tb.TegnParameterMap) string {
 	return sb.String()
 }
 
+func insertIntoPreZshConfig(path, text string) error {
+	read, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	
+	lines := make([]string, 0)
+	for line := range strings.Lines(string(read)) {
+		lines = append(lines, line)
+
+		if strings.HasPrefix(line, "###### DO NOT EDIT") {
+			lines = append(lines, "")
+			lines = append(lines, text)
+		}
+	}
+
+	err = os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+	return err
+}
+
 func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getSharedLocalConfigPath(osInfo)
 	err := MkdirAllParent(localConfigPath)
@@ -181,17 +201,24 @@ func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInst
 
 	if already["cfg:bash-local"] {
 		bashLocalConfigPath := getBashLocalConfigPath(osInfo)
-		platform.AppendFilepathString(
+		err := platform.AppendFilepathString(
 			bashLocalConfigPath,
 			fmt.Sprintf("\n# <BEGIN> MCE2 shared config\nsource '%s'\n# <END> MCE2 shared config\n\n", localConfigPath),
 		)
+		if err != nil {
+			return fmt.Errorf("AppendFilepathString error '%s': %w", bashLocalConfigPath, err)
+		}
 	}
 	if already["cfg:zsh-local"] {
-		bashLocalConfigPath := getZshLocalConfigPath(osInfo)
-		platform.AppendFilepathString(
-			bashLocalConfigPath,
+		// Add the shared config into the pre-zsh, because it contains important variables like "PATH"
+		preZshConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
+		insertIntoPreZshConfig(
+			preZshConfigPath,
 			fmt.Sprintf("\n# <BEGIN> MCE2 shared config\nsource '%s'\n# <END> MCE2 shared config\n\n", localConfigPath),
 		)
+		if err != nil {
+			return fmt.Errorf("insertIntoPreZshConfig error '%s': %w", preZshConfigPath, err)
+		}
 	}
 
 	return nil
@@ -209,6 +236,14 @@ func (p *SharedLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove references from zsh local config if it exists
 	zshLocalConfigPath := getZshLocalConfigPath(osInfo)
+	if platform.FileEntryExists(zshLocalConfigPath) {
+		err := removeConfigBlockFromFile(zshLocalConfigPath, "MCE2 shared config")
+		if err != nil {
+			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshLocalConfigPath, err)
+		}
+	}
+	// Remove references from zsh local config if it exists
+	zshLocalConfigPath = getZshLocalPreOhMyZshConfigPath(osInfo)
 	if platform.FileEntryExists(zshLocalConfigPath) {
 		err := removeConfigBlockFromFile(zshLocalConfigPath, "MCE2 shared config")
 		if err != nil {
