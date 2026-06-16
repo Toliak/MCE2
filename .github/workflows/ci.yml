@@ -18,7 +18,9 @@ jobs:
         with:
           go-version-file: 'configapp/go.mod'
       - name: Build release binaries
-        run: make build_release
+        run: |
+          make build
+          make build_release
       - name: Upload all binaries
         uses: actions/upload-artifact@v4
         with:
