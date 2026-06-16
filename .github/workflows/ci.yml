@@ -18,7 +18,9 @@ jobs:
         with:
           go-version-file: 'configapp/go.mod'
       - name: Build release binaries
-        run: make build_release
+        run: |
+          make build
+          make build_release
       - name: Upload all binaries
         uses: actions/upload-artifact@v4
         with:
@@ -38,8 +40,11 @@ jobs:
         with:
           name: binaries
           path: configapp/bin/
-      - name: Ensure mce-e2e is executable
-        run: chmod +x bin/mce-e2e
+      - name: Prepare
+        run: |
+          chmod +x bin/mce
+          chmod +x bin/mce-e2e
+          git clone https://github.com/toliak/mce2config ../config
       - name: Run e2e tests
         run: make test_e2e
     

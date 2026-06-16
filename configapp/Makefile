@@ -14,7 +14,7 @@ DEBUG_ENV := $(BUILD_ENV) $(DEBUG_FLAGS)
 
 DOCKER_ENV := BUILDKIT_PROGRESS=plain
 DOCKER_COMPOSE_ARGS := -f e2e/docker-compose.yaml
-DOCKER_COMPOSE_RUN_ARGS := --build --rm -it
+DOCKER_COMPOSE_RUN_ARGS := --build --rm
 
 .PHONY: build build_release clean test_e2e test_pkg
 
