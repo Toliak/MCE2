@@ -1,4 +1,4 @@
-FROM archlinux:base-20260301.0.494762
+FROM archlinux:base-devel-20260614.0.544538
 
 WORKDIR /test
 
