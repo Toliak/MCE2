@@ -42,6 +42,7 @@ jobs:
           path: configapp/bin/
       - name: Prepare
         run: |
+          chmod +x bin/mce
           chmod +x bin/mce-e2e
           git clone https://github.com/toliak/mce2config ../config
       - name: Run e2e tests
