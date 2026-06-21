@@ -14,6 +14,7 @@ import (
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 	"github.com/toliak/mce/tegns"
+	tegnstegn "github.com/toliak/mce/tegns/tegn"
 )
 
 func applyPresetToApp(initResult tb.TegnsettInitializeResult, osInfo tb.OSInfoExt, app ui.App, preset JSONPreset) error {
@@ -204,7 +205,14 @@ func prepareApp(args *ArgsInstall) (*ui.App, error) {
 	}
 
 	if args.SelectEverything {
+		blacklisted := []string{
+			tegnstegn.NewTegnZshChshBuilder()().GetID(), // Requires TTY
+		}
 		for k := range initResult.TegnByID {
+			if slices.Contains(blacklisted, k) {
+				continue
+			}
+
 			app.State.EnabledIDsMap[k] = true
 		}
 		for k := range initResult.TegnsettByID {

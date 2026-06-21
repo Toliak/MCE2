@@ -22,6 +22,9 @@ func NewTegnZshChshBuilder() tb.TegnBuildFunc {
 	}
 }
 
+// TODO: make tegn property:
+// isTTYRequired
+
 // GetID implements [tb.Tegn].
 func (p *ZshChsh) GetID() string {
 	return "zsh-chsh"
