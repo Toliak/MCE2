@@ -138,6 +138,7 @@ var downloadLsGo = tegn.NewGenericDownloadBuilder(
 	"ls-go GoLang app 1.0.2",
 	"ls-go",
 	func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+		// TODO: return struct with {name, type: {exefile, zip, targz, tarzst, ...}, where-the-executable-if-archive}
 		var sb strings.Builder
 		// TODO: verify checksums
 		sb.WriteString("https://github.com/acarl005/ls-go/releases/download/v1.0.2/ls-go-")
