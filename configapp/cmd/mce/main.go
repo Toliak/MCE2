@@ -83,6 +83,7 @@ func (s TempStateSave) moveIntoState(state *ui.UIState) {
 	state.ParameterByIDMap = s.ParameterByIDMap
 }
 
+// This file name is not random, because we need to use the same file after 
 var stateFilePath string = filepath.Join(os.TempDir(), "mce2-configapp-state-GAaqjz4n.json")
 
 func loadTempState(stateFilePath string) (*TempStateSave, error) {
@@ -243,6 +244,7 @@ func runInstall(argv []string) error {
 		app.State.ExitConfirmed = true
 	}
 
+	// FIXME: we should save the state even if the user selected "Install". Because the installation may fail.
 	if !app.State.ExitConfirmed {
 		err := saveTempState(stateFilePath, app.State)
 		if err != nil {
@@ -318,6 +320,7 @@ func runInstall(argv []string) error {
 
 		for _, id := range d.TegnIDList {
 			tegn := app.State.InitResult.TegnByID[id]
+			fmt.Printf("Installing '%s'\n", tegn.GetName())
 			err := tegn.ExecInstall(
 				app.State.OSInfExt, 
 				installedFeatures,

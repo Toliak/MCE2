@@ -57,7 +57,7 @@ func IsRoot() bool {
     return os.Geteuid() == 0
 }
 
-// TODO: FileEntryExists vs FileExists
+// TODO: FIXME: FileEntryExists vs FileExists
 // Why have I create two similar functions???
 
 func FileEntryExists(path string) bool {

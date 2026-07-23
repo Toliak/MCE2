@@ -81,6 +81,7 @@ func parseSharedArgs(object *ArgsShared) {
 	flag.StringVar(
 		&object.MainInstallDir,
 		"main-install-dir",
+		// FIXME:  do not use here the home directory!. Use 'home-dir' from the ARGV
 		filepath.Join("~", ".local", "share", "MakeConfigurationEasier2"),
 		"Directory to clone the MCE2 project (absolute path)",
 	)
