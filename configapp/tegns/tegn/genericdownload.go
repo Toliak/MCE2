@@ -221,7 +221,7 @@ func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostPro
 				continue
 
 			case tar.TypeReg:
-				if err := MkdirAllParent(target); err != nil {
+				if err := platform.MkdirAllParent(target); err != nil {
 					return err
 				}
 

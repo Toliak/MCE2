@@ -182,7 +182,7 @@ func insertIntoPreZshConfig(path, text string) error {
 
 func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getSharedLocalConfigPath(osInfo)
-	err := MkdirAllParent(localConfigPath)
+	err := platform.MkdirAllParent(localConfigPath)
 	if err != nil {
 		return fmt.Errorf(" MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}

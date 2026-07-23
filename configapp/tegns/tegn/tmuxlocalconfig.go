@@ -108,7 +108,7 @@ func (p *TmuxLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getTmuxLocalConfigPath(osInfo)
 
-	err := MkdirAllParent(localConfigPath)
+	err := platform.MkdirAllParent(localConfigPath)
 	if err != nil {
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}

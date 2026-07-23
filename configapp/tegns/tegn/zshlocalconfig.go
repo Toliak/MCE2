@@ -228,7 +228,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 	localConfigPath := getZshLocalConfigPath(osInfo)
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
 
-	err := MkdirAllParent(localConfigPath)
+	err := platform.MkdirAllParent(localConfigPath)
 	if err != nil {
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", localConfigPath, err)
 	}

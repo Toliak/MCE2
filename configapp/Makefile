@@ -4,7 +4,7 @@ BUILD_FLAGS ?=
 DEBUG_FLAGS ?= -gcflags=all="-N -l"
 
 # Cross-compilation targets
-PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 android/arm64
 BINARY_NAME := mce
 E2E_BINARY_NAME := mce-e2e
 
@@ -41,8 +41,13 @@ arch_of = $(word 2,$(subst /, ,$(1)))
 
 build_release: | bin
 	$(foreach platform,$(PLATFORMS), \
-		$(shell OS="$(call os_of,$(platform))" ARCH="$(call arch_of,$(platform))" && \
-		GOOS="$$OS" GOARCH="$$ARCH" $(BUILD_ENV) go build -o "bin/$(BINARY_NAME)-$$OS-$$ARCH" "./cmd/$(BINARY_NAME)";))
+		echo "Building for $(platform)"; \
+		OS="$(call os_of,$(platform))"; \
+		ARCH="$(call arch_of,$(platform))"; \
+		GOOS="$$OS" \
+			GOARCH="$$ARCH" $(BUILD_ENV) \
+			go build -o "bin/$(BINARY_NAME)-$$OS-$$ARCH" "./cmd/$(BINARY_NAME)"; \
+	)
 
 test_e2e:
 	$(DOCKER_ENV) docker compose $(DOCKER_COMPOSE_ARGS) run $(DOCKER_COMPOSE_RUN_ARGS) archlinux

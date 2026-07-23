@@ -65,6 +65,12 @@ func FileEntryExists(path string) bool {
 	return !(err != nil && os.IsNotExist(err))
 }
 
+// Mkdir with parents
+func MkdirAllParent(path string) error {
+	parentDir := filepath.Dir(path)
+	return os.MkdirAll(parentDir, 0755)
+}
+
 // See https://opensource.com/article/18/6/copying-files-go
 func CopyFile(src, dst string) error {
 	sourceFileStat, err := os.Stat(src)

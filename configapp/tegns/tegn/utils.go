@@ -3,30 +3,9 @@ package tegn
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
-
-	git "github.com/go-git/go-git/v6"
 )
 
-func defaultGitCloneOptions(additionalOpts ...func(*git.CloneOptions)) *git.CloneOptions {
-	v := git.CloneOptions{
-		Progress: os.Stdout,
-		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		NoCheckout: true,
-	}
-
-	for _, opt := range additionalOpts {
-		opt(&v)
-	}
-
-	return &v
-}
-
-func MkdirAllParent(path string) error {
-	parentDir := filepath.Dir(path)
-	return os.MkdirAll(parentDir, 0755)
-}
 
 func removeConfigBlockFromFile(filePath string, blockName string) error {
 	content, err := os.ReadFile(filePath)
@@ -39,6 +18,7 @@ func removeConfigBlockFromFile(filePath string, blockName string) error {
 	newContent := pattern.ReplaceAll(content, []byte{})
 
 	// Remove any extra blank lines that might have been left
+	// WARN: do not do that, it can break the formatting
 	// doubleNewlinePattern := regexp.MustCompile(`\n{3,}`)
 	// newContent = doubleNewlinePattern.ReplaceAll(newContent, []byte("\n\n"))
 

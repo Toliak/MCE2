@@ -8,9 +8,6 @@ import (
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
-
-	git "github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 type UltimateVim struct {
@@ -83,6 +80,12 @@ func (p *UltimateVim) GetBeforeIDs() []string {
 // GetParameters implements [tb.Tegn].
 func (p *UltimateVim) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 	return []tb.TegnParameter {
+		// TODO: encapsulate Git clone default parameter pack:
+		// repo-url
+		// repo-branch
+		// use-shallow-clone
+		// install-dir
+
 		tb.NewTegnParameter(
 			"repo-url",
 			"Repository URL",
@@ -95,8 +98,16 @@ func (p *UltimateVim) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			"repo-branch",
 			"Repository branch",
 			tb.TegnParameterTypeString,
-			tb.WithDescription("Repository branch"),
-			tb.WithDefaultValue("master"),
+			tb.WithDescription("Repository branch, leave empty to use the default branch"),
+			tb.WithDefaultValue(""),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"use-shallow-clone",
+			"Shallow Clone",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
 			tb.WithAvailabilityTrue(),
 		),
 		tb.NewTegnParameter(
@@ -127,37 +138,13 @@ func (p *UltimateVim) IsInstalled(osInfo tb.OSInfoExt) bool {
 func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
+	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
 	path := getInstallDirUltimateVim(osInfo)
 
-	err := MkdirAllParent(path)
+	cloner := platform.NewGitClone(url, path, platform.WithGitBranch(branch), platform.WithGitShallowMode(shallowClone))
+	err := cloner.Clone()
 	if err != nil {
-		return fmt.Errorf("MkdirAll parent '%s' error: %w", path, err)
-	}
-
-	// Clone the repository
-	repo, err := git.PlainClone(
-		path, 
-		defaultGitCloneOptions(func(v *git.CloneOptions) {
-			v.URL = url
-		}),
-	)
-	if err != nil {
-		return fmt.Errorf("PlainClone error: %w", err)
-	}
-
-	w, err := repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("Worktree error: %w", err)
-	}
-
-	branchRefName := plumbing.NewBranchReferenceName(branch)
-	branchCoOpts := git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branchRefName),
-		Force:  false,
-	}
-	err = w.Checkout(&branchCoOpts)
-	if err != nil {
-		return fmt.Errorf("Checkout error: %w", err)
+		return fmt.Errorf("GitClone error: %w", err)
 	}
 
 	vimrcOrigPath, err := getVimrcPath()

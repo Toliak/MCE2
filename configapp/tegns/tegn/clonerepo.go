@@ -7,9 +7,6 @@ import (
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
-
-	git "github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 type CloneRepo struct {
@@ -96,6 +93,14 @@ func (p *CloneRepo) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithReadOnlyValidator(),
 		),
 		tb.NewTegnParameter(
+			"use-shallow-clone",
+			"Shallow Clone",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
 			"install-path",
 			"Installation path",
 			tb.TegnParameterTypeString,
@@ -132,31 +137,13 @@ func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFe
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]
-	installPath := osInfo.MainInstallDir
+	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
+	path := osInfo.MainInstallDir
 
-	repo, err := git.PlainClone(
-		installPath,
-		defaultGitCloneOptions(func(v *git.CloneOptions) {
-			v.URL = url
-		}),
-	)
+	cloner := platform.NewGitClone(url, path, platform.WithGitBranch(branch), platform.WithGitShallowMode(shallowClone))
+	err := cloner.Clone()
 	if err != nil {
-		return fmt.Errorf("PlainClone error: %w", err)
-	}
-
-	w, err := repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("Worktree error: %w", err)
-	}
-
-	branchRefName := plumbing.NewBranchReferenceName(branch)
-	branchCoOpts := git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branchRefName),
-		Force:  false,
-	}
-	err = w.Checkout(&branchCoOpts)
-	if err != nil {
-		return fmt.Errorf("Checkout error: %w", err)
+		return fmt.Errorf("GitClone error: %w", err)
 	}
 
 	return nil

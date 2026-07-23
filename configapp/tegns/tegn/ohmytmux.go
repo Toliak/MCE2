@@ -8,9 +8,6 @@ import (
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
-
-	git "github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 type OhMyTmux struct {
@@ -104,7 +101,15 @@ func (p *OhMyTmux) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			"Repository branch",
 			tb.TegnParameterTypeString,
 			tb.WithDescription("Repository branch"),
-			tb.WithDefaultValue("master"),
+			tb.WithDefaultValue(""),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"use-shallow-clone",
+			"Shallow Clone",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
 			tb.WithAvailabilityTrue(),
 		),
 		tb.NewTegnParameter(
@@ -135,52 +140,28 @@ func (p *OhMyTmux) IsInstalled(osInfo tb.OSInfoExt) bool {
 func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
-	installPath := getInstallDirOhMyTmux(osInfo)
-	err := MkdirAllParent(installPath)
-	if err != nil {
-		return fmt.Errorf("MkdirAll parent '%s' error: %w", installPath, err)
-	}
+	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
+	path := getInstallDirOhMyTmux(osInfo)
 
 	targetTmuxConf, err := getTmuxConfigPath(osInfo)
 	if err != nil {
 		return fmt.Errorf("getTmuxConfigPath error: %w", err)
 	}
-	err = MkdirAllParent(targetTmuxConf)
+	err = platform.MkdirAllParent(targetTmuxConf)
 	if err != nil {
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
 
-	// Clone the repository
-	repo, err := git.PlainClone(
-		installPath,
-		defaultGitCloneOptions(func(v *git.CloneOptions) {
-			v.URL = url
-		}),
-	)
+	cloner := platform.NewGitClone(url, path, platform.WithGitBranch(branch), platform.WithGitShallowMode(shallowClone))
+	err = cloner.Clone()
 	if err != nil {
-		return fmt.Errorf("PlainClone error: %w", err)
-	}
-
-	// Checkout the specified branch
-	w, err := repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("Worktree error: %w", err)
-	}
-
-	branchRefName := plumbing.NewBranchReferenceName(branch)
-	branchCoOpts := git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branchRefName),
-		Force:  false,
-	}
-	err = w.Checkout(&branchCoOpts)
-	if err != nil {
-		return fmt.Errorf("Checkout error: %w", err)
+		return fmt.Errorf("GitClone error: %w", err)
 	}
 
 	// Create symbolic link for .tmux.conf
-	sourceTmuxConf := filepath.Join(installPath, ".tmux.conf")
+	sourceTmuxConf := filepath.Join(path, ".tmux.conf")
 
-	err = MkdirAllParent(targetTmuxConf)
+	err = platform.MkdirAllParent(targetTmuxConf)
 	if err != nil {
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}

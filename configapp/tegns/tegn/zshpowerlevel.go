@@ -11,9 +11,6 @@ import (
 	"github.com/toliak/mce/platform"
 	"github.com/toliak/mce/sedparody"
 	tb "github.com/toliak/mce/tegnbuilder"
-
-	git "github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 // oh-my-zsh -- tab-completion
@@ -102,7 +99,15 @@ func (p *ZshPowerLevel10k) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter
 			"Repository branch",
 			tb.TegnParameterTypeString,
 			tb.WithDescription("Repository branch"),
-			tb.WithDefaultValue("master"),
+			tb.WithDefaultValue(""),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"use-shallow-clone",
+			"Shallow Clone",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
 			tb.WithAvailabilityTrue(),
 		),
 		tb.NewTegnParameter(
@@ -212,32 +217,14 @@ var zshrcP10kInstantPromptBlockBytes = []byte(zshrcP10kInstantPromptBlock)
 func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
+	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
 	autoConf := tb.TegnParameterToBool(params["additional-config"])
-
 	path := getInstallDirZshPowerLevel10k(osInfo)
-	repo, err := git.PlainClone(
-		path, 
-		defaultGitCloneOptions(func (v *git.CloneOptions) {
-			v.URL = url
-		}),
-	)
-	if err != nil {
-		return fmt.Errorf("PlainClone error: %w", err)
-	}
 
-	w, err := repo.Worktree()
+	cloner := platform.NewGitClone(url, path, platform.WithGitBranch(branch), platform.WithGitShallowMode(shallowClone))
+	err := cloner.Clone()
 	if err != nil {
-		return fmt.Errorf("Worktree error: %w", err)
-	}
-
-	branchRefName := plumbing.NewBranchReferenceName(branch)
-	branchCoOpts := git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branchRefName),
-		Force:  false,
-	}
-	err = w.Checkout(&branchCoOpts)
-	if err != nil {
-		return fmt.Errorf("Checkout error: %w", err)
+		return fmt.Errorf("GitClone error: %w", err)
 	}
 
 	zshrcOrigPath, err := getZshrcPath()

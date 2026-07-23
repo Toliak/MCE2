@@ -9,9 +9,6 @@ import (
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
-
-	git "github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
 )
 
 type ZshBaseConfig struct {}
@@ -101,7 +98,15 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			"Repository branch",
 			tb.TegnParameterTypeString,
 			tb.WithDescription("Repository branch"),
-			tb.WithDefaultValue("master"),
+			tb.WithDefaultValue(""),
+			tb.WithAvailabilityTrue(),
+		),
+		tb.NewTegnParameter(
+			"use-shallow-clone",
+			"Shallow Clone",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
 			tb.WithAvailabilityTrue(),
 		),
 		tb.NewTegnParameter(
@@ -151,53 +156,26 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]
+	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
+	path := getInstallDirZshBaseConfig(osInfo)
 
-	ohmyzshDir := getInstallDirZshBaseConfig(osInfo)
-	err := MkdirAllParent(ohmyzshDir)
+	cloner := platform.NewGitClone(url, path, platform.WithGitBranch(branch), platform.WithGitShallowMode(shallowClone))
+	err := cloner.Clone()
 	if err != nil {
-		return fmt.Errorf("MkdirAll parent '%s' error: %w", ohmyzshDir, err)
-	}
-
-	repo, err := git.PlainClone(
-		ohmyzshDir, 
-		defaultGitCloneOptions(func (v *git.CloneOptions) {
-			v.URL = url
-		}),
-	)
-	if err != nil {
-		return fmt.Errorf("PlainClone error: %w", err)
-	}
-
-	w, err := repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("Worktree error: %w", err)
-	}
-
-	branchRefName := plumbing.NewBranchReferenceName(branch)
-	branchCoOpts := git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branchRefName),
-		Force:  false,
-	}
-	err = w.Checkout(&branchCoOpts)
-	if err != nil {
-		return fmt.Errorf("Checkout error: %w", err)
+		return fmt.Errorf("GitClone error: %w", err)
 	}
 	
 	zshrcOrigPath, err := getZshrcPath()
 	if err != nil {
 		return fmt.Errorf("failed to get zshrc path: %w", err)
 	}
-	err = platform.AppendFilepathString(zshrcOrigPath, getOhMyZshTemplateConfig(ohmyzshDir))
+	err = platform.AppendFilepathString(zshrcOrigPath, getOhMyZshTemplateConfig(path))
 	if err != nil {
 		return fmt.Errorf("AppendFilepathString error '%s': %w", zshrcOrigPath, err)
 	}
 
 	return nil
 }
-
-// func (p *ZshBaseConfig)  ExecUpdate() error {
-
-// }
 
 func (p *ZshBaseConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the configuration block from .zshrc
