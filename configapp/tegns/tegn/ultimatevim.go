@@ -79,47 +79,8 @@ func (p *UltimateVim) GetBeforeIDs() []string {
 
 // GetParameters implements [tb.Tegn].
 func (p *UltimateVim) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
-		// TODO: encapsulate Git clone default parameter pack:
-		// repo-url
-		// repo-branch
-		// use-shallow-clone
-		// install-dir
-
-		tb.NewTegnParameter(
-			"repo-url",
-			"Repository URL",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Repository URL"),
-			tb.WithDefaultValue("https://github.com/amix/vimrc"),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"repo-branch",
-			"Repository branch",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Repository branch, leave empty to use the default branch"),
-			tb.WithDefaultValue(""),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"use-shallow-clone",
-			"Shallow Clone",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"install-dir",
-			"Installation path",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Installation path (read-only)"),
-			tb.WithDefaultValue(getInstallDirUltimateVim(osInfo)),
-			tb.WithAvailabilityFalse("Read-only"),
-			tb.WithReadOnlyValidator(),
-		),
-	}
+	gitParams := GetGitCloneParameters("https://github.com/amix/vimrc", getInstallDirUltimateVim(osInfo))
+	return gitParams
 }
 
 // GetFeatures implements [tb.Tegn].

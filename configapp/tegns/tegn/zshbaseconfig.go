@@ -82,43 +82,8 @@ func (p *ZshBaseConfig) GetBeforeIDs() []string {
 
 // GetParameters implements [tb.Tegn].
 func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	// TODO: cache that maybe?
-
-	return []tb.TegnParameter {
-		tb.NewTegnParameter(
-			"repo-url",
-			"Repository URL",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Repository URL"),
-			tb.WithDefaultValue("https://github.com/ohmyzsh/ohmyzsh"),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"repo-branch",
-			"Repository branch",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Repository branch"),
-			tb.WithDefaultValue(""),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"use-shallow-clone",
-			"Shallow Clone",
-			tb.TegnParameterTypeBool,
-			tb.WithDescription("Perform a shallow clone with depth 1 (--depth 1) for faster download"),
-			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
-			tb.WithAvailabilityTrue(),
-		),
-		tb.NewTegnParameter(
-			"install-dir",
-			"Installation path",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Installation path (read-only)"),
-			tb.WithDefaultValue(getInstallDirZshBaseConfig(osInfo)),
-			tb.WithAvailabilityFalse("Read-only"),
-			tb.WithReadOnlyValidator(),
-		),
-	}
+	gitParams := GetGitCloneParameters("https://github.com/ohmyzsh/ohmyzsh", getInstallDirZshBaseConfig(osInfo))
+	return gitParams
 }
 
 // GetFeatures implements [tb.Tegn].

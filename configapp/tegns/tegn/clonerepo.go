@@ -74,6 +74,7 @@ func (p *CloneRepo) GetBeforeIDs() []string {
 // GetParameters implements [tb.Tegn].
 func (p *CloneRepo) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 	return []tb.TegnParameter {
+		// WARN: do not use GetGitCloneParameters here, because Repository branch here is read-only
 		tb.NewTegnParameter(
 			"repo-url",
 			"Repository URL",
