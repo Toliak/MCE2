@@ -126,7 +126,7 @@ func (p *SharedLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *SharedLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getSharedLocalConfigPath(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func prepareSharedLocalConfigText(params tb.TegnParameterMap) string {
@@ -227,7 +227,7 @@ func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInst
 func (p *SharedLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove references from bash local config if it exists
 	bashLocalConfigPath := getBashLocalConfigPath(osInfo)
-	if platform.FileEntryExists(bashLocalConfigPath) {
+	if platform.FileExists(bashLocalConfigPath) {
 		err := removeConfigBlockFromFile(bashLocalConfigPath, "MCE2 shared config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", bashLocalConfigPath, err)
@@ -236,7 +236,7 @@ func (p *SharedLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove references from zsh local config if it exists
 	zshLocalConfigPath := getZshLocalConfigPath(osInfo)
-	if platform.FileEntryExists(zshLocalConfigPath) {
+	if platform.FileExists(zshLocalConfigPath) {
 		err := removeConfigBlockFromFile(zshLocalConfigPath, "MCE2 shared config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshLocalConfigPath, err)
@@ -244,7 +244,7 @@ func (p *SharedLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	}
 	// Remove references from zsh local config if it exists
 	zshLocalConfigPath = getZshLocalPreOhMyZshConfigPath(osInfo)
-	if platform.FileEntryExists(zshLocalConfigPath) {
+	if platform.FileExists(zshLocalConfigPath) {
 		err := removeConfigBlockFromFile(zshLocalConfigPath, "MCE2 shared config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshLocalConfigPath, err)
@@ -253,7 +253,7 @@ func (p *SharedLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the shared config file
 	localConfigPath := getSharedLocalConfigPath(osInfo)
-	if platform.FileEntryExists(localConfigPath) {
+	if platform.FileExists(localConfigPath) {
 		err := os.Remove(localConfigPath)
 		if err != nil {
 			return fmt.Errorf("failed to remove shared config file '%s': %w", localConfigPath, err)

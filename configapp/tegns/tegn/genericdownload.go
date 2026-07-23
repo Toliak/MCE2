@@ -175,7 +175,7 @@ func (p *GenericDownload) IsInstalled(osInfo tb.OSInfoExt) bool {
 		return false
 	}
 
-	return platform.FileEntryExists(
+	return platform.FileExists(
 		filepath.Join(downloadDir, p.appName),
 	)
 }

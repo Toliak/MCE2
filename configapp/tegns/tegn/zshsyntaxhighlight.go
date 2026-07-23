@@ -121,7 +121,7 @@ func (p *ZshSyntaxHighlight) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *ZshSyntaxHighlight) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getInstallDirZshSyntaxHighlight(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *ZshSyntaxHighlight) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -151,7 +151,7 @@ func (p *ZshSyntaxHighlight) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the plugin registration from zsh local pre-config
 	zshLocalPreConfig := getZshLocalPreOhMyZshConfigPath(osInfo)
-	if platform.FileEntryExists(zshLocalPreConfig) {
+	if platform.FileExists(zshLocalPreConfig) {
 		err := removeConfigBlockFromFile(zshLocalPreConfig, "zsh-syntax-highlighting")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshLocalPreConfig, err)
@@ -160,7 +160,7 @@ func (p *ZshSyntaxHighlight) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the cloned plugin
 	installPath := getInstallDirZshSyntaxHighlight(osInfo)
-	if platform.FileEntryExists(installPath) {
+	if platform.FileExists(installPath) {
 		err := os.RemoveAll(installPath)
 		if err != nil {
 			return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)

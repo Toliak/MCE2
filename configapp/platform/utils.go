@@ -37,16 +37,6 @@ func ParseKeyValueFile(r io.Reader) map[string]string {
 	return props
 }
 
-// Checks if a file/glob pattern exists
-func FileExists(pattern string) bool {
-	if strings.Contains(pattern, "*") {
-		matches, _ := filepath.Glob(pattern)
-		return len(matches) > 0
-	}
-	_, err := os.Stat(pattern)
-	return err == nil
-}
-
 // Checks if a command is available in PATH
 func CommandExists(cmd string) bool {
 	_, err := exec.LookPath(cmd)
@@ -57,10 +47,7 @@ func IsRoot() bool {
     return os.Geteuid() == 0
 }
 
-// TODO: FIXME: FileEntryExists vs FileExists
-// Why have I create two similar functions???
-
-func FileEntryExists(path string) bool {
+func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !(err != nil && os.IsNotExist(err))
 }
@@ -99,7 +86,7 @@ func CopyFile(src, dst string) error {
 }
 
 func OpenOrCreateFileAppend(path string) (*os.File, error) {
-	if FileEntryExists(path) {
+	if FileExists(path) {
 		v, err := os.OpenFile(path, os.O_APPEND | os.O_WRONLY, 0644)
 		return v, err
 	}

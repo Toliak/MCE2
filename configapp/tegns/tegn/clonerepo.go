@@ -130,7 +130,7 @@ func (p *CloneRepo) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *CloneRepo) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := filepath.Join(osInfo.MainInstallDir, ".git")
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -161,7 +161,7 @@ func (p *CloneRepo) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// // Assuming that installPath is the part of the data dir
 	// dataDir := osInfo.GetFullDataDir()
 
-	// if platform.FileEntryExists(dataDir) {
+	// if platform.FileExists(dataDir) {
 	// 	// Check if directory is empty or only contains files we created
 	// 	entries, err := os.ReadDir(dataDir)
 	// 	if err != nil {
@@ -171,7 +171,7 @@ func (p *CloneRepo) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// 	// If directory is empty, remove it
 	// 	if len(entries) == 0 {
 	// 		// Remove the entire MCE2 installation directory
-	// 		if platform.FileEntryExists(installPath) {
+	// 		if platform.FileExists(installPath) {
 	// 			err := os.RemoveAll(installPath)
 	// 			if err != nil {
 	// 				return fmt.Errorf("failed to remove installation directory '%s': %w", installPath, err)

@@ -131,7 +131,7 @@ func (p *ZshBaseConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *ZshBaseConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getInstallDirZshBaseConfig(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 var zshSourceOhMyZshLine = regexp.MustCompile(`^\s*source\s+.+/oh-my-zsh.sh\s*$`)
@@ -184,7 +184,7 @@ func (p *ZshBaseConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("getZshrcPath error: %w", err)
 	}
 
-	if platform.FileEntryExists(zshrcPath) {
+	if platform.FileExists(zshrcPath) {
 		err = removeConfigBlockFromFile(zshrcPath, "oh-my-zsh config (autogen mce2)")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshrcPath, err)
@@ -193,7 +193,7 @@ func (p *ZshBaseConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the Oh My ZSH installation
 	ohmyzshDir := getInstallDirZshBaseConfig(osInfo)
-	if platform.FileEntryExists(ohmyzshDir) {
+	if platform.FileExists(ohmyzshDir) {
 		err := os.RemoveAll(ohmyzshDir)
 		if err != nil {
 			return fmt.Errorf("os.RemoveAll error '%s': %w", ohmyzshDir, err)

@@ -102,7 +102,7 @@ func (p *VimLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *VimLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getVimLocalConfigPath(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -127,7 +127,7 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 
 		mce2vimConfig := filepath.Join(osInfo.MainInstallDir, "vim", "local.conf")
-		if already["cfg:mce2"] && platform.FileEntryExists(mce2vimConfig) {
+		if already["cfg:mce2"] && platform.FileExists(mce2vimConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
 				"\" <BEGIN> MCE2 config\nsource %s\n\" <END> MCE2 config\n", 
@@ -160,7 +160,7 @@ func (p *VimLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("getVimrcPath error: %w", err)
 	}
 
-	if platform.FileEntryExists(vimrcPath) {
+	if platform.FileExists(vimrcPath) {
 		err = removeConfigBlockFromFile(vimrcPath, "MCE2 local config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", vimrcPath, err)
@@ -169,7 +169,7 @@ func (p *VimLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the local config file
 	localConfigPath := getVimLocalConfigPath(osInfo)
-	if platform.FileEntryExists(localConfigPath) {
+	if platform.FileExists(localConfigPath) {
 		err := os.Remove(localConfigPath)
 		if err != nil {
 			return fmt.Errorf("os.Remove error '%s': %w", localConfigPath, err)

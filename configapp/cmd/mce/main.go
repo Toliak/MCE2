@@ -191,7 +191,7 @@ func prepareApp(args *ArgsInstall) (*ui.App, error) {
 
 	}
 
-	if platform.FileEntryExists(stateFilePath) {
+	if platform.FileExists(stateFilePath) {
 		tempState, err := loadTempState(stateFilePath)
 		if err == nil {
 			tempState.moveIntoState(app.State)

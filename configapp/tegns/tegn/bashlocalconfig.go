@@ -108,7 +108,7 @@ func (p *BashLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *BashLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getBashLocalConfigPath(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -166,7 +166,7 @@ func (p *BashLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("failed to get bashrc path: %w", err)
 	}
 
-	if platform.FileEntryExists(bashrcPath) {
+	if platform.FileExists(bashrcPath) {
 		err = removeConfigBlockFromFile(bashrcPath, "MCE2 local config")
 		if err != nil {
 			return fmt.Errorf("failed to remove MCE2 local config block from '%s': %w", bashrcPath, err)
@@ -174,7 +174,7 @@ func (p *BashLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	}
 
 	localConfigPath := getBashLocalConfigPath(osInfo)
-	if platform.FileEntryExists(localConfigPath) {
+	if platform.FileExists(localConfigPath) {
 		err := os.Remove(localConfigPath)
 		if err != nil {
 			return fmt.Errorf("failed to remove local config file '%s': %w", localConfigPath, err)

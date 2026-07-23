@@ -102,7 +102,7 @@ func (p *TmuxLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *TmuxLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getTmuxLocalConfigPath(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -127,7 +127,7 @@ func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		}
 
 		mce2tmuxConfig := filepath.Join(osInfo.MainInstallDir, "tmux", "local.conf")
-		if already["cfg:mce2"] && platform.FileEntryExists(mce2tmuxConfig) {
+		if already["cfg:mce2"] && platform.FileExists(mce2tmuxConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
 				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", 
@@ -159,7 +159,7 @@ func (p *TmuxLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("getTmuxConfigPath error: %w", err)
 	}
 
-	if platform.FileEntryExists(tmuxConfPath) {
+	if platform.FileExists(tmuxConfPath) {
 		err = removeConfigBlockFromFile(tmuxConfPath, "MCE2 local config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", tmuxConfPath, err)
@@ -168,7 +168,7 @@ func (p *TmuxLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the local config file
 	localConfigPath := getTmuxLocalConfigPath(osInfo)
-	if platform.FileEntryExists(localConfigPath) {
+	if platform.FileExists(localConfigPath) {
 		err := os.Remove(localConfigPath)
 		if err != nil {
 			return fmt.Errorf("os.Remove error '%s': %w", localConfigPath, err)

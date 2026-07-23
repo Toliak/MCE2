@@ -157,7 +157,7 @@ func (p *ZshLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *ZshLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getZshLocalConfigPath(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath string) ([]string, error) {
@@ -246,7 +246,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 
 		mce2zshConfig := filepath.Join(osInfo.MainInstallDir, "shell", "zsh.sh")
-		if already["cfg:mce2"] && platform.FileEntryExists(mce2zshConfig) {
+		if already["cfg:mce2"] && platform.FileExists(mce2zshConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
 				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", 
@@ -270,7 +270,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 
 		mce2zshConfig := filepath.Join(osInfo.MainInstallDir, "shell", "pre-zsh.sh")
-		if already["cfg:mce2"] && platform.FileEntryExists(mce2zshConfig) {
+		if already["cfg:mce2"] && platform.FileExists(mce2zshConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
 				"# <BEGIN> MCE2 pre-config\nsource '%s'\n# <END> MCE2 pre-config\n", 
@@ -322,7 +322,7 @@ func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("failed to get zshrc path: %w", err)
 	}
 
-	if platform.FileEntryExists(zshrcPath) {
+	if platform.FileExists(zshrcPath) {
 		// Remove pre-config block
 		err = removeConfigBlockFromFile(zshrcPath, "MCE2 local pre-config")
 		if err != nil {
@@ -338,7 +338,7 @@ func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the local config files
 	localConfigPath := getZshLocalConfigPath(osInfo)
-	if platform.FileEntryExists(localConfigPath) {
+	if platform.FileExists(localConfigPath) {
 		err := os.Remove(localConfigPath)
 		if err != nil {
 			return fmt.Errorf("os.Remove error '%s': %w", localConfigPath, err)
@@ -346,7 +346,7 @@ func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	}
 	
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
-	if platform.FileEntryExists(localPreConfigPath) {
+	if platform.FileExists(localPreConfigPath) {
 		err := os.Remove(localPreConfigPath)
 		if err != nil {
 			return fmt.Errorf("os.Remove error '%s': %w", localPreConfigPath, err)

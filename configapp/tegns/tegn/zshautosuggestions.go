@@ -118,7 +118,7 @@ func (p *ZshAutoSuggestions) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *ZshAutoSuggestions) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getInstallDirZshAutoSuggestions(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -151,7 +151,7 @@ func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 func (p *ZshAutoSuggestions) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the plugin registration from zsh local pre-config
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
-	if platform.FileEntryExists(localPreConfigPath) {
+	if platform.FileExists(localPreConfigPath) {
 		err := removeConfigBlockFromFile(localPreConfigPath, "MCE2 zsh-autosuggestions")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", localPreConfigPath, err)
@@ -160,7 +160,7 @@ func (p *ZshAutoSuggestions) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 		// Remove the cloned plugin
 		installPath := getInstallDirZshAutoSuggestions(osInfo)
-		if platform.FileEntryExists(installPath) {
+		if platform.FileExists(installPath) {
 			err := os.RemoveAll(installPath)
 			if err != nil {
 				return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)

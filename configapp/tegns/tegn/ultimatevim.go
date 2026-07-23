@@ -132,7 +132,7 @@ func (p *UltimateVim) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *UltimateVim) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := filepath.Join(getInstallDirUltimateVim(osInfo), ".git")
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
@@ -154,7 +154,7 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 
 	// Insert the config entry
 	templateFile := filepath.Join(path, "vimrcs", "basic.vim")
-	if !platform.FileEntryExists(templateFile) {
+	if !platform.FileExists(templateFile) {
 		return fmt.Errorf("templateFile '%s' does not exist", templateFile)
 	}
 
@@ -176,7 +176,7 @@ func (p *UltimateVim) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("getVimrcPath error: %w", err)
 	}
 
-	if platform.FileEntryExists(vimrcPath) {
+	if platform.FileExists(vimrcPath) {
 		err = removeConfigBlockFromFile(vimrcPath, "Ultimate vim config (autogen mce2)")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", vimrcPath, err)
@@ -185,7 +185,7 @@ func (p *UltimateVim) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the cloned repository
 	installPath := getInstallDirUltimateVim(osInfo)
-	if platform.FileEntryExists(installPath) {
+	if platform.FileExists(installPath) {
 		err := os.RemoveAll(installPath)
 		if err != nil {
 			return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)

@@ -139,7 +139,7 @@ func (p *ZshPowerLevel10k) GetFeatures() tb.TegnInstalledFeaturesMap {
 
 func (p *ZshPowerLevel10k) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getInstallDirZshPowerLevel10k(osInfo)
-	return platform.FileEntryExists(path)
+	return platform.FileExists(path)
 }
 
 var zshThemeRegexpReplace = regexp.MustCompile(`^(?:\s*#\s*)?((?:export\s+)?ZSH_THEME=).+$`)
@@ -250,7 +250,7 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 		purePromptPath := filepath.Join(getInstallDirZshPowerLevel10k(osInfo), "config", "p10k-lean.zsh")
 		purePromptCopyPath := getZshLocalP10kPromptPath(osInfo)
 		promptConfig := ""
-		if !platform.FileEntryExists(purePromptPath) {
+		if !platform.FileExists(purePromptPath) {
 			fmt.Printf("Unable to find pure p10k prompt config: %s\n", purePromptPath)
 		} else {
 			err = platform.CopyFile(purePromptPath, purePromptCopyPath)
@@ -281,7 +281,7 @@ func (p *ZshPowerLevel10k) ExecUninstall(osInfo tb.OSInfoExt) error {
 		return fmt.Errorf("getZshrcPath error: %w", err)
 	}
 
-	if platform.FileEntryExists(zshrcPath) {
+	if platform.FileExists(zshrcPath) {
 		// Remove p10k instant prompt block
 		err = removeConfigBlockFromFile(zshrcPath, "p10k instant prompt")
 		if err != nil {
@@ -306,7 +306,7 @@ func (p *ZshPowerLevel10k) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the p10k prompt config file if it was created
 	purePromptCopyPath := getZshLocalP10kPromptPath(osInfo)
-	if platform.FileEntryExists(purePromptCopyPath) {
+	if platform.FileExists(purePromptCopyPath) {
 		err := os.Remove(purePromptCopyPath)
 		if err != nil {
 			return fmt.Errorf("os.Remove error '%s': %w", purePromptCopyPath, err)
@@ -315,7 +315,7 @@ func (p *ZshPowerLevel10k) ExecUninstall(osInfo tb.OSInfoExt) error {
 
 	// Remove the cloned theme
 	installPath := getInstallDirZshPowerLevel10k(osInfo)
-	if platform.FileEntryExists(installPath) {
+	if platform.FileExists(installPath) {
 		err := os.RemoveAll(installPath)
 		if err != nil {
 			return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)
