@@ -197,10 +197,7 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 		return fmt.Errorf("GitClone error: %w", err)
 	}
 
-	zshrcOrigPath, err := getZshrcPath()
-	if err != nil {
-		return fmt.Errorf("failed to get zshrc path: %w", err)
-	}
+	zshrcOrigPath := getZshrcPath(osInfo)
 
 	err = prepareReplaceConfigTheme(
 		zshrcOrigPath,
@@ -246,14 +243,11 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 
 func (p *ZshPowerLevel10k) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Restore the original ZSH_THEME setting in .zshrc
-	zshrcPath, err := getZshrcPath()
-	if err != nil {
-		return fmt.Errorf("getZshrcPath error: %w", err)
-	}
+	zshrcPath := getZshrcPath(osInfo)
 
 	if platform.FileExists(zshrcPath) {
 		// Remove p10k instant prompt block
-		err = removeConfigBlockFromFile(zshrcPath, "p10k instant prompt")
+		err := removeConfigBlockFromFile(zshrcPath, "p10k instant prompt")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error: %w", err)
 		}

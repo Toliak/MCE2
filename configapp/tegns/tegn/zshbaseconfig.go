@@ -25,13 +25,9 @@ func getInstallDirZshBaseConfig(osInfo tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "oh-my-zsh")
 }
 
-func getZshrcPath() (string, error) {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	zshrcPath := filepath.Join(userHomeDir, ".zshrc")
-	return zshrcPath, err
+func getZshrcPath(osInfo tb.OSInfoExt) string {
+	zshrcPath := filepath.Join(osInfo.HomeDir, ".zshrc")
+	return zshrcPath
 }
 
 // GetID implements [tb.Tegn].
@@ -130,10 +126,7 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 		return fmt.Errorf("GitClone error: %w", err)
 	}
 	
-	zshrcOrigPath, err := getZshrcPath()
-	if err != nil {
-		return fmt.Errorf("failed to get zshrc path: %w", err)
-	}
+	zshrcOrigPath := getZshrcPath(osInfo)
 	err = platform.AppendFilepathString(zshrcOrigPath, getOhMyZshTemplateConfig(path))
 	if err != nil {
 		return fmt.Errorf("AppendFilepathString error '%s': %w", zshrcOrigPath, err)
@@ -144,13 +137,9 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 
 func (p *ZshBaseConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the configuration block from .zshrc
-	zshrcPath, err := getZshrcPath()
-	if err != nil {
-		return fmt.Errorf("getZshrcPath error: %w", err)
-	}
-
+	zshrcPath := getZshrcPath(osInfo)
 	if platform.FileExists(zshrcPath) {
-		err = removeConfigBlockFromFile(zshrcPath, "oh-my-zsh config (autogen mce2)")
+		err := removeConfigBlockFromFile(zshrcPath, "oh-my-zsh config (autogen mce2)")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", zshrcPath, err)
 		}

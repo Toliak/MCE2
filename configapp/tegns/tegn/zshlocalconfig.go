@@ -282,10 +282,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		}
 	}
 
-	zshrcPath, err := getZshrcPath()
-	if err != nil {
-		return fmt.Errorf("failed to get zshrc path: %w", err)
-	}
+	zshrcPath := getZshrcPath(osInfo)
 
 	lines, err := prepareZshrcLocalConfigLinesWithReplace(osInfo, zshrcPath)
 	if err != nil {
@@ -317,14 +314,11 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 
 func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the entries from .zshrc
-	zshrcPath, err := getZshrcPath()
-	if err != nil {
-		return fmt.Errorf("failed to get zshrc path: %w", err)
-	}
+	zshrcPath := getZshrcPath(osInfo)
 
 	if platform.FileExists(zshrcPath) {
 		// Remove pre-config block
-		err = removeConfigBlockFromFile(zshrcPath, "MCE2 local pre-config")
+		err := removeConfigBlockFromFile(zshrcPath, "MCE2 local pre-config")
 		if err != nil {
 			return fmt.Errorf("removeBlockFromFile error '%s': %w", zshrcPath, err)
 		}

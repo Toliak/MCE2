@@ -26,21 +26,14 @@ func getInstallDirOhMyTmux(osInfo tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "oh-my-tmux")
 }
 
-func getTmuxConfigDir(osInfo tb.OSInfoExt) (string, error) {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	path := filepath.Join(userHomeDir, ".config", "tmux")
-	return path, nil
+func getTmuxConfigDir(osInfo tb.OSInfoExt) string {
+	path := filepath.Join(osInfo.HomeDir, ".config", "tmux")
+	return path
 }
 
-func getTmuxConfigPath(osInfo tb.OSInfoExt) (string, error) {
-	dir, err := getTmuxConfigDir(osInfo)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "tmux.conf"), nil
+func getTmuxConfigPath(osInfo tb.OSInfoExt) string {
+	dir := getTmuxConfigDir(osInfo)
+	return filepath.Join(dir, "tmux.conf")
 }
 
 // GetID implements [tb.Tegn].
@@ -110,11 +103,8 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
 	path := getInstallDirOhMyTmux(osInfo)
 
-	targetTmuxConf, err := getTmuxConfigPath(osInfo)
-	if err != nil {
-		return fmt.Errorf("getTmuxConfigPath error: %w", err)
-	}
-	err = platform.MkdirAllParent(targetTmuxConf)
+	targetTmuxConf := getTmuxConfigPath(osInfo)
+	err := platform.MkdirAllParent(targetTmuxConf)
 	if err != nil {
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
@@ -166,13 +156,10 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 
 func (p *OhMyTmux) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the configuration block from tmux.conf
-	tmuxConfPath, err := getTmuxConfigPath(osInfo)
-	if err != nil {
-		return fmt.Errorf("getTmuxConfigPath error: %w", err)
-	}
+	tmuxConfPath := getTmuxConfigPath(osInfo)
 
 	if platform.FileExists(tmuxConfPath) {
-		err = removeConfigBlockFromFile(tmuxConfPath, "Oh-my-tmux config (autogen mce2)")
+		err := removeConfigBlockFromFile(tmuxConfPath, "Oh-my-tmux config (autogen mce2)")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", tmuxConfPath, err)
 		}

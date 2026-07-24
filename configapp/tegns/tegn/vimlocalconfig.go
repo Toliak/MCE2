@@ -140,10 +140,7 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 	}
 
 	// Insert the local config entry
-	vimrcConfPath, err := getVimrcPath()
-	if err != nil {
-		return fmt.Errorf("failed to get vimrc path: %w", err)
-	}
+	vimrcConfPath := getVimrcPath(osInfo)
 
 	err = platform.AppendFilepathString(
 		vimrcConfPath,
@@ -155,13 +152,10 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 
 func (p *VimLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the entry from .vimrc
-	vimrcPath, err := getVimrcPath()
-	if err != nil {
-		return fmt.Errorf("getVimrcPath error: %w", err)
-	}
+	vimrcPath := getVimrcPath(osInfo)
 
 	if platform.FileExists(vimrcPath) {
-		err = removeConfigBlockFromFile(vimrcPath, "MCE2 local config")
+		err := removeConfigBlockFromFile(vimrcPath, "MCE2 local config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", vimrcPath, err)
 		}

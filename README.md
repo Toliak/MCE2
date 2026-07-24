@@ -18,3 +18,11 @@ To select and install everything (carefully!):
 ```
 
 For the development information see [DEVELOPMENT.md](DEVELOPMENT.md)
+
+## /etc/skel installation
+
+If you would like to set the configs by default for any newly created user, install them into the /etc/skel directory:
+
+```
+/tmp/mce -ALL -home-dir=/etc/skel
+```

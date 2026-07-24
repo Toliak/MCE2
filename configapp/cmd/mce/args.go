@@ -38,6 +38,9 @@ type ArgsUninstall struct {
 	JSONPreset			  JSONUninstallPreset
 }
 
+// The value that can be used in the path specifications and will be replaced by the value from `-home-dir`
+const homeDirPlaceholder = "~"
+
 func parseSharedArgs(object *ArgsShared) {
 	// Inspector flags
 	flag.BoolVar(&object.InspectorConfig.Check, "check-enable", true, "Enable platform check")
@@ -81,9 +84,8 @@ func parseSharedArgs(object *ArgsShared) {
 	flag.StringVar(
 		&object.MainInstallDir,
 		"main-install-dir",
-		// FIXME:  do not use here the home directory!. Use 'home-dir' from the ARGV
-		filepath.Join("~", ".local", "share", "MakeConfigurationEasier2"),
-		"Directory to clone the MCE2 project (absolute path)",
+		filepath.Join(homeDirPlaceholder, ".local", "share", "MakeConfigurationEasier2"),
+		fmt.Sprintf("Directory to clone the MCE2 project (absolute path).\nThe placeholder '%s' can be used for further replacement by the value from the '-home-dir'\n", homeDirPlaceholder),
 	)
 	flag.StringVar(
 		&object.DataDir, 
@@ -100,12 +102,15 @@ func postParseSharedArgs(object *ArgsShared) error {
 
 	splitPath := platform.SplitPath(filepath.Clean(object.MainInstallDir))
 	for i, v := range splitPath {
-		if v == "~" {
+		if v == homeDirPlaceholder {
 			splitPath[i] = object.UserHomeDir
 		}
 	}
 
 	object.MainInstallDir = filepath.Join(splitPath...)
+
+	fmt.Printf("Home dir: %s\n", object.UserHomeDir)
+	fmt.Printf("MCE install dir: %s\n", object.MainInstallDir)
 	return nil
 }
 

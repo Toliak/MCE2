@@ -83,7 +83,8 @@ func (s TempStateSave) moveIntoState(state *ui.UIState) {
 	state.ParameterByIDMap = s.ParameterByIDMap
 }
 
-// This file name is not random, because we need to use the same file after 
+// This file name is not random, because we need to use the same file after
+// FIXME: add username or uid here
 var stateFilePath string = filepath.Join(os.TempDir(), "mce2-configapp-state-GAaqjz4n.json")
 
 func loadTempState(stateFilePath string) (*TempStateSave, error) {

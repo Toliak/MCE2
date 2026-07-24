@@ -303,3 +303,5 @@ def tests_install() -> List[Callable[[Path, Path], bool]]:
 
 
 # TODO: test the local zsh config
+
+# TODO: install into another home-dir location

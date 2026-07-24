@@ -26,13 +26,9 @@ func getInstallDirUltimateVim(osInfo tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "vimrc-amix")
 }
 
-func getVimrcPath() (string, error) {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	vimrcPath := filepath.Join(userHomeDir, ".vimrc")
-	return vimrcPath, err
+func getVimrcPath(osInfo tb.OSInfoExt) string {
+	vimrcPath := filepath.Join(osInfo.HomeDir, ".vimrc")
+	return vimrcPath
 }
 
 // GetID implements [tb.Tegn].
@@ -108,10 +104,7 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 		return fmt.Errorf("GitClone error: %w", err)
 	}
 
-	vimrcOrigPath, err := getVimrcPath()
-	if err != nil {
-		return fmt.Errorf("failed to get vimrc path: %w", err)
-	}
+	vimrcOrigPath := getVimrcPath(osInfo)
 
 	// Insert the config entry
 	templateFile := filepath.Join(path, "vimrcs", "basic.vim")
@@ -132,13 +125,10 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 
 func (p *UltimateVim) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the configuration block from .vimrc
-	vimrcPath, err := getVimrcPath()
-	if err != nil {
-		return fmt.Errorf("getVimrcPath error: %w", err)
-	}
+	vimrcPath := getVimrcPath(osInfo)
 
 	if platform.FileExists(vimrcPath) {
-		err = removeConfigBlockFromFile(vimrcPath, "Ultimate vim config (autogen mce2)")
+		err := removeConfigBlockFromFile(vimrcPath, "Ultimate vim config (autogen mce2)")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", vimrcPath, err)
 		}

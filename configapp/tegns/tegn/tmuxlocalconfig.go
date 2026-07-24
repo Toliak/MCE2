@@ -140,10 +140,7 @@ func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 	}
 
 	// Insert the local config entry into the tmux.conf
-	tmuxConfPath, err := getTmuxConfigPath(osInfo)
-	if err != nil {
-		return fmt.Errorf("getTmuxConfigPath error: %w", err)
-	}
+	tmuxConfPath := getTmuxConfigPath(osInfo)
 	err = platform.AppendFilepathString(
 		tmuxConfPath,
 		fmt.Sprintf("\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n", localConfigPath),
@@ -154,13 +151,10 @@ func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 
 func (p *TmuxLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 	// Remove the entry from tmux.conf
-	tmuxConfPath, err := getTmuxConfigPath(osInfo)
-	if err != nil {
-		return fmt.Errorf("getTmuxConfigPath error: %w", err)
-	}
+	tmuxConfPath := getTmuxConfigPath(osInfo)
 
 	if platform.FileExists(tmuxConfPath) {
-		err = removeConfigBlockFromFile(tmuxConfPath, "MCE2 local config")
+		err := removeConfigBlockFromFile(tmuxConfPath, "MCE2 local config")
 		if err != nil {
 			return fmt.Errorf("removeConfigBlockFromFile error '%s': %w", tmuxConfPath, err)
 		}

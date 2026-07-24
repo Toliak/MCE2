@@ -74,13 +74,9 @@ func getDownloadTempDir() string {
 	return path
 }
 
-func getDownloadAppDir() (string, error) {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	path := filepath.Join(userHomeDir, ".local", "bin")
-	return path, nil
+func getDownloadAppDir(osInfo tb.OSInfoExt) string {
+	path := filepath.Join(osInfo.HomeDir, ".local", "bin")
+	return path
 }
 
 // func (p *GenericDownload) GetPackageName() string {
@@ -145,7 +141,7 @@ func (p *GenericDownload) GetBeforeIDs() []string {
 
 // GetParameters implements [tegnbuilder.Tegn].
 func (p *GenericDownload) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	appDir, _ := getDownloadAppDir()
+	appDir := getDownloadAppDir(osInfo)
 
 	return[]tb.TegnParameter {
 		tb.NewTegnParameter(
@@ -170,11 +166,7 @@ func (p *GenericDownload) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter 
 }
 
 func (p *GenericDownload) IsInstalled(osInfo tb.OSInfoExt) bool {
-	downloadDir, err := getDownloadAppDir()
-	if err != nil {
-		return false
-	}
-
+	downloadDir := getDownloadAppDir(osInfo)
 	return platform.FileExists(
 		filepath.Join(downloadDir, p.appName),
 	)
@@ -266,11 +258,8 @@ func GenericDownloadPostMove(data GenericDownloadPostProcessData) error {
 }
 
 func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
-	appDir, err := getDownloadAppDir()
-	if err != nil {
-		return fmt.Errorf("getDownloadAppDir error: %w", err)
-	}
-	err = os.MkdirAll(appDir, 0755)
+	appDir := getDownloadAppDir(osInfo)
+	err := os.MkdirAll(appDir, 0755)
 	if err != nil {
 		return fmt.Errorf("MkdirAll %s: %w", appDir, err)
 	}
