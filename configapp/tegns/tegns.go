@@ -117,6 +117,7 @@ var AllZshConfigTegns = []tegnbuilder.TegnBuildFunc{
 	tegn.NewTegnZshBaseConfigBuilder(),
 	tegn.NewTegnZshPowerLevel10kBuilder(),
 	tegn.NewTegnZshSyntaxHighlightBuilder(),
+	tegn.NewTegnZshFavoriteDirBuilder(),
 	tegn.NewTegnZshLocalConfigBuilder(),
 	tegn.NewTegnZshChshBuilder(),
 
