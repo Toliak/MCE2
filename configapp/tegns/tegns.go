@@ -2,6 +2,7 @@ package tegns
 
 import (
 	"github.com/toliak/mce/tegnbuilder"
+	"github.com/toliak/mce/tegns/downloads"
 	"github.com/toliak/mce/tegns/tegn"
 )
 
@@ -106,10 +107,11 @@ var AllPkgTegns = []tegnbuilder.TegnBuildFunc{
 // # TODO: move the version into the parameters
 
 var AllDownloadTegns = []tegnbuilder.TegnBuildFunc{
-	downloadLf,
-	downloadFzf,
-	downloadLsGo,
-	downloadWebsocat,
+	downloads.Lf,
+	downloads.Fzf,
+	downloads.LsGo,
+	downloads.Websocat,
+	downloads.Gitstatusd,
 }
 
 // Register packages here

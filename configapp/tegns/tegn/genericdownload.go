@@ -28,11 +28,13 @@ type GenericDownloadUrlFun func (osInfo tb.OSInfoExt) (string, error)
 type GenericDownloadPostProcessFun func (data GenericDownloadPostProcessData) error
 
 type GenericDownloadPostProcessData struct {
-	osInfo tb.OSInfoExt
-	already tb.TegnInstalledFeaturesMap
-	downloadFilePath string
-	appDir string
-	appName string
+	OsInfo tb.OSInfoExt
+	Already tb.TegnInstalledFeaturesMap
+	DownloadFilePath string
+	AppDir string
+	AppName string
+	// TODO: pass parameters here
+	// TODO: and (maybe) allow the ability to add parameters
 }
 
 // The type describes the package that can be installed via the OS package manager
@@ -75,6 +77,9 @@ func getDownloadTempDir() string {
 }
 
 func getDownloadAppDir(osInfo tb.OSInfoExt) string {
+	// TODO: specify that in arguments.
+	// WARN: This must not be specified in arguments. 
+	// Because many tegns depend on it. And they cannot (and must not) "read" the parameters of other tegns.
 	path := filepath.Join(osInfo.HomeDir, ".local", "bin")
 	return path
 }
@@ -174,7 +179,7 @@ func (p *GenericDownload) IsInstalled(osInfo tb.OSInfoExt) bool {
 
 func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostProcessFun {
 	return func (data GenericDownloadPostProcessData) error {
-		file, err := os.Open(data.downloadFilePath)
+		file, err := os.Open(data.DownloadFilePath)
 		if err != nil {
 			return err
 		}
@@ -205,7 +210,7 @@ func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostPro
 				continue
 			}
 			found = true
-			target := filepath.Join(data.appDir, data.appName)
+			target := filepath.Join(data.AppDir, data.AppName)
 
 			switch header.Typeflag {
 
@@ -234,7 +239,7 @@ func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostPro
 		}
 
 		if !found {
-			return fmt.Errorf("Unable to find file '%s' in the archive '%s'", pathInArchive, data.downloadFilePath)
+			return fmt.Errorf("Unable to find file '%s' in the archive '%s'", pathInArchive, data.DownloadFilePath)
 		}
 
 		return nil
@@ -242,8 +247,8 @@ func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostPro
 }
 
 func GenericDownloadPostMove(data GenericDownloadPostProcessData) error {
-	sourcePath := data.downloadFilePath
-	targetPath := filepath.Join(data.appDir, data.appName)
+	sourcePath := data.DownloadFilePath
+	targetPath := filepath.Join(data.AppDir, data.AppName)
 	
 	err := os.Rename(sourcePath, targetPath)
 	if err != nil {
@@ -282,11 +287,11 @@ func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 	}
 
 	err = p.postProcess(GenericDownloadPostProcessData{
-		osInfo: osInfo,
-		already: already,
-		downloadFilePath: downloadPath,
-		appDir: appDir,
-		appName: p.appName,
+		OsInfo: osInfo,
+		Already: already,
+		DownloadFilePath: downloadPath,
+		AppDir: appDir,
+		AppName: p.appName,
 	})
 	if err != nil {
 		return fmt.Errorf("postProcess: %w", err)
