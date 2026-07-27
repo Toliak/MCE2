@@ -171,3 +171,25 @@ func DownloadFile(url string, filepath string) error {
 func SplitPath(path string) []string {
 	return strings.Split(path, string(os.PathSeparator))
 }
+
+func IsFileSymlinkTo(pathToCheck string, symlinkPointsAt string) bool {
+	// Readlink returns the raw string destination of the symbolic link
+	target, err := os.Readlink(pathToCheck)
+	if err != nil {
+		// Returns an error if the file is not a symlink or doesn't exist
+		return false 
+	}
+
+	targetAbs, err := filepath.Abs(target)
+	if err != nil {
+		return false 
+	}
+
+	symlinkPointsAtAbs, err := filepath.Abs(symlinkPointsAt)
+	if err != nil {
+		return false 
+	}
+	
+	// Check for an exact match to your target string
+	return targetAbs == symlinkPointsAtAbs
+}

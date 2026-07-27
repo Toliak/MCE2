@@ -90,7 +90,7 @@ func (p *ZshPowerLevel10k) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter
 		tb.NewTegnParameter(
 			"additional-config",
 			"Auto config p10k",
-			tb.TegnParameterTypeString,
+			tb.TegnParameterTypeBool,
 			tb.WithDescription("Configure p10k prompt automatically (skip `p10k configure`)"),
 			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
 			tb.WithAvailabilityTrue(),

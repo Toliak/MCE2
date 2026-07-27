@@ -81,15 +81,6 @@ func (p *TmuxLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter 
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
-		tb.NewTegnParameter(
-			"pre-path",
-			"Local config path",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Local config path (read-only)"),
-			tb.WithDefaultValue(getTmuxLocalConfigPath(osInfo)),
-			tb.WithAvailabilityFalse("Read-only"),
-			tb.WithReadOnlyValidator(),
-		),
 	}
 }
 
@@ -104,6 +95,11 @@ func (p *TmuxLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 	path := getTmuxLocalConfigPath(osInfo)
 	return platform.FileExists(path)
 }
+
+// TODO: (global TODO)
+// Distinguish:
+// - when we allow the file to exist (and where we append content into it)
+// - when we are not and we must check (or assume) that the file does not exist
 
 func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getTmuxLocalConfigPath(osInfo)
@@ -145,6 +141,9 @@ func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		tmuxConfPath,
 		fmt.Sprintf("\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n", localConfigPath),
 	)
+	if err != nil {
+		return fmt.Errorf("failed to write to config file '%s': %w", tmuxConfPath, err)
+	}
 
 	return nil
 }
