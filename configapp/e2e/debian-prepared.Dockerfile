@@ -15,6 +15,9 @@ RUN apt-get install -y sudo
 RUN printf "\n%s\n" 'user ALL=(ALL:ALL) NOPASSWD: ALL' >> /etc/sudoers && \
     useradd user -m -u 1000
 
+RUN rm -rf /tmp && \
+    ln -s /dev/shm /tmp
+
 USER 1000:1000
 
 ENTRYPOINT ["/opt/python/bin/python3.10", "/test/e2e/overlay/__main__.py"]

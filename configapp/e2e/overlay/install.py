@@ -305,3 +305,7 @@ def tests_install() -> List[Callable[[Path, Path], bool]]:
 # TODO: test the local zsh config
 
 # TODO: install into another home-dir location
+
+# TODO: install with different filesystems in GenericDownloadPostMove
+# mkdir -p /dev/shm/mce2-download-temp
+# ln -s /dev/shm/mce2-download-temp /tmp/mce2-download-temp

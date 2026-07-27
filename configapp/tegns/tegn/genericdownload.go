@@ -71,6 +71,7 @@ func NewGenericDownloadBuilder(
 }
 
 func getDownloadTempDir() string {
+	// TODO: make this as an argument
 	tempDir := os.TempDir()
 	path := filepath.Join(tempDir, "mce2-download-temp")
 	return path
@@ -250,7 +251,7 @@ func GenericDownloadPostMove(data GenericDownloadPostProcessData) error {
 	sourcePath := data.DownloadFilePath
 	targetPath := filepath.Join(data.AppDir, data.AppName)
 	
-	err := os.Rename(sourcePath, targetPath)
+	err := platform.MoveFile(sourcePath, targetPath)
 	if err != nil {
 		return fmt.Errorf("GenericDownloadPostMove Rename: %w", err)
 	}
