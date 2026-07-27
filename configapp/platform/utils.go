@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -37,79 +35,8 @@ func ParseKeyValueFile(r io.Reader) map[string]string {
 	return props
 }
 
-// Checks if a command is available in PATH
-func CommandExists(cmd string) bool {
-	_, err := exec.LookPath(cmd)
-	return err == nil
-}
-
 func IsRoot() bool {
     return os.Geteuid() == 0
-}
-
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-	return !(err != nil && os.IsNotExist(err))
-}
-
-// Mkdir with parents
-func MkdirAllParent(path string) error {
-	parentDir := filepath.Dir(path)
-	return os.MkdirAll(parentDir, 0755)
-}
-
-// See https://opensource.com/article/18/6/copying-files-go
-func CopyFile(src, dst string) error {
-	sourceFileStat, err := os.Stat(src)
-	if err != nil {
-			return err
-	}
-
-	if !sourceFileStat.Mode().IsRegular() {
-			return fmt.Errorf("%s is not a regular file", src)
-	}
-
-	source, err := os.Open(src)
-	if err != nil {
-			return err
-	}
-	defer source.Close()
-
-	destination, err := os.Create(dst)
-	if err != nil {
-			return err
-	}
-	defer destination.Close()
-
-	_, err = io.Copy(destination, source)
-	return err
-}
-
-func OpenOrCreateFileAppend(path string) (*os.File, error) {
-	if FileExists(path) {
-		v, err := os.OpenFile(path, os.O_APPEND | os.O_WRONLY, 0644)
-		return v, err
-	}
-
-	v, err := os.Create(path)
-	return v, err
-}
-
-// Safe function to append text into the file.
-// It will create the file if it does not exist.
-func AppendFilepathString(path string, text string) error {
-	outputFile, err := OpenOrCreateFileAppend(path)
-    if err != nil {
-        return err
-    }
-    defer outputFile.Close()
-
-	_, err = outputFile.WriteString(text)
-	if err != nil {
-        return err
-    }
-
-	return nil
 }
 
 type ProgressWriter struct {
@@ -170,26 +97,4 @@ func DownloadFile(url string, filepath string) error {
 // SplitPath splits a file path into its components
 func SplitPath(path string) []string {
 	return strings.Split(path, string(os.PathSeparator))
-}
-
-func IsFileSymlinkTo(pathToCheck string, symlinkPointsAt string) bool {
-	// Readlink returns the raw string destination of the symbolic link
-	target, err := os.Readlink(pathToCheck)
-	if err != nil {
-		// Returns an error if the file is not a symlink or doesn't exist
-		return false 
-	}
-
-	targetAbs, err := filepath.Abs(target)
-	if err != nil {
-		return false 
-	}
-
-	symlinkPointsAtAbs, err := filepath.Abs(symlinkPointsAt)
-	if err != nil {
-		return false 
-	}
-	
-	// Check for an exact match to your target string
-	return targetAbs == symlinkPointsAtAbs
 }
