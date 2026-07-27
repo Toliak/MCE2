@@ -79,6 +79,8 @@ func NewTempStateSave(state *ui.UIState) *TempStateSave {
 }
 
 func (s TempStateSave) moveIntoState(state *ui.UIState) {
+	// FIXME: bug: Do not remove default values from ParameterByIDMap, if nothing specified in the State file
+
 	state.EnabledIDsMap = s.EnabledIDsMap
 	state.ParameterByIDMap = s.ParameterByIDMap
 }
@@ -192,6 +194,7 @@ func prepareApp(args *ArgsInstall) (*ui.App, error) {
 
 	}
 
+	// TODO: add argument to ignore the cached state file
 	if platform.FileExists(stateFilePath) {
 		tempState, err := loadTempState(stateFilePath)
 		if err == nil {
