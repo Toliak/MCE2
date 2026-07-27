@@ -26,14 +26,15 @@ func getInstallDirOhMyTmux(osInfo tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "oh-my-tmux")
 }
 
-func getTmuxConfigDir(osInfo tb.OSInfoExt) string {
-	path := filepath.Join(osInfo.HomeDir, ".config", "tmux")
-	return path
+// Config path starting with tmux version 3.1
+func getTmuxConfigPath(osInfo tb.OSInfoExt) string {
+	dir := filepath.Join(osInfo.HomeDir, ".config", "tmux")
+	return filepath.Join(dir, "tmux.conf")
 }
 
-func getTmuxConfigPath(osInfo tb.OSInfoExt) string {
-	dir := getTmuxConfigDir(osInfo)
-	return filepath.Join(dir, "tmux.conf")
+// Config path with tmux version below 3.1
+func getTmuxConfigPathOld(osInfo tb.OSInfoExt) string {
+	return filepath.Join(osInfo.HomeDir, ".tmux.conf")
 }
 
 // GetID implements [tb.Tegn].
@@ -81,7 +82,18 @@ func (p *OhMyTmux) GetBeforeIDs() []string {
 // GetParameters implements [tb.Tegn].
 func (p *OhMyTmux) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/gpakosz/.tmux", getInstallDirOhMyTmux(osInfo))
-	return gitParams
+	params := []tb.TegnParameter {
+		tb.NewTegnParameter(
+			"cfg-compat",
+			"Config compatibility",
+			tb.TegnParameterTypeBool,
+			tb.WithDescription("Config compatibility with tmux version <3.1"),
+			tb.WithDefaultValue(tb.TegnParameterFromBool(true)),
+			tb.WithAvailabilityTrue(),
+		),
+	}
+	params = append(gitParams, params...)
+	return params
 }
 
 // GetFeatures implements [tb.Tegn].
@@ -115,7 +127,7 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 		return fmt.Errorf("GitClone error: %w", err)
 	}
 
-	// Create symbolic link for .tmux.conf
+	// Create "reference" to .tmux.conf from the config
 	sourceTmuxConf := filepath.Join(path, ".tmux.conf")
 
 	err = platform.MkdirAllParent(targetTmuxConf)
@@ -123,15 +135,38 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 		return fmt.Errorf("MkdirAll parent '%s' error: %w", targetTmuxConf, err)
 	}
 
+	// TMUX_CONF and TMUX_CONF_LOCAL are required by oh-my-tmux
 	err = platform.AppendFilepathString(
 		targetTmuxConf,
 		fmt.Sprintf(
-			"# <BEGIN> Oh-my-tmux config (autogen mce2)\nset-environment -g TMUX_CONF \"%s\"\nset-environment -gu TMUX_CONF_LOCAL\nsource-file \"%s\"\n# <END> Oh-my-tmux config (autogen mce2)\n\n", 
+			`# <BEGIN> Oh-my-tmux config (autogen mce2)
+set-environment -g TMUX_CONF "%s"
+set-environment -gu TMUX_CONF_LOCAL
+source-file "%s"
+# <END> Oh-my-tmux config (autogen mce2)` + "\n\n", 
 			sourceTmuxConf,
 			sourceTmuxConf,
 		),
 	)
 
+	// Insert the local config entry into the ~/.tmux.conf (backwards compatibilty)
+	cfgCompat := tb.TegnParameterToBool(params["cfg-compat"])
+	if cfgCompat {
+		tmuxOldConfPath := getTmuxConfigPathOld(osInfo)
+		if !platform.IsFileSymlinkTo(tmuxOldConfPath, targetTmuxConf) {
+			err = platform.AppendFilepathString(
+				tmuxOldConfPath,
+				fmt.Sprintf("\n\n# <BEGIN> MCE2 local config ref\nsource '%s'\n# <END> MCE2 local config ref\n\n", targetTmuxConf),
+			)
+		} else {
+			fmt.Printf(
+				"Config compatibility skipped, because '%s' is a symlink to a new config file '%s'\n",
+				tmuxOldConfPath, targetTmuxConf,
+			)
+		}
+	}
+
+	// WARN: We are not backing up the files
 	// We are not using .local file here! Just put your configs into the tmux.conf
 
 	// Copy .tmux.conf.local template to the config directory
