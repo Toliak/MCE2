@@ -81,15 +81,6 @@ func (p *VimLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 			tb.WithAvailabilityFalse("Read-only"),
 			tb.WithReadOnlyValidator(),
 		),
-		tb.NewTegnParameter(
-			"pre-path",
-			"Local config path",
-			tb.TegnParameterTypeString,
-			tb.WithDescription("Local config path (read-only)"),
-			tb.WithDefaultValue(getVimLocalConfigPath(osInfo)),
-			tb.WithAvailabilityFalse("Read-only"),
-			tb.WithReadOnlyValidator(),
-		),
 	}
 }
 
