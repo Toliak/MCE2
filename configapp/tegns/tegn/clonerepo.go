@@ -47,7 +47,9 @@ func (p *CloneRepo) GetAvailableCPUArch() *[]data.CPUArchE {
 // GetAvailableOsType implements [tb.Tegn].
 func (p *CloneRepo) GetAvailableOsType() *[]data.OSTypeE {
 	return &[]data.OSTypeE{
+		data.OSTypeAndroid,
 		data.OSTypeLinux,
+		data.OSTypeDarwin,
 	}
 }
 

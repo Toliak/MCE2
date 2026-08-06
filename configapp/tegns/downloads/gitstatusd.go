@@ -14,21 +14,24 @@ import (
 func calculateGitstatusdInternalName(osInfo tegnbuilder.OSInfoExt) (string, error) {
     var osPart, archPart string
     switch osInfo.OsType.V {
-    case data.OSTypeLinux: osPart = "linux"
-    case data.OSTypeDarwin: osPart = "darwin"
-    case data.OSTypeWindows:
-        // Simplified fallback, refine if necessary based on precise environment detection
-        osPart = "msys_nt-10.0"
-    default: return "", fmt.Errorf("unsupported OS type for gitstatusd internal name: %s", osInfo.OsType.V)
-    }
-    switch osInfo.Arch.V {
-    case data.CPUArchAMD64: archPart = "x86_64"
-    case data.CPUArchI386: archPart = "i686"
-    case data.CPUArchAARCH64: archPart = "aarch64"
-    case data.CPUArchARMv7: archPart = "armv7l"
-    case data.CPUArchPPC64: archPart = "ppc64le"
-    // Add other archs if supported by gitstatusd releases
-    default: return "", fmt.Errorf("unsupported CPU arch for gitstatusd internal name: %s", osInfo.Arch.V)
+        case data.OSTypeLinux:
+            osPart = "linux"
+            switch osInfo.Arch.V {
+                case data.CPUArchAMD64: archPart = "x86_64"
+                case data.CPUArchI386: archPart = "i686"
+                case data.CPUArchAARCH64: archPart = "aarch64"
+                case data.CPUArchPPC64: archPart = "ppc64le"
+                default: return "", fmt.Errorf("unsupported CPU arch for gitstatusd: %s, %s", osInfo.OsType.V, osInfo.Arch.V)
+            }
+        case data.OSTypeDarwin:
+            osPart = "darwin"
+            switch osInfo.Arch.V {
+                case data.CPUArchAMD64: archPart = "x86_64"
+                case data.CPUArchAARCH64: archPart = "arm64"
+                default: return "", fmt.Errorf("unsupported CPU arch for gitstatusd: %s, %s", osInfo.OsType.V, osInfo.Arch.V)
+            }
+        // case data.OSTypeWindows: osPart = "msys_nt-10.0"
+        default: return "", fmt.Errorf("unsupported OS type for gitstatusd: %s", osInfo.OsType.V)
     }
     return fmt.Sprintf("gitstatusd-%s-%s", osPart, archPart), nil
 }
@@ -112,25 +115,13 @@ var Gitstatusd = tegn.NewGenericDownloadBuilder(
         // Define base URL and version based on install.info
         baseURL := "https://github.com/romkatv/gitstatus/releases/download/v1.5.4/"
 
-        var osPart, archPart string
-        switch osInfo.OsType.V {
-        case data.OSTypeLinux: osPart = "linux"
-        case data.OSTypeDarwin: osPart = "darwin"
-        case data.OSTypeWindows: osPart = "msys_nt-10.0" // Fallback, refine if necessary
-        default: return "", fmt.Errorf("unsupported OS type for gitstatusd: %s", osInfo.OsType.V)
-        }
-        switch osInfo.Arch.V {
-        case data.CPUArchAMD64: archPart = "x86_64"
-        case data.CPUArchI386: archPart = "i686"
-        case data.CPUArchAARCH64: archPart = "aarch64"
-        case data.CPUArchARMv7: archPart = "armv7l"
-        case data.CPUArchPPC64: archPart = "ppc64le"
-        // Add other archs if supported by gitstatusd releases
-        default: return "", fmt.Errorf("unsupported CPU architecture for gitstatusd: %s", osInfo.Arch.V)
+        internalName, err := calculateGitstatusdInternalName(osInfo)
+        if err != nil {
+            return "", err
         }
 
         // Construct the final URL for the .tar.gz release asset
-        filename := fmt.Sprintf("gitstatusd-%s-%s.tar.gz", osPart, archPart)
+        filename := fmt.Sprintf("%s.tar.gz", internalName)
         url := fmt.Sprintf("%s%s", baseURL, filename)
         return url, nil
     },
