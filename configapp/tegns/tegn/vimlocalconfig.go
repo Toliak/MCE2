@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type VimLocalConfig struct {}
+type VimLocalConfig struct{}
 
 var _ tb.Tegn = (*VimLocalConfig)(nil)
 
@@ -20,7 +21,7 @@ func NewTegnVimLocalConfigBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getVimLocalConfigPath(osInfo tb.OSInfoExt) string {
+func getVimLocalConfigPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-vim.conf")
 }
 
@@ -41,19 +42,19 @@ func (p *VimLocalConfig) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *VimLocalConfig) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *VimLocalConfig) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *VimLocalConfig) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *VimLocalConfig) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *VimLocalConfig) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// fmt.Printf("before: %#v\n", before)
@@ -70,8 +71,8 @@ func (p *VimLocalConfig) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *VimLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
+func (p *VimLocalConfig) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
+	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"path",
 			"Local config path",
@@ -87,16 +88,16 @@ func (p *VimLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 // GetFeatures implements [tb.Tegn].
 func (p *VimLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:vim-local"): true, 
+		tb.TegnFeature("cfg:vim-local"): true,
 	}
 }
 
-func (p *VimLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *VimLocalConfig) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getVimLocalConfigPath(osInfo)
 	return platform.FileExists(path)
 }
 
-func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *VimLocalConfig) ExecInstall(osInfo *tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getVimLocalConfigPath(osInfo)
 
 	err := platform.MkdirAllParent(localConfigPath)
@@ -121,7 +122,7 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		if already["cfg:mce2"] && platform.FileExists(mce2vimConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
-				"\" <BEGIN> MCE2 config\nsource %s\n\" <END> MCE2 config\n", 
+				"\" <BEGIN> MCE2 config\nsource %s\n\" <END> MCE2 config\n",
 				mce2vimConfig,
 			)
 			if err != nil {
@@ -141,7 +142,7 @@ func (p *VimLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 	return nil
 }
 
-func (p *VimLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *VimLocalConfig) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the entry from .vimrc
 	vimrcPath := getVimrcPath(osInfo)
 

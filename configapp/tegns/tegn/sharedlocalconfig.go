@@ -7,12 +7,13 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type SharedLocalConfig struct {}
+type SharedLocalConfig struct{}
 
 var _ tb.Tegn = (*SharedLocalConfig)(nil)
 
@@ -22,7 +23,7 @@ func NewTegnSharedLocalConfigBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getSharedLocalConfigPath(osInfo tb.OSInfoExt) string {
+func getSharedLocalConfigPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-cfg.shared")
 }
 
@@ -43,19 +44,19 @@ func (p *SharedLocalConfig) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *SharedLocalConfig) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *SharedLocalConfig) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *SharedLocalConfig) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *SharedLocalConfig) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *SharedLocalConfig) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	return tb.NewTegnAvailable()
@@ -70,8 +71,8 @@ func (p *SharedLocalConfig) GetBeforeIDs() []string {
 var sharedConfigPATHValidator *regexp.Regexp = regexp.MustCompile(`^[^"']+$`)
 
 // GetParameters implements [tb.Tegn].
-func (p *SharedLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
+func (p *SharedLocalConfig) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
+	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"path",
 			"Local config path",
@@ -120,11 +121,11 @@ func (p *SharedLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParamete
 // GetFeatures implements [tb.Tegn].
 func (p *SharedLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:shared-local"): true, 
+		tb.TegnFeature("cfg:shared-local"): true,
 	}
 }
 
-func (p *SharedLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *SharedLocalConfig) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getSharedLocalConfigPath(osInfo)
 	return platform.FileExists(path)
 }
@@ -165,7 +166,7 @@ func insertIntoPreZshConfig(path, text string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	lines := make([]string, 0)
 	for line := range strings.Lines(string(read)) {
 		lines = append(lines, line)
@@ -180,7 +181,7 @@ func insertIntoPreZshConfig(path, text string) error {
 	return err
 }
 
-func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *SharedLocalConfig) ExecInstall(osInfo *tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getSharedLocalConfigPath(osInfo)
 	err := platform.MkdirAllParent(localConfigPath)
 	if err != nil {
@@ -224,7 +225,7 @@ func (p *SharedLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInst
 	return nil
 }
 
-func (p *SharedLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *SharedLocalConfig) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove references from bash local config if it exists
 	bashLocalConfigPath := getBashLocalConfigPath(osInfo)
 	if platform.FileExists(bashLocalConfigPath) {

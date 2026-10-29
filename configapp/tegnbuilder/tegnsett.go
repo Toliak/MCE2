@@ -1,8 +1,8 @@
 package tegnbuilder
 
 import (
-	"maps"
 	"fmt"
+	"maps"
 )
 
 // Tegnsett represents a group of related Tegns.
@@ -13,18 +13,19 @@ type Tegnsett interface {
 	GetChildren() []Tegn
 
 	// Post-install stage, after all Tegns (in ths Tegnsett) were installed.
-	// 
+	//
 	// The installedTegns contains only installed Tegns from the current Tegnsett.
 	// The "already" includes features that were added by the children Tegns.
 	ExecPostInstall(
 		installedTegns []Tegn,
-		osInfo OSInfoExt,
+		osInfo *OSInfoExt,
 		already TegnInstalledFeaturesMap,
 		tegnToParams map[string]TegnParameterMap,
 	) error
 }
 
 type TegnsettBuildFunc func() Tegnsett
+
 // type TegnsettOuterBuildFunc func (children []TegnBuildFunc) TegnsettBuildFunc
 
 type TegnsettInitializeError struct {
@@ -40,6 +41,10 @@ func (e *TegnsettInitializeError) Error() string {
 type MapTegnsettByID map[string]Tegnsett
 type MapTegnByID map[string]Tegn
 
+// TegnsettInitializeResult contains initialized Tegnsetts and Tegns.
+//
+// The maps inside this struct are never nil after a successful initialization.
+// Use it by pointer (*TegnsettInitializeResult) to avoid copying the struct.
 type TegnsettInitializeResult struct {
 	TegnsettByID MapTegnsettByID
 	TegnByID     MapTegnByID
@@ -102,6 +107,9 @@ func InitializeAllTegnsetts(tegnsetts []TegnsettBuildFunc) (*TegnsettInitializeR
 	}, nil
 }
 
+// TegnsettsOrderResult contains the installation order of Tegnsetts and Tegns.
+//
+// Use it by pointer (*TegnsettsOrderResult) to avoid copying the struct.
 type TegnsettsOrderResult struct {
 	Tegnsett         []string
 	TegnByTegnsettID map[string][]string
@@ -109,8 +117,12 @@ type TegnsettsOrderResult struct {
 
 func GetTegnsettsOrder(tegnsettByID MapTegnsettByID) (*TegnsettsOrderResult, error) {
 	generalArray := make([]TegnGeneral, 0, len(tegnsettByID))
-	for _, v := range tegnsettByID {
-		generalArray = append(generalArray, v.(TegnGeneral))
+	for id, v := range tegnsettByID {
+		general, ok := v.(TegnGeneral)
+		if !ok {
+			return nil, fmt.Errorf("Tegnsett '%s' does not implement TegnGeneral", id)
+		}
+		generalArray = append(generalArray, general)
 	}
 
 	tegnsettOrder, err := GetGeneralOrder(generalArray)
@@ -125,7 +137,11 @@ func GetTegnsettsOrder(tegnsettByID MapTegnsettByID) (*TegnsettsOrderResult, err
 
 		generalArray := make([]TegnGeneral, 0, len(tegnsettByID))
 		for _, v := range children {
-			generalArray = append(generalArray, v.(TegnGeneral))
+			general, ok := v.(TegnGeneral)
+			if !ok {
+				return nil, fmt.Errorf("Child Tegn '%s' of Tegnsett '%s' does not implement TegnGeneral", v.GetID(), id)
+			}
+			generalArray = append(generalArray, general)
 		}
 
 		tegnOrder, err := GetGeneralOrder(generalArray)
@@ -142,11 +158,11 @@ func GetTegnsettsOrder(tegnsettByID MapTegnsettByID) (*TegnsettsOrderResult, err
 	}, nil
 }
 
-type TegnGeneralAvailabilityByID  map[string]TegnAvailability
+type TegnGeneralAvailabilityByID map[string]TegnAvailability
 
 func GetTegnsettsAvailability(
-	osInfo OSInfoExt,
-	orders TegnsettsOrderResult,
+	osInfo *OSInfoExt,
+	orders *TegnsettsOrderResult,
 	tegnsettByID MapTegnsettByID,
 	tegnByID MapTegnByID,
 	selectedIDs TegnGeneralEnabledIDsMap,

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -22,11 +23,11 @@ func NewTegnUltimateVimBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getInstallDirUltimateVim(osInfo tb.OSInfoExt) string {
+func getInstallDirUltimateVim(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "vimrc-amix")
 }
 
-func getVimrcPath(osInfo tb.OSInfoExt) string {
+func getVimrcPath(osInfo *tb.OSInfoExt) string {
 	vimrcPath := filepath.Join(osInfo.HomeDir, ".vimrc")
 	return vimrcPath
 }
@@ -50,19 +51,19 @@ URL: https://github.com/amix/vimrc
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *UltimateVim) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *UltimateVim) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *UltimateVim) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *UltimateVim) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *UltimateVim) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	return tb.NewTegnAvailable()
@@ -74,7 +75,7 @@ func (p *UltimateVim) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *UltimateVim) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *UltimateVim) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/amix/vimrc", getInstallDirUltimateVim(osInfo))
 	return gitParams
 }
@@ -82,17 +83,17 @@ func (p *UltimateVim) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 // GetFeatures implements [tb.Tegn].
 func (p *UltimateVim) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:vim-base"): true,
+		tb.TegnFeature("cfg:vim-base"):     true,
 		tb.TegnFeature("cfg:vim-ultimate"): true,
 	}
 }
 
-func (p *UltimateVim) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *UltimateVim) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := filepath.Join(getInstallDirUltimateVim(osInfo), ".git")
 	return platform.FileExists(path)
 }
 
-func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *UltimateVim) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
 	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
@@ -113,7 +114,7 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 	}
 
 	err = platform.AppendFilepathString(
-		vimrcOrigPath, 
+		vimrcOrigPath,
 		fmt.Sprintf("\" <BEGIN> Ultimate vim config (autogen mce2)\nsource %s\n\" <END> Ultimate vim config (autogen mce2)\n", templateFile),
 	)
 	if err != nil {
@@ -123,7 +124,7 @@ func (p *UltimateVim) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalled
 	return nil
 }
 
-func (p *UltimateVim) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *UltimateVim) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the configuration block from .vimrc
 	vimrcPath := getVimrcPath(osInfo)
 

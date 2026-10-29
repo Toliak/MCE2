@@ -3,19 +3,20 @@ package tegnsett
 import (
 	"encoding/json"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
 type GenericTegnsett struct {
-	id string
-	name string
+	id          string
+	name        string
 	description string
-	beforeIDs []string
+	beforeIDs   []string
 
 	children []tb.Tegn
 
-	availabilityFunc tb.TegnAvailabilityFunc
+	availabilityFunc optional.Optional[tb.TegnAvailabilityFunc]
 }
 
 var _ tb.Tegnsett = (*GenericTegnsett)(nil)
@@ -27,13 +28,17 @@ func NewGeneralTegnsett(
 	availabilityFunc tb.TegnAvailabilityFunc,
 ) tb.TegnsettBuildFunc {
 	return func() tb.Tegnsett {
+		availabilityOpt := optional.None[tb.TegnAvailabilityFunc]()
+		if availabilityFunc != nil {
+			availabilityOpt = optional.Some(availabilityFunc)
+		}
 		v := GenericTegnsett{
-			id: id,
-			name: name,
+			id:          id,
+			name:        name,
 			description: description,
-			beforeIDs: beforeIDs,
+			beforeIDs:   beforeIDs,
 			// children will be add later
-			availabilityFunc: availabilityFunc,
+			availabilityFunc: availabilityOpt,
 		}
 
 		v.children = make([]tb.Tegn, len(children))
@@ -63,24 +68,24 @@ func (p *GenericTegnsett) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegnsett].
-func (p *GenericTegnsett) GetAvailableCPUArch() *[]data.CPUArchE {
+func (p *GenericTegnsett) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
 	// TODO: fill that in the constructor
-	return nil
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegnsett].
-func (p *GenericTegnsett) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *GenericTegnsett) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegnsett].
 func (p *GenericTegnsett) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
-	if p.availabilityFunc != nil {
-		return p.availabilityFunc(osInfo, before, enabledIds)
+	if availabilityFunc, ok := p.availabilityFunc.Get(); ok {
+		return availabilityFunc(osInfo, before, enabledIds)
 	}
 
 	return tb.NewTegnAvailable()
@@ -97,16 +102,16 @@ func (p *GenericTegnsett) GetChildren() []tb.Tegn {
 }
 
 func (p *GenericTegnsett) ExecPostInstall(
-	installedTegns []tb.Tegn, 
-	osInfo tb.OSInfoExt, 
-	already tb.TegnInstalledFeaturesMap, 
+	installedTegns []tb.Tegn,
+	osInfo *tb.OSInfoExt,
+	already tb.TegnInstalledFeaturesMap,
 	tegnToParams map[string]tb.TegnParameterMap,
 ) error {
 	// Do nothing here
 	return nil
 }
 
-func (p *GenericTegnsett) GoString(osInfo tb.OSInfoExt) string {
+func (p *GenericTegnsett) GoString(osInfo *tb.OSInfoExt) string {
 	children := make([]map[string]any, len(p.children))
 	for i, v := range p.children {
 		children[i] = map[string]any{

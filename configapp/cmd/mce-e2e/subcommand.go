@@ -6,36 +6,37 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 )
 
-type SubCommandFunc		func (info data.OSInfo, data any) error
+type SubCommandFunc func(info data.OSInfo, data any) error
 
 // Returns the flagset and the data-object with the parameter pointers
-type SubCommandFlagSet	func() (flag.FlagSet, any)
+type SubCommandFlagSet func() (flag.FlagSet, any)
 
 type SubCommandData struct {
-	Name			string
-	Executor		SubCommandFunc
-	FlagSet			SubCommandFlagSet
+	Name     string
+	Executor SubCommandFunc
+	FlagSet  SubCommandFlagSet
 }
 
-var SubCommands = []SubCommandData {
+var SubCommands = []SubCommandData{
 	{
-		Name: "harvest",
+		Name:     "harvest",
 		Executor: subCommandHarvestJson,
-		FlagSet: emptyFlagSet,
+		FlagSet:  emptyFlagSet,
 	},
 	{
-		Name: "repo-list",
+		Name:     "repo-list",
 		Executor: subCommandRepoList,
-		FlagSet: emptyFlagSet,
+		FlagSet:  emptyFlagSet,
 	},
 	{
-		Name: "repo-install",
+		Name:     "repo-install",
 		Executor: subCommandRepoInstall,
-		FlagSet: subCommandRepoInstallFlagSet,
+		FlagSet:  subCommandRepoInstallFlagSet,
 	},
 	// "harvest": subCommandHarvestJson,
 	// "repo-update": subCommandHarvestJson,
@@ -81,21 +82,21 @@ func subCommandRepoList(info data.OSInfo, _ any) error {
 }
 
 type SubCommandRepoInstallData struct {
-	// External pointer -- because we need the field to be inside the v.Func in the subCommandRepoInstallFlagSet
-	// Internal pointer -- to handle optionality
-	toInstall **[]string
+	// Pointer so the flag callback can update the value after the struct is returned.
+	// TODO: look inside do we really need a pointer here
+	toInstall *optional.Optional[[]string]
 }
 
 func subCommandRepoInstallFlagSet() (flag.FlagSet, any) {
 	v := flag.NewFlagSet("repo-install", flag.ExitOnError)
 
-	var toInstall *[]string = nil
+	toInstall := optional.None[[]string]()
 	v.Func(
-		"to-install", 
-		"Packages to search and install (split by a colon)", 
+		"to-install",
+		"Packages to search and install (split by a colon)",
 		func(s string) error {
-			v := strings.Split(s, ":")
-			toInstall = &v
+			parts := strings.Split(s, ":")
+			toInstall = optional.Some(parts)
 			return nil
 		},
 	)
@@ -106,12 +107,14 @@ func subCommandRepoInstallFlagSet() (flag.FlagSet, any) {
 }
 
 func subCommandRepoInstall(info data.OSInfo, data any) error {
-	d := data.(SubCommandRepoInstallData)
-	if *d.toInstall == nil {
+	d, ok := data.(SubCommandRepoInstallData)
+	if !ok || d.toInstall == nil {
+		return fmt.Errorf("Internal error: invalid subcommand data")
+	}
+	toInstall, hasToInstall := d.toInstall.Get()
+	if !hasToInstall {
 		return fmt.Errorf("Parameter -to-install must be set")
 	}
-
-	toInstall := **d.toInstall
 
 	err := platform.UpdateRepositories(info.PkgManager)
 	if err != nil {
@@ -136,7 +139,7 @@ func subCommandRepoInstall(info data.OSInfo, data any) error {
 	info_json, err := json.Marshal(
 		map[string][]string{
 			"found_and_installed": found,
-			"not_found": notFound,
+			"not_found":           notFound,
 		},
 	)
 	if err != nil {

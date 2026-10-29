@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type BashLocalConfig struct {}
+type BashLocalConfig struct{}
 
 var _ tb.Tegn = (*BashLocalConfig)(nil)
 
@@ -20,11 +21,11 @@ func NewTegnBashLocalConfigBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getBashLocalConfigPath(osInfo tb.OSInfoExt) string {
+func getBashLocalConfigPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-cfg.bash")
 }
 
-func getBashrcPath(osInfo tb.OSInfoExt) string {
+func getBashrcPath(osInfo *tb.OSInfoExt) string {
 	bashrcPath := filepath.Join(osInfo.HomeDir, ".bashrc")
 	return bashrcPath
 }
@@ -46,19 +47,19 @@ func (p *BashLocalConfig) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *BashLocalConfig) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *BashLocalConfig) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *BashLocalConfig) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *BashLocalConfig) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *BashLocalConfig) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// if err := tb.CheckFeatures(before, []tb.TegnFeature{""}); err != nil {
@@ -80,8 +81,8 @@ func (p *BashLocalConfig) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *BashLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
+func (p *BashLocalConfig) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
+	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"path",
 			"Local config path",
@@ -97,16 +98,16 @@ func (p *BashLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter 
 // GetFeatures implements [tb.Tegn].
 func (p *BashLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:bash-local"): true, 
+		tb.TegnFeature("cfg:bash-local"): true,
 	}
 }
 
-func (p *BashLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *BashLocalConfig) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getBashLocalConfigPath(osInfo)
 	return platform.FileExists(path)
 }
 
-func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *BashLocalConfig) ExecInstall(osInfo *tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getBashLocalConfigPath(osInfo)
 	err := platform.MkdirAllParent(localConfigPath)
 	if err != nil {
@@ -151,7 +152,7 @@ func (p *BashLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 	return nil
 }
 
-func (p *BashLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *BashLocalConfig) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	bashrcPath := getBashrcPath(osInfo)
 	if platform.FileExists(bashrcPath) {
 		err := removeConfigBlockFromFile(bashrcPath, "MCE2 local config")

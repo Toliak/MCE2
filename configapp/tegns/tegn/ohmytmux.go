@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -22,18 +23,18 @@ func NewTegnOhMyTmuxBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getInstallDirOhMyTmux(osInfo tb.OSInfoExt) string {
+func getInstallDirOhMyTmux(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "oh-my-tmux")
 }
 
 // Config path starting with tmux version 3.1
-func getTmuxConfigPath(osInfo tb.OSInfoExt) string {
+func getTmuxConfigPath(osInfo *tb.OSInfoExt) string {
 	dir := filepath.Join(osInfo.HomeDir, ".config", "tmux")
 	return filepath.Join(dir, "tmux.conf")
 }
 
 // Config path with tmux version below 3.1
-func getTmuxConfigPathOld(osInfo tb.OSInfoExt) string {
+func getTmuxConfigPathOld(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.HomeDir, ".tmux.conf")
 }
 
@@ -56,18 +57,18 @@ URL: https://github.com/gpakosz/.tmux
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *OhMyTmux) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *OhMyTmux) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *OhMyTmux) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *OhMyTmux) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *OhMyTmux) GetAvailability(
-	osInfo tb.OSInfoExt,
+	osInfo *tb.OSInfoExt,
 	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
@@ -80,9 +81,9 @@ func (p *OhMyTmux) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *OhMyTmux) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *OhMyTmux) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/gpakosz/.tmux", getInstallDirOhMyTmux(osInfo))
-	params := []tb.TegnParameter {
+	params := []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"cfg-compat",
 			"Config compatibility",
@@ -99,17 +100,17 @@ func (p *OhMyTmux) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 // GetFeatures implements [tb.Tegn].
 func (p *OhMyTmux) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:tmux-base"): true,
+		tb.TegnFeature("cfg:tmux-base"):  true,
 		tb.TegnFeature("cfg:oh-my-tmux"): true,
 	}
 }
 
-func (p *OhMyTmux) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *OhMyTmux) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := filepath.Join(getInstallDirOhMyTmux(osInfo), ".git")
 	return platform.FileExists(path)
 }
 
-func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *OhMyTmux) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
 	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
@@ -143,7 +144,7 @@ func (p *OhMyTmux) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 set-environment -g TMUX_CONF "%s"
 set-environment -gu TMUX_CONF_LOCAL
 source-file "%s"
-# <END> Oh-my-tmux config (autogen mce2)` + "\n\n", 
+# <END> Oh-my-tmux config (autogen mce2)`+"\n\n",
 			sourceTmuxConf,
 			sourceTmuxConf,
 		),
@@ -189,7 +190,7 @@ source-file "%s"
 	return nil
 }
 
-func (p *OhMyTmux) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *OhMyTmux) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the configuration block from tmux.conf
 	tmuxConfPath := getTmuxConfigPath(osInfo)
 

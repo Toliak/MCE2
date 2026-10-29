@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"maps"
 	"fmt"
+	"maps"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -11,14 +11,14 @@ import (
 
 // UninstallUIState holds the state for the uninstall UI
 type UninstallUIState struct {
-	InitResult        tb.TegnsettInitializeResult
-	OSInfExt          tb.OSInfoExt
-	InstalledCache    tb.AvailablePackagesMap
+	InitResult     *tb.TegnsettInitializeResult
+	OSInfExt       *tb.OSInfoExt
+	InstalledCache tb.AvailablePackagesMap
 
-	OriginalOrder     tb.TegnsettsOrderResult
+	OriginalOrder *tb.TegnsettsOrderResult
 
 	// Tegn IDs, installed only. In the "reversed" order
-	FilteredOrder     []string
+	FilteredOrder []string
 
 	// This field is saved if the installation fails
 	EnabledIDsMap tb.TegnGeneralEnabledIDsMap
@@ -26,7 +26,7 @@ type UninstallUIState struct {
 	ExitConfirmed bool
 	ExitError     error
 
-	SelectionTegnID  int
+	SelectionTegnID int
 }
 
 func (s *UninstallUIState) GetAndResetTegnSelection() int {
@@ -45,12 +45,12 @@ type UninstallApp struct {
 }
 
 type UninstallAppInitData struct {
-	InitResult               tb.TegnsettInitializeResult
-	OSInfExt                tb.OSInfoExt
-	AlreadyInstalled         tb.AvailablePackagesMap
-	OriginalOrder     tb.TegnsettsOrderResult
-	FilteredOrder     []string
-	EnabledIDsMap tb.TegnGeneralEnabledIDsMap
+	InitResult       *tb.TegnsettInitializeResult
+	OSInfExt         *tb.OSInfoExt
+	AlreadyInstalled tb.AvailablePackagesMap
+	OriginalOrder    *tb.TegnsettsOrderResult
+	FilteredOrder    []string
+	EnabledIDsMap    tb.TegnGeneralEnabledIDsMap
 }
 
 // Returns bool and the tegn-blocker
@@ -128,13 +128,13 @@ func NewUninstallApp(
 	// Sort installed Tegns for consistent order
 
 	state := &UninstallUIState{
-		InitResult: data.InitResult,
-		OSInfExt: data.OSInfExt,
-		InstalledCache: data.AlreadyInstalled,
-		OriginalOrder: data.OriginalOrder,
-		FilteredOrder: data.FilteredOrder,
-		EnabledIDsMap:     data.EnabledIDsMap,
-		ExitConfirmed:  false,
+		InitResult:      data.InitResult,
+		OSInfExt:        data.OSInfExt,
+		InstalledCache:  data.AlreadyInstalled,
+		OriginalOrder:   data.OriginalOrder,
+		FilteredOrder:   data.FilteredOrder,
+		EnabledIDsMap:   data.EnabledIDsMap,
+		ExitConfirmed:   false,
 		SelectionTegnID: -1,
 	}
 

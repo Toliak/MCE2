@@ -7,5 +7,5 @@ type ToInstallData struct {
 
 // TODO: add one more app to confirm the
 // func NewApp(toInstall ToInstallData) {
-// 	toInstall := 
+// 	toInstall :=
 // }

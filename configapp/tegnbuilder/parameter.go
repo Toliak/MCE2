@@ -2,16 +2,17 @@ package tegnbuilder
 
 import (
 	"fmt"
+	"github.com/toliak/mce/optional"
 	"strconv"
 )
 
 type TegnParameterOption func(self *TegnParameter)
-type TegnValidator func (self *TegnParameter, newValue string) error
+type TegnValidator func(self *TegnParameter, newValue string) error
 
 // Represents a parameter specification for a Tegn.
 type TegnParameter struct {
-	id string
-	name string
+	id          string
+	name        string
 	description string
 
 	// Current parameter DefaultValue.
@@ -23,14 +24,14 @@ type TegnParameter struct {
 	// Indicates the availability and contains the reason, if not available.
 	available TegnAvailability
 
-	// Validates the value
-	validator TegnValidator
+	// Validates the value. May be absent (optional).
+	validator optional.Optional[TegnValidator]
 }
 
-func NewTegnParameter(id string, name string, paramType TegnParameterType, opts ...TegnParameterOption) TegnParameter{
+func NewTegnParameter(id string, name string, paramType TegnParameterType, opts ...TegnParameterOption) TegnParameter {
 	p := TegnParameter{
-		id: id,
-		name:        name,
+		id:        id,
+		name:      name,
 		paramType: paramType,
 	}
 	for _, opt := range opts {
@@ -52,7 +53,7 @@ func WithAvailability(status bool, reason string) TegnParameterOption {
 	return func(p *TegnParameter) {
 		p.available = TegnAvailability{
 			Available: status,
-			Reason: reason,
+			Reason:    reason,
 		}
 	}
 }
@@ -81,7 +82,7 @@ func WithDescription(desc string) TegnParameterOption {
 // WithDescription overrides the description (useful if you want to set it optionally).
 func WithValidator(validator TegnValidator) TegnParameterOption {
 	return func(p *TegnParameter) {
-		p.validator = validator
+		p.validator = optional.Some(validator)
 	}
 }
 
@@ -92,7 +93,7 @@ func ReadOnlyValidator(param *TegnParameter, newValue string) error {
 // WithDescription overrides the description (useful if you want to set it optionally).
 func WithReadOnlyValidator() TegnParameterOption {
 	return func(p *TegnParameter) {
-		p.validator = ReadOnlyValidator
+		p.validator = optional.Some(TegnValidator(ReadOnlyValidator))
 	}
 }
 
@@ -125,7 +126,7 @@ func (p *TegnParameter) GetAvailable() TegnAvailability {
 	return p.available
 }
 
-func (p *TegnParameter) GetValidator() TegnValidator {
+func (p *TegnParameter) GetValidator() optional.Optional[TegnValidator] {
 	return p.validator
 }
 
@@ -152,10 +153,10 @@ func (p *TegnParameter) Validate(newValue string) error {
 		return err
 	}
 
-	if p.validator == nil {
-		return nil
+	if validator, ok := p.validator.Get(); ok {
+		return validator(p, newValue)
 	}
-	return p.validator(p, newValue)
+	return nil
 }
 
 // Data type of a TegnParameter.
@@ -196,6 +197,7 @@ func TegnParameterToBool(s string) bool {
 	return s == "y"
 }
 
+// FIXME: TegnParameterToInt ignores the parsed value and always returns 0.
 func TegnParameterToInt(s string, fallback int) int {
 	var result int
 	_, err := strconv.Atoi(s)

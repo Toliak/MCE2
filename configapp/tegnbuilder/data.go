@@ -9,11 +9,15 @@ import (
 
 type AvailablePackagesMap map[string]bool
 
-// Extended OSInfo
+// Extended OSInfo.
+//
+// Pass this type by pointer (*OSInfoExt). A nil pointer must not be used
+// unless the receiving function explicitly documents that nil is allowed.
 type OSInfoExt struct {
 	data.OSInfo
 
-	// Packages, that are available from the package managers
+	// Packages that are available from the package managers.
+	// May be nil when the package list was not harvested.
 	AvailableManagerPackages AvailablePackagesMap
 
 	// Directory to clone the MCE2 project and to clone.

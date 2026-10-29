@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -22,7 +23,7 @@ func NewTegnZshSyntaxHighlightBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getInstallDirZshSyntaxHighlight(osInfo tb.OSInfoExt) string {
+func getInstallDirZshSyntaxHighlight(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "plugins", "zsh-syntax-highlighting")
 }
 
@@ -46,19 +47,19 @@ URL: https://github.com/zsh-users/zsh-syntax-highlighting
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *ZshSyntaxHighlight) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *ZshSyntaxHighlight) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *ZshSyntaxHighlight) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *ZshSyntaxHighlight) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *ZshSyntaxHighlight) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	if err := tb.CheckFeatures(before, []tb.TegnFeature{"cfg:oh-my-zsh", "cfg:zsh-local"}); err != nil {
@@ -74,7 +75,7 @@ func (p *ZshSyntaxHighlight) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *ZshSyntaxHighlight) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *ZshSyntaxHighlight) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/zsh-users/zsh-syntax-highlighting", getInstallDirZshSyntaxHighlight(osInfo))
 	return gitParams
 }
@@ -86,12 +87,12 @@ func (p *ZshSyntaxHighlight) GetFeatures() tb.TegnInstalledFeaturesMap {
 	}
 }
 
-func (p *ZshSyntaxHighlight) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *ZshSyntaxHighlight) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getInstallDirZshSyntaxHighlight(osInfo)
 	return platform.FileExists(path)
 }
 
-func (p *ZshSyntaxHighlight) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *ZshSyntaxHighlight) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]
@@ -114,7 +115,7 @@ func (p *ZshSyntaxHighlight) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 	return nil
 }
 
-func (p *ZshSyntaxHighlight) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *ZshSyntaxHighlight) ExecUninstall(osInfo *tb.OSInfoExt) error {
 
 	// Remove the plugin registration from zsh local pre-config
 	zshLocalPreConfig := getZshLocalPreOhMyZshConfigPath(osInfo)

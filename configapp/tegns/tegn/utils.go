@@ -8,7 +8,6 @@ import (
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-
 func removeConfigBlockFromFile(filePath string, blockName string) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {

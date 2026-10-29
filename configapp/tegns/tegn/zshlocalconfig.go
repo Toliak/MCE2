@@ -7,12 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type ZshLocalConfig struct {}
+type ZshLocalConfig struct{}
 
 var _ tb.Tegn = (*ZshLocalConfig)(nil)
 
@@ -22,11 +23,11 @@ func NewTegnZshLocalConfigBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getZshLocalPreOhMyZshConfigPath(osInfo tb.OSInfoExt) string {
+func getZshLocalPreOhMyZshConfigPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-pre-cfg.zsh")
 }
 
-func getZshLocalConfigPath(osInfo tb.OSInfoExt) string {
+func getZshLocalConfigPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-cfg.zsh")
 }
 
@@ -60,19 +61,19 @@ func (p *ZshLocalConfig) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *ZshLocalConfig) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *ZshLocalConfig) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *ZshLocalConfig) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *ZshLocalConfig) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *ZshLocalConfig) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// fmt.Printf("before: %#v\n", before)
@@ -89,8 +90,8 @@ func (p *ZshLocalConfig) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *ZshLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
+func (p *ZshLocalConfig) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
+	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"path",
 			"Local config path",
@@ -151,23 +152,23 @@ func (p *ZshLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 // GetFeatures implements [tb.Tegn].
 func (p *ZshLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:zsh-local"): true, 
+		tb.TegnFeature("cfg:zsh-local"): true,
 	}
 }
 
-func (p *ZshLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *ZshLocalConfig) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getZshLocalConfigPath(osInfo)
 	return platform.FileExists(path)
 }
 
-func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath string) ([]string, error) {
+func prepareZshrcLocalConfigLinesWithReplace(osInfo *tb.OSInfoExt, zshrcPath string) ([]string, error) {
 	localConfigPath := getZshLocalConfigPath(osInfo)
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
 
 	inputFile, err := os.Open(zshrcPath)
-    if err != nil {
-        return nil, fmt.Errorf("failed to open file: %w", err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
 	defer inputFile.Close()
 
 	lines := make([]string, 0)
@@ -181,7 +182,7 @@ func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath stri
 				fmt.Sprintf("\n\n# <BEGIN> MCE2 local pre-config\nsource '%s'\n# <END> MCE2 local pre-config\n\n", localPreConfigPath),
 			)
 			foundPreConfigLine = true
-		} 
+		}
 		lines = append(lines, line)
 	}
 	if !foundPreConfigLine {
@@ -189,7 +190,7 @@ func prepareZshrcLocalConfigLinesWithReplace(osInfo tb.OSInfoExt, zshrcPath stri
 	}
 
 	lines = append(
-		lines, 
+		lines,
 		fmt.Sprintf("\n\n# <BEGIN> MCE2 local config\nsource '%s'\n# <END> MCE2 local config\n\n", localConfigPath),
 	)
 	return lines, nil
@@ -211,7 +212,7 @@ func prepareZshPreLocalConfigText(params tb.TegnParameterMap) string {
 	} else {
 		sb.WriteString("false\n")
 	}
-	
+
 	if stamp := params["zshrc-hist-stamps"]; stamp != "" {
 		sb.WriteString("HIST_STAMPS=\"")
 		sb.WriteString(stamp)
@@ -222,7 +223,7 @@ func prepareZshPreLocalConfigText(params tb.TegnParameterMap) string {
 	return sb.String()
 }
 
-func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *ZshLocalConfig) ExecInstall(osInfo *tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// TODO: if _already contains mce2 configs, then use it
 
 	localConfigPath := getZshLocalConfigPath(osInfo)
@@ -249,7 +250,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		if already["cfg:mce2"] && platform.FileExists(mce2zshConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
-				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", 
+				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n",
 				mce2zshConfig,
 			)
 			if err != nil {
@@ -273,7 +274,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 		if already["cfg:mce2"] && platform.FileExists(mce2zshConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
-				"# <BEGIN> MCE2 pre-config\nsource '%s'\n# <END> MCE2 pre-config\n", 
+				"# <BEGIN> MCE2 pre-config\nsource '%s'\n# <END> MCE2 pre-config\n",
 				mce2zshConfig,
 			)
 			if err != nil {
@@ -290,19 +291,19 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 	}
 
 	outputFile, err := os.Create(zshrcPath)
-    if err != nil {
-        return err
-    }
-    defer outputFile.Close()
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
 
 	writer := bufio.NewWriter(outputFile)
-    for i, line := range lines {
+	for i, line := range lines {
 		// TODO: handle errors (?)
-        writer.WriteString(line)
-        if i < len(lines)-1 {
-            writer.WriteString("\n")
-        }
-    }
+		writer.WriteString(line)
+		if i < len(lines)-1 {
+			writer.WriteString("\n")
+		}
+	}
 
 	err = writer.Flush()
 	if err != nil {
@@ -312,7 +313,7 @@ func (p *ZshLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstall
 	return nil
 }
 
-func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *ZshLocalConfig) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the entries from .zshrc
 	zshrcPath := getZshrcPath(osInfo)
 
@@ -338,7 +339,7 @@ func (p *ZshLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
 			return fmt.Errorf("os.Remove error '%s': %w", localConfigPath, err)
 		}
 	}
-	
+
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
 	if platform.FileExists(localPreConfigPath) {
 		err := os.Remove(localPreConfigPath)

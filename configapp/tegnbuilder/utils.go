@@ -6,12 +6,11 @@ import (
 	"strings"
 )
 
-
-func NameToID(name string) (*string, error) {
+func NameToID(name string) (string, error) {
 	// Check if string contains only english letters, digits, spaces, underscores or dashes
 	matched, err := regexp.MatchString(`^[a-zA-Z0-9 _-]+$`, name)
 	if err != nil || !matched {
-		return nil, fmt.Errorf("Unable to convert name '%s' to ID", name)
+		return "", fmt.Errorf("Unable to convert name '%s' to ID", name)
 	}
 
 	// Convert to lowercase
@@ -25,7 +24,7 @@ func NameToID(name string) (*string, error) {
 	re := regexp.MustCompile(`-+`)
 	name = re.ReplaceAllString(name, "-")
 
-	return &name, nil
+	return name, nil
 }
 
 // For global usage only
@@ -35,5 +34,5 @@ func NameToIDUnsafe(name string) string {
 		panic(err)
 	}
 
-	return *result
+	return result
 }

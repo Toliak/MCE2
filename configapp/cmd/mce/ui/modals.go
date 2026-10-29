@@ -24,15 +24,15 @@ func NewHelpModal(installedCache tb.AvailablePackagesMap, app *tview.Application
 
 		sb.WriteString("\n\n[::b]Availability[::-]\n")
 		sb.WriteString("CPU Architectures: ")
-		cpuArchList := tegnGeneral.GetAvailableCPUArch()
-		if cpuArchList == nil {
+		cpuArchList, hasCPUArch := tegnGeneral.GetAvailableCPUArch().Get()
+		if !hasCPUArch {
 			sb.WriteString("any\n")
 		} else {
-			if len(*cpuArchList) == 0 {
+			if len(cpuArchList) == 0 {
 				sb.WriteString("nothing! (error?)\n")
 			} else {
 				sb.WriteString("\n")
-				for _, arch := range *cpuArchList {
+				for _, arch := range cpuArchList {
 					sb.WriteString("- ")
 					sb.WriteString(arch.String())
 					sb.WriteString("\n")
@@ -41,15 +41,15 @@ func NewHelpModal(installedCache tb.AvailablePackagesMap, app *tview.Application
 		}
 
 		sb.WriteString("OS Types: ")
-		osTypeList := tegnGeneral.GetAvailableOsType()
-		if osTypeList == nil {
+		osTypeList, hasOsType := tegnGeneral.GetAvailableOsType().Get()
+		if !hasOsType {
 			sb.WriteString("any\n")
 		} else {
-			if len(*osTypeList) == 0 {
+			if len(osTypeList) == 0 {
 				sb.WriteString("nothing! (error?)\n")
 			} else {
 				sb.WriteString("\n")
-				for _, osType := range *osTypeList {
+				for _, osType := range osTypeList {
 					sb.WriteString("- ")
 					sb.WriteString(osType.String())
 					sb.WriteString("\n")
@@ -70,9 +70,9 @@ func NewHelpModal(installedCache tb.AvailablePackagesMap, app *tview.Application
 				sb.WriteString(availability.Reason)
 				sb.WriteString("\n")
 			}
-			
+
 		}
-		
+
 		// tegnGeneral.
 		if tegn, ok := tegnGeneral.(tb.Tegn); ok {
 			sb.WriteString("\n[::b]Tegn Features[::-]\n")
@@ -99,7 +99,7 @@ func NewHelpModal(installedCache tb.AvailablePackagesMap, app *tview.Application
 
 		helpText = sb.String()
 	}
-	
+
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
@@ -118,13 +118,13 @@ func NewHelpModal(installedCache tb.AvailablePackagesMap, app *tview.Application
 
 	form.AddItem(textView, 0, 1, true)
 	// form.AddItem(button, 1, 0, false)
-	
+
 	// AddItem(textView).
 	// AddFormItem(textView).
 	// AddButton("Close", func() {
 	// 	closer()
 	// })
-	
+
 	form.SetTitle("Help").
 		SetBackgroundColor(tcell.ColorDarkBlue).
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -154,7 +154,7 @@ func NewSearchModal(state *UIState, app *tview.Application, closer func()) *tvie
 		AddButton("Cancel", func() {
 			closer()
 		})
-	
+
 	form.SetBorder(true).
 		SetTitle("Search by ID").
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -164,14 +164,14 @@ func NewSearchModal(state *UIState, app *tview.Application, closer func()) *tvie
 			}
 			return event
 		})
-	
+
 	return form
 }
 
 // NewConfirmModal creates a confirmation modal
 func NewConfirmModal(state *UIState, app *tview.Application, closer func()) *tview.Modal {
 	// tsCount, tegnCount, paramCount := state.GetEnabledSummary()
-	
+
 	confirmText := `[::b]Confirmation Summary[::]
 
 Do you want to apply these configuration changes?`
@@ -183,7 +183,7 @@ Do you want to apply these configuration changes?`
 	buttonNoClick := func() {
 		closer()
 	}
-	
+
 	modal := tview.NewModal().
 		SetText(confirmText).
 		AddButtons([]string{"Yes", "No"}).
@@ -194,11 +194,11 @@ Do you want to apply these configuration changes?`
 				buttonNoClick()
 			}
 		})
-	
+
 	modal.SetBorder(true).
 		SetTitle("Confirm Changes").
 		SetBackgroundColor(tcell.ColorDarkBlue).
-		SetInputCapture(func (event *tcell.EventKey) *tcell.EventKey {
+		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
 			case tcell.KeyEscape:
 				buttonNoClick()
@@ -214,21 +214,20 @@ Do you want to apply these configuration changes?`
 
 			return event
 		})
-		
-	
+
 	return modal
 }
 
 // NewExitModal creates an exit confirmation modal
 func NewExitModal(state *UIState, app *tview.Application, closer func()) *tview.Modal {
 	// tsCount, tegnCount, _ := state.GetEnabledSummary()
-	
+
 	exitText := `
 [::b]Exit Application[::]
 
 Do you want to exit?
 `
-	
+
 	modal := tview.NewModal().
 		SetText(exitText).
 		AddButtons([]string{"Yes", "No"}).
@@ -239,10 +238,10 @@ Do you want to exit?
 				closer()
 			}
 		})
-	
+
 	modal.SetBorder(true).
 		SetTitle("Exit Confirmation").
 		SetBackgroundColor(tcell.ColorDarkRed)
-	
+
 	return modal
 }

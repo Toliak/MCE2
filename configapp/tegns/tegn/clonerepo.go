@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -40,23 +41,23 @@ URL: https://github.com/toliak/mce2
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *CloneRepo) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *CloneRepo) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *CloneRepo) GetAvailableOsType() *[]data.OSTypeE {
-	return &[]data.OSTypeE{
+func (p *CloneRepo) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.Some([]data.OSTypeE{
 		data.OSTypeAndroid,
 		data.OSTypeLinux,
 		data.OSTypeDarwin,
-	}
+	})
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *CloneRepo) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// TODO: do we really need the git package to be installed????
@@ -74,8 +75,8 @@ func (p *CloneRepo) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *CloneRepo) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
+func (p *CloneRepo) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
+	return []tb.TegnParameter{
 		// WARN: do not use GetGitCloneParameters here, because Repository branch here is read-only
 		tb.NewTegnParameter(
 			"repo-url",
@@ -128,15 +129,15 @@ func (p *CloneRepo) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 func (p *CloneRepo) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
 		tb.TegnFeature("cfg:mce2"): true,
-}
+	}
 }
 
-func (p *CloneRepo) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *CloneRepo) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := filepath.Join(osInfo.MainInstallDir, ".git")
 	return platform.FileExists(path)
 }
 
-func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *CloneRepo) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]
@@ -156,9 +157,8 @@ func (p *CloneRepo) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFe
 
 // }
 
-func (p *CloneRepo) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *CloneRepo) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// We do not remove the entire data folder, if there are any files inside
-
 
 	// installPath := osInfo.MainInstallDir
 	// // Assuming that installPath is the part of the data dir

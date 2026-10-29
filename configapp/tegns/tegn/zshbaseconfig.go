@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type ZshBaseConfig struct {}
+type ZshBaseConfig struct{}
 
 var _ tb.Tegn = (*ZshBaseConfig)(nil)
 
@@ -21,11 +22,11 @@ func NewTegnZshBaseConfigBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getInstallDirZshBaseConfig(osInfo tb.OSInfoExt) string {
+func getInstallDirZshBaseConfig(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "oh-my-zsh")
 }
 
-func getZshrcPath(osInfo tb.OSInfoExt) string {
+func getZshrcPath(osInfo *tb.OSInfoExt) string {
 	zshrcPath := filepath.Join(osInfo.HomeDir, ".zshrc")
 	return zshrcPath
 }
@@ -49,19 +50,19 @@ URL: https://github.com/ohmyzsh/ohmyzsh
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *ZshBaseConfig) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *ZshBaseConfig) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *ZshBaseConfig) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *ZshBaseConfig) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *ZshBaseConfig) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	if err := tb.CheckFeatures(before, []tb.TegnFeature{"pkg:zsh", "cfg:mce2"}); err != nil {
@@ -77,7 +78,7 @@ func (p *ZshBaseConfig) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *ZshBaseConfig) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/ohmyzsh/ohmyzsh", getInstallDirZshBaseConfig(osInfo))
 	return gitParams
 }
@@ -85,12 +86,12 @@ func (p *ZshBaseConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 // GetFeatures implements [tb.Tegn].
 func (p *ZshBaseConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:zsh-base"): true, 
+		tb.TegnFeature("cfg:zsh-base"):  true,
 		tb.TegnFeature("cfg:oh-my-zsh"): true,
 	}
 }
 
-func (p *ZshBaseConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *ZshBaseConfig) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getInstallDirZshBaseConfig(osInfo)
 	return platform.FileExists(path)
 }
@@ -113,7 +114,7 @@ source $ZSH/oh-my-zsh.sh
 }
 
 // TODO: shouldn't this thing be idempotent
-func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *ZshBaseConfig) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// TODO: if debug build -> check the params
 	url := params["repo-url"]
 	branch := params["repo-branch"]
@@ -125,7 +126,7 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	if err != nil {
 		return fmt.Errorf("GitClone error: %w", err)
 	}
-	
+
 	zshrcOrigPath := getZshrcPath(osInfo)
 	err = platform.AppendFilepathString(zshrcOrigPath, getOhMyZshTemplateConfig(path))
 	if err != nil {
@@ -135,7 +136,7 @@ func (p *ZshBaseConfig) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstall
 	return nil
 }
 
-func (p *ZshBaseConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *ZshBaseConfig) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the configuration block from .zshrc
 	zshrcPath := getZshrcPath(osInfo)
 	if platform.FileExists(zshrcPath) {

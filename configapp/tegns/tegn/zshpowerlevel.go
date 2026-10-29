@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	"github.com/toliak/mce/sedparody"
@@ -30,11 +31,11 @@ func NewTegnZshPowerLevel10kBuilder() tb.TegnBuildFunc {
 
 var zshPowerLevel10kThemeName string = "powerlevel10k"
 
-func getInstallDirZshPowerLevel10k(osInfo tb.OSInfoExt) string {
+func getInstallDirZshPowerLevel10k(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "themes", zshPowerLevel10kThemeName)
 }
 
-func getZshLocalP10kPromptPath(osInfo tb.OSInfoExt) string {
+func getZshLocalP10kPromptPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-p10k-prompt.zsh")
 }
 
@@ -56,19 +57,19 @@ URL: https://github.com/romkatv/powerlevel10k`
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *ZshPowerLevel10k) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *ZshPowerLevel10k) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *ZshPowerLevel10k) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *ZshPowerLevel10k) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *ZshPowerLevel10k) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	if err := tb.CheckFeatures(before, []tb.TegnFeature{"cfg:oh-my-zsh", "cfg:mce2"}); err != nil {
@@ -84,9 +85,9 @@ func (p *ZshPowerLevel10k) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *ZshPowerLevel10k) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *ZshPowerLevel10k) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/romkatv/powerlevel10k", getInstallDirZshPowerLevel10k(osInfo))
-	params := []tb.TegnParameter {
+	params := []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"additional-config",
 			"Auto config p10k",
@@ -103,11 +104,11 @@ func (p *ZshPowerLevel10k) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter
 // GetFeatures implements [tb.Tegn].
 func (p *ZshPowerLevel10k) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:zsh-p10k"): true, 
+		tb.TegnFeature("cfg:zsh-p10k"): true,
 	}
 }
 
-func (p *ZshPowerLevel10k) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *ZshPowerLevel10k) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getInstallDirZshPowerLevel10k(osInfo)
 	return platform.FileExists(path)
 }
@@ -116,9 +117,9 @@ var zshThemeRegexpReplace = regexp.MustCompile(`^(?:\s*#\s*)?((?:export\s+)?ZSH_
 
 func prepareReplaceConfigThemeText(zshrcPath string, newThemeName string) ([]string, error) {
 	inputFile, err := os.Open(zshrcPath)
-    if err != nil {
-        return nil, fmt.Errorf("prepareReplaceConfigTheme failed to open file: %w", err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("prepareReplaceConfigTheme failed to open file: %w", err)
+	}
 	defer inputFile.Close()
 
 	var lines []string
@@ -128,10 +129,10 @@ func prepareReplaceConfigThemeText(zshrcPath string, newThemeName string) ([]str
 		NewReplacer(
 			sedparody.ScannerToReplacerReader(scanner),
 		).Replace(
-			zshThemeRegexpReplace,
-			fmt.Sprintf("%s'%s'", "$1", newThemeName),
-			1,
-		)
+		zshThemeRegexpReplace,
+		fmt.Sprintf("%s'%s'", "$1", newThemeName),
+		1,
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("prepareReplaceConfigTheme error: %w", err)
@@ -150,26 +151,26 @@ func prepareReplaceConfigTheme(zshrcPath string, newThemeName string) error {
 	}
 
 	// Write back to same file (truncates)
-    outputFile, err := os.Create(zshrcPath)
-    if err != nil {
-        return err
-    }
-    defer outputFile.Close()
+	outputFile, err := os.Create(zshrcPath)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
 
 	writer := bufio.NewWriter(outputFile)
-    for i, line := range lines {
-        writer.WriteString(line)
-        if i < len(lines)-1 {
-            writer.WriteString("\n")
-        }
-    }
+	for i, line := range lines {
+		writer.WriteString(line)
+		if i < len(lines)-1 {
+			writer.WriteString("\n")
+		}
+	}
 
 	err = writer.Flush()
 	if err != nil {
 		return fmt.Errorf("Flush error: %w", err)
 	}
 
-    return nil
+	return nil
 }
 
 var zshrcP10kInstantPromptBlock string = `
@@ -184,7 +185,7 @@ fi
 `
 var zshrcP10kInstantPromptBlockBytes = []byte(zshrcP10kInstantPromptBlock)
 
-func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *ZshPowerLevel10k) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	url := params["repo-url"]
 	branch := params["repo-branch"]
 	shallowClone := tb.TegnParameterToBool(params["use-shallow-clone"])
@@ -213,7 +214,7 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 		if err != nil {
 			return fmt.Errorf("os.ReadFile error '%s': %w", zshrcOrigPath, err)
 		}
-		
+
 		purePromptPath := filepath.Join(getInstallDirZshPowerLevel10k(osInfo), "config", "p10k-lean.zsh")
 		purePromptCopyPath := getZshLocalP10kPromptPath(osInfo)
 		promptConfig := ""
@@ -241,7 +242,7 @@ func (p *ZshPowerLevel10k) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInst
 	return nil
 }
 
-func (p *ZshPowerLevel10k) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *ZshPowerLevel10k) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Restore the original ZSH_THEME setting in .zshrc
 	zshrcPath := getZshrcPath(osInfo)
 

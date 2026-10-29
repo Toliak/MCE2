@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	osInfoHarvest "github.com/toliak/mce/osinfo/harvest"
 	"github.com/toliak/mce/platform"
@@ -22,7 +23,7 @@ func (e *InspectCheckError) Error() string {
 	for i, err := range e.ChecksFailed {
 		builder.WriteString(err)
 
-		if i != len(e.ChecksFailed) - 1 {
+		if i != len(e.ChecksFailed)-1 {
 			builder.WriteString(", ")
 		}
 	}
@@ -31,8 +32,11 @@ func (e *InspectCheckError) Error() string {
 }
 
 type HarvestData struct {
-	OSInfo *data.OSInfo
-	AvailableManagerPackages *[]string
+	// OSInfo may be absent when harvesting is disabled.
+	OSInfo optional.Optional[data.OSInfo]
+
+	// AvailableManagerPackages may be absent when the package list was not obtained.
+	AvailableManagerPackages optional.Optional[[]string]
 }
 
 type InspectAndHarvestConfig struct {
@@ -44,16 +48,16 @@ type InspectAndHarvestConfig struct {
 
 	// Do the app need to update the packages using the OS package manager?
 	PkgManagerUpdate bool
-	
+
 	// Do the app need to use the package manager to obtain available packages?
 	PkgManagerGetAvailablePackages bool
 }
 
 func InspectAndHarvestConfigDefault() InspectAndHarvestConfig {
 	return InspectAndHarvestConfig{
-		Check: true,
-		Harvest: true,
-		PkgManagerUpdate: true,
+		Check:                          true,
+		Harvest:                        true,
+		PkgManagerUpdate:               true,
 		PkgManagerGetAvailablePackages: true,
 	}
 }
@@ -103,12 +107,11 @@ func InspectAndHarvest(options InspectAndHarvestConfig) (*HarvestData, error) {
 			}
 		}
 	}
-	
+
 	result := HarvestData{
-		OSInfo: osInfo,
-		AvailableManagerPackages: availablePackages,
+		OSInfo:                   optional.FromPtr(osInfo),
+		AvailableManagerPackages: optional.FromPtr(availablePackages),
 	}
 
 	return &result, nil
 }
-

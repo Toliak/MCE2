@@ -9,8 +9,8 @@ import (
 type ActionType int
 
 const (
-	ActionInstall ActionType = iota // Install = 0
-	ActionUninstall                 // Uninstall = 1
+	ActionInstall   ActionType = iota // Install = 0
+	ActionUninstall                   // Uninstall = 1
 )
 
 var DefaultActionType ActionType = ActionInstall

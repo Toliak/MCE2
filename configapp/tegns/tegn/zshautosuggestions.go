@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type ZshAutoSuggestions struct {}
+type ZshAutoSuggestions struct{}
 
 var _ tb.Tegn = (*ZshAutoSuggestions)(nil)
 
@@ -20,7 +21,7 @@ func NewTegnZshAutoSuggestionsBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getInstallDirZshAutoSuggestions(osInfo tb.OSInfoExt) string {
+func getInstallDirZshAutoSuggestions(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(getInstallDirZshBaseConfig(osInfo), "custom", "plugins", "zsh-autosuggestions")
 }
 
@@ -43,19 +44,19 @@ URL: https://github.com/zsh-users/zsh-autosuggestions
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *ZshAutoSuggestions) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *ZshAutoSuggestions) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *ZshAutoSuggestions) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *ZshAutoSuggestions) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *ZshAutoSuggestions) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	if err := tb.CheckFeatures(before, []tb.TegnFeature{"cfg:oh-my-zsh", "cfg:zsh-local"}); err != nil {
@@ -71,7 +72,7 @@ func (p *ZshAutoSuggestions) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *ZshAutoSuggestions) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *ZshAutoSuggestions) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	gitParams := GetGitCloneParameters("https://github.com/zsh-users/zsh-autosuggestions", getInstallDirZshAutoSuggestions(osInfo))
 	return gitParams
 }
@@ -79,16 +80,16 @@ func (p *ZshAutoSuggestions) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParamet
 // GetFeatures implements [tb.Tegn].
 func (p *ZshAutoSuggestions) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:zsh-autosuggestions"): true, 
+		tb.TegnFeature("cfg:zsh-autosuggestions"): true,
 	}
 }
 
-func (p *ZshAutoSuggestions) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *ZshAutoSuggestions) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getInstallDirZshAutoSuggestions(osInfo)
 	return platform.FileExists(path)
 }
 
-func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *ZshAutoSuggestions) ExecInstall(osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// Assume we have `cfg:zsh-local` as a requirement
 	// localConfigPath := getZshLocalConfigPath(osInfo)
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
@@ -115,7 +116,7 @@ func (p *ZshAutoSuggestions) ExecInstall(osInfo tb.OSInfoExt, _already tb.TegnIn
 	return nil
 }
 
-func (p *ZshAutoSuggestions) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *ZshAutoSuggestions) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the plugin registration from zsh local pre-config
 	localPreConfigPath := getZshLocalPreOhMyZshConfigPath(osInfo)
 	if platform.FileExists(localPreConfigPath) {
@@ -125,14 +126,14 @@ func (p *ZshAutoSuggestions) ExecUninstall(osInfo tb.OSInfoExt) error {
 		}
 	}
 
-		// Remove the cloned plugin
-		installPath := getInstallDirZshAutoSuggestions(osInfo)
-		if platform.FileExists(installPath) {
-			err := os.RemoveAll(installPath)
-			if err != nil {
-				return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)
-			}
+	// Remove the cloned plugin
+	installPath := getInstallDirZshAutoSuggestions(osInfo)
+	if platform.FileExists(installPath) {
+		err := os.RemoveAll(installPath)
+		if err != nil {
+			return fmt.Errorf("os.RemoveAll error '%s': %w", installPath, err)
 		}
+	}
 
 	return nil
 }

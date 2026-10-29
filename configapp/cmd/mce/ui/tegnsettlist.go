@@ -10,15 +10,15 @@ import (
 
 // TegnsettList creates the tegnsett selector view
 func NewTegnsettList(
-	state *UIState, 
-	order []string, 
-	availability tb.TegnGeneralAvailabilityByID, 
+	state *UIState,
+	order []string,
+	availability tb.TegnGeneralAvailabilityByID,
 	app *App,
 ) *tview.List {
 	list := tview.NewList().
 		ShowSecondaryText(false).
 		SetHighlightFullLine(true)
-	
+
 	for _, id := range order {
 		tegnsett := state.InitResult.TegnsettByID[id]
 
@@ -44,7 +44,7 @@ func NewTegnsettList(
 		}
 
 		secondaryText := fmt.Sprintf("%s %s %s", status, tsDesc, statusEnd)
-		
+
 		list.AddItem(secondaryText, "", 0, func() {
 			// Enter key pressed - open tegnsett
 			if canBeOpened {
@@ -54,7 +54,7 @@ func NewTegnsettList(
 		})
 	}
 
-	if sel := state.GetAndResetTegnsettSelection(); sel != -1 && sel < list.GetItemCount(){
+	if sel := state.GetAndResetTegnsettSelection(); sel != -1 && sel < list.GetItemCount() {
 		list.SetCurrentItem(sel)
 	}
 
@@ -107,6 +107,6 @@ func NewTegnsettList(
 		}
 		return event
 	})
-	
+
 	return list
 }

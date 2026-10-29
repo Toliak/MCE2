@@ -15,7 +15,7 @@ var LsGo = tegn.NewGenericDownloadBuilder(
 	"ls-go 1.0.2",
 	"ls-go GoLang app 1.0.2",
 	"ls-go",
-	func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+	func(osInfo *tegnbuilder.OSInfoExt) (string, error) {
 		// TODO: return struct with {name, type: {exefile, zip, targz, tarzst, ...}, where-the-executable-if-archive}
 		// TODO: FIXME: ^^^^
 		var sb strings.Builder
@@ -23,7 +23,7 @@ var LsGo = tegn.NewGenericDownloadBuilder(
 		sb.WriteString("https://github.com/acarl005/ls-go/releases/download/v1.0.2/ls-go-")
 
 		switch osInfo.OsType.V {
-		case data.OSTypeLinux: 
+		case data.OSTypeLinux:
 			sb.WriteString("linux-")
 			switch osInfo.Arch.V {
 			case data.CPUArchAMD64:
@@ -35,7 +35,7 @@ var LsGo = tegn.NewGenericDownloadBuilder(
 			default:
 				return "", fmt.Errorf("OSTypeLinux Architecture not available: %s", &osInfo.Arch)
 			}
-		case data.OSTypeDarwin: 
+		case data.OSTypeDarwin:
 			sb.WriteString("darwin-")
 			switch osInfo.Arch.V {
 			case data.CPUArchAMD64:

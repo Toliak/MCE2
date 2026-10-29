@@ -9,9 +9,9 @@ import (
 
 func mainInternal() error {
 	data, err := inspector.InspectAndHarvest(inspector.InspectAndHarvestConfig{
-		Check: true,
-		Harvest: true,
-		PkgManagerUpdate: false,
+		Check:                          true,
+		Harvest:                        true,
+		PkgManagerUpdate:               false,
 		PkgManagerGetAvailablePackages: false,
 	})
 	if err != nil {
@@ -21,7 +21,8 @@ func mainInternal() error {
 	if data == nil {
 		return fmt.Errorf("No harvest data obtained, internal error")
 	}
-	if data.OSInfo == nil {
+	osInfo, hasOSInfo := data.OSInfo.Get()
+	if !hasOSInfo {
 		return fmt.Errorf("No OSInfo data obtained")
 	}
 
@@ -53,7 +54,7 @@ func mainInternal() error {
 		return err
 	}
 
-	return subCommandData.Executor(*data.OSInfo, flagSetData)
+	return subCommandData.Executor(osInfo, flagSetData)
 }
 
 func main() {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -21,17 +22,20 @@ func NewOSPackages(children []tb.TegnBuildFunc) tb.TegnsettBuildFunc {
 		v := OSPackages{
 			// children will be add later
 		}
-		v.children = make([]tb.Tegn, len(children))
-		for i, child := range children {
-			child := child()
-			
-			if _, ok := child.(tegn.GenericPackageTegn); !ok {
-				// TODO: log error
-				fmt.Printf("The child '%s' cannot be add as a child of the OSPackages. Because it does not inherit GenericPackageTegn\n", child.GetID())
+		v.children = make([]tb.Tegn, 0, len(children))
+		for _, buildChild := range children {
+			child := buildChild()
+			if child == nil {
+				fmt.Println("The OSPackages child build function returned nil, skipped")
 				continue
 			}
 
-			v.children[i] = child
+			if _, ok := child.(tegn.GenericPackageTegn); !ok {
+				fmt.Printf("The child '%s' cannot be added as a child of the OSPackages. Because it does not inherit GenericPackageTegn\n", child.GetID())
+				continue
+			}
+
+			v.children = append(v.children, child)
 		}
 
 		return &v
@@ -54,17 +58,17 @@ func (p *OSPackages) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegnsett].
-func (p *OSPackages) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *OSPackages) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegnsett].
-func (p *OSPackages) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *OSPackages) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegnsett].
-func (p *OSPackages) GetAvailability(_osInfo tb.OSInfoExt, _before tb.TegnInstalledFeaturesMap, _enabledIds tb.TegnGeneralEnabledIDsMap) tb.TegnAvailability {
+func (p *OSPackages) GetAvailability(_osInfo *tb.OSInfoExt, _before tb.TegnInstalledFeaturesMap, _enabledIds tb.TegnGeneralEnabledIDsMap) tb.TegnAvailability {
 	// return tegnbuilder.TegnAvailability{
 	// 	Available: p.info.PkgManager.V != data.PkgMgrUnknown,
 	// 	Reason:    fmt.Sprintf("Package manager is unknown (%v)", p.info.PkgManager),
@@ -86,9 +90,9 @@ func (p *OSPackages) GetChildren() []tb.Tegn {
 // we assume that the installedTegns are the children of the [OSPackages]
 // therefore they all implement the [tegn.GenericPackageTegn] interface
 func (p *OSPackages) ExecPostInstall(
-	installedTegns []tb.Tegn, 
-	osInfo tb.OSInfoExt, 
-	_already tb.TegnInstalledFeaturesMap, 
+	installedTegns []tb.Tegn,
+	osInfo *tb.OSInfoExt,
+	_already tb.TegnInstalledFeaturesMap,
 	_tegnToParams map[string]tb.TegnParameterMap,
 ) error {
 	if len(installedTegns) == 0 {
@@ -98,7 +102,11 @@ func (p *OSPackages) ExecPostInstall(
 
 	packageTegns := make([]tegn.GenericPackageTegn, 0, len(installedTegns))
 	for _, v := range installedTegns {
-		packageTegns = append(packageTegns, v.(tegn.GenericPackageTegn))
+		packageTegn, ok := v.(tegn.GenericPackageTegn)
+		if !ok {
+			return fmt.Errorf("Tegn '%s' is not a GenericPackageTegn", v.GetID())
+		}
+		packageTegns = append(packageTegns, packageTegn)
 	}
 
 	pkgNames := make([]string, 0, len(packageTegns))
@@ -109,7 +117,7 @@ func (p *OSPackages) ExecPostInstall(
 	return platform.InstallPackages(osInfo.PkgManager, pkgNames)
 }
 
-func (p *OSPackages) GoString(osInfo tb.OSInfoExt) string {
+func (p *OSPackages) GoString(osInfo *tb.OSInfoExt) string {
 	children := make([]map[string]any, len(p.children))
 	for i, v := range p.children {
 		children[i] = map[string]any{

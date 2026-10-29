@@ -6,6 +6,7 @@ import (
 	// "github.com/toliak/mce/inspector"
 	"fmt"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -20,22 +21,22 @@ type GenericPackageTegn interface {
 
 // The type describes the package that can be installed via the OS package manager
 type GenericPackage struct {
-	idSuffix string
-	name string
+	idSuffix    string
+	name        string
 	description string
-	pkgName string
-	osTypes *[]data.OSTypeE
+	pkgName     string
+	osTypes     optional.Optional[[]data.OSTypeE]
 }
 
 var _ tb.Tegn = (*GenericPackage)(nil)
 var _ GenericPackageTegn = (*GenericPackage)(nil)
 
 func NewGenericPackageBuilder(
-	idSuffix string, 
-	name string, 
-	description string, 
-	pkgName string, 
-	osTypes *[]data.OSTypeE,
+	idSuffix string,
+	name string,
+	description string,
+	pkgName string,
+	osTypes optional.Optional[[]data.OSTypeE],
 ) tb.TegnBuildFunc {
 	// defaultPackages := []string {
 	// 	"git",
@@ -46,13 +47,13 @@ func NewGenericPackageBuilder(
 
 	// TODO: idSuffix from the name
 
-	return func () tb.Tegn {
-		return &GenericPackage {
-			idSuffix: idSuffix,
-			name: name,
+	return func() tb.Tegn {
+		return &GenericPackage{
+			idSuffix:    idSuffix,
+			name:        name,
 			description: description,
-			pkgName: pkgName,
-			osTypes: osTypes,
+			pkgName:     pkgName,
+			osTypes:     osTypes,
 		}
 	}
 
@@ -101,25 +102,25 @@ func (p *GenericPackage) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tegnbuilder.Tegn].
-func (p *GenericPackage) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *GenericPackage) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tegnbuilder.Tegn].
-func (p *GenericPackage) GetAvailableOsType() *[]data.OSTypeE {
+func (p *GenericPackage) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
 	return p.osTypes
 }
 
 // GetAvailability implements [tegnbuilder.Tegn].
 func (p *GenericPackage) GetAvailability(
-	osInfo tb.OSInfoExt,
+	osInfo *tb.OSInfoExt,
 	_before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// TODO: make that more complex (request the checker from the user)
-	return tb.TegnAvailability {
+	return tb.TegnAvailability{
 		Available: osInfo.AvailableManagerPackages[p.pkgName],
-		Reason: fmt.Sprintf("Package '%s' not found in the package manager available packages list", p.pkgName),
+		Reason:    fmt.Sprintf("Package '%s' not found in the package manager available packages list", p.pkgName),
 	}
 	// return tb.TegnAvailability{
 	// 	Available: p.info.PkgManager.V != data.PkgMgrUnknown,
@@ -150,7 +151,7 @@ func (p *GenericPackage) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tegnbuilder.Tegn].
-func (p *GenericPackage) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *GenericPackage) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	// result := make([]tb.TegnParameter, 0, len(p.packageParams))
 	// for k, v := range p.packageParams {
 	// 	result = append(result, tb.NewTegnParameter(
@@ -179,22 +180,20 @@ func (p *GenericPackage) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
 // 	return nil
 // }
 
-
 // GetFeatures implements [tegnbuilder.Tegn].
 // func (p *LinuxPackages) SetContextFeatures(features []string) {}
 
-
-func (p *GenericPackage) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *GenericPackage) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	// TODO: it is not true
 	return platform.CommandExists(p.pkgName)
 }
 
-func (p *GenericPackage) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
+func (p *GenericPackage) ExecInstall(_osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
 	// Do not install packages here. They must be installed in the Tegnsett stage.
 	return nil
 }
 
-func (p *GenericPackage) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *GenericPackage) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	fmt.Printf("Tegn '%s' (pkgName: %s) is not removable\n", p.GetID(), p.pkgName)
 	return nil
 }

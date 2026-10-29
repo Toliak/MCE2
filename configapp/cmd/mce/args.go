@@ -11,31 +11,31 @@ import (
 )
 
 type ArgsShared struct {
-	Verbosity             int
+	Verbosity int
 
-	InspectorConfig       inspector.InspectAndHarvestConfig
-	MainInstallDir        string
-	DataDir               string
-	UserHomeDir           string
+	InspectorConfig inspector.InspectAndHarvestConfig
+	MainInstallDir  string
+	DataDir         string
+	UserHomeDir     string
 
-	NoUI                  bool
-	ForceConfirm          bool
+	NoUI         bool
+	ForceConfirm bool
 
-	SelectEverything      bool
+	SelectEverything bool
 }
 
 type ArgsInstall struct {
 	ArgsShared
 
-	MceRepositoryURL      string
-	MceRepositoryBranch   string
+	MceRepositoryURL    string
+	MceRepositoryBranch string
 
-	JSONPreset			  JSONPreset
+	JSONPreset JSONPreset
 }
 
 type ArgsUninstall struct {
 	ArgsShared
-	JSONPreset			  JSONUninstallPreset
+	JSONPreset JSONUninstallPreset
 }
 
 // The value that can be used in the path specifications and will be replaced by the value from `-home-dir`
@@ -46,7 +46,7 @@ func parseSharedArgs(object *ArgsShared) {
 	flag.BoolVar(&object.InspectorConfig.Check, "check-enable", true, "Enable platform check")
 	flag.BoolVar(&object.InspectorConfig.Harvest, "harvest-enable", true, "Enable harvesting the OS information")
 	flag.BoolVar(
-		&object.InspectorConfig.PkgManagerUpdate, 
+		&object.InspectorConfig.PkgManagerUpdate,
 		"repo-update-enable",
 		true,
 		"Update the package manager repositories metadata (may require privilege evaluation)",
@@ -88,9 +88,9 @@ func parseSharedArgs(object *ArgsShared) {
 		fmt.Sprintf("Directory to clone the MCE2 project (absolute path).\nThe placeholder '%s' can be used for further replacement by the value from the '-home-dir'\n", homeDirPlaceholder),
 	)
 	flag.StringVar(
-		&object.DataDir, 
+		&object.DataDir,
 		"data-dir",
-		"data", 
+		"data",
 		"Path inside '-main-install-dir' where configs and other data will be put",
 	)
 }
@@ -155,7 +155,7 @@ func ParseInstallArgs(args []string) (*ArgsInstall, error) {
 
 	object := ArgsInstall{
 		ArgsShared: ArgsShared{
-			Verbosity: 80,
+			Verbosity:   80,
 			UserHomeDir: homeDir,
 		},
 		JSONPreset: GetDefaultPreset(),
@@ -180,7 +180,7 @@ func ParseUninstallArgs(args []string) (*ArgsUninstall, error) {
 
 	object := ArgsUninstall{
 		ArgsShared: ArgsShared{
-			Verbosity: 80,
+			Verbosity:   80,
 			UserHomeDir: homeDir,
 		},
 		JSONPreset: make(JSONUninstallPreset),

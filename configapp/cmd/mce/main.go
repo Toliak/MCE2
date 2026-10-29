@@ -17,7 +17,7 @@ import (
 	tegnstegn "github.com/toliak/mce/tegns/tegn"
 )
 
-func applyPresetToApp(initResult tb.TegnsettInitializeResult, osInfo tb.OSInfoExt, app ui.App, preset JSONPreset) error {
+func applyPresetToApp(initResult *tb.TegnsettInitializeResult, osInfo *tb.OSInfoExt, app ui.App, preset JSONPreset) error {
 	errorList := make([]string, 0)
 	for k, v := range preset {
 		if _, ok := initResult.AllIDsSet[k]; !ok {
@@ -67,13 +67,13 @@ func applyPresetToApp(initResult tb.TegnsettInitializeResult, osInfo tb.OSInfoEx
 }
 
 type TempStateSave struct {
-	EnabledIDsMap        tb.TegnGeneralEnabledIDsMap
-	ParameterByIDMap     map[string]tb.TegnParameterMap
+	EnabledIDsMap    tb.TegnGeneralEnabledIDsMap
+	ParameterByIDMap map[string]tb.TegnParameterMap
 }
 
 func NewTempStateSave(state *ui.UIState) *TempStateSave {
 	return &TempStateSave{
-		EnabledIDsMap: state.EnabledIDsMap,
+		EnabledIDsMap:    state.EnabledIDsMap,
 		ParameterByIDMap: state.ParameterByIDMap,
 	}
 }
@@ -129,29 +129,30 @@ func prepareApp(args *ArgsInstall) (*ui.App, error) {
 	harvestData := *data
 	fmt.Println("Performed checks and harvested platform information")
 
-	if harvestData.OSInfo == nil {
+	osInfo, hasOSInfo := harvestData.OSInfo.Get()
+	if !hasOSInfo {
 		return nil, fmt.Errorf("Unable to continue without the OSInfo")
 	}
 
 	availablePackages := make([]string, 0)
-	if harvestData.AvailableManagerPackages != nil {
-		availablePackages = *harvestData.AvailableManagerPackages
+	if packages, hasPackages := harvestData.AvailableManagerPackages.Get(); hasPackages {
+		availablePackages = packages
 	}
-	
+
 	// List of strings into the map
 	availablePackagesMap := make(tb.AvailablePackagesMap)
 	for _, v := range availablePackages {
 		availablePackagesMap[v] = true
 	}
 
-	builderData := tb.OSInfoExt {
-		OSInfo: *harvestData.OSInfo,
+	builderData := &tb.OSInfoExt{
+		OSInfo:                   osInfo,
 		AvailableManagerPackages: availablePackagesMap,
-		MainInstallDir: args.MainInstallDir,
-		DataDir: args.DataDir,
-		HomeDir: args.UserHomeDir,
-		MceRepositoryURL: args.MceRepositoryURL,
-		MceRepositoryBranch: args.MceRepositoryBranch,
+		MainInstallDir:           args.MainInstallDir,
+		DataDir:                  args.DataDir,
+		HomeDir:                  args.UserHomeDir,
+		MceRepositoryURL:         args.MceRepositoryURL,
+		MceRepositoryBranch:      args.MceRepositoryBranch,
 	}
 
 	tegnsetts, err := tb.InitializeAllTegnsetts(
@@ -160,7 +161,7 @@ func prepareApp(args *ArgsInstall) (*ui.App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("InitializeAllTegnsetts error: %w", err)
 	}
-	initResult := *tegnsetts
+	initResult := tegnsetts
 
 	// Just check that we do not have errors
 	_, err = tb.GetTegnsettsOrder(initResult.TegnsettByID)
@@ -268,7 +269,7 @@ func runInstall(argv []string) error {
 
 	availability := tb.GetTegnsettsAvailability(
 		app.State.OSInfExt,
-		*order,
+		order,
 		app.State.InitResult.TegnsettByID,
 		app.State.InitResult.TegnByID,
 		app.State.EnabledIDsMap,
@@ -279,7 +280,7 @@ func runInstall(argv []string) error {
 	toInstall := make([]confirmui.ToInstallData, 0)
 	for _, id := range order.Tegnsett {
 		tegnList := order.TegnByTegnsettID[id]
-		
+
 		resultTegnIDList := make([]string, 0, len(tegnList))
 
 		for _, tegnID := range tegnList {
@@ -297,7 +298,7 @@ func runInstall(argv []string) error {
 				fmt.Printf("Selected unavailable Tegn '%s', skipped\n", tegnID)
 				continue
 			}
-			
+
 			resultTegnIDList = append(resultTegnIDList, tegnID)
 		}
 
@@ -326,14 +327,14 @@ func runInstall(argv []string) error {
 			tegn := app.State.InitResult.TegnByID[id]
 			fmt.Printf("Installing '%s'\n", tegn.GetName())
 			err := tegn.ExecInstall(
-				app.State.OSInfExt, 
+				app.State.OSInfExt,
 				installedFeatures,
 				app.State.ParameterByIDMap[id],
 			)
 			if err != nil {
 				return fmt.Errorf("ExecInstall '%s' error: %w", id, err)
 			}
-			
+
 			installedTegns = append(installedTegns, tegn)
 			maps.Copy(installedFeatures, tegn.GetFeatures())
 		}
@@ -352,7 +353,6 @@ func runInstall(argv []string) error {
 	// TODO: add one more app to confirm the
 	// TODO: add flag to skip confirmation
 
-
 	return nil
 }
 
@@ -364,7 +364,7 @@ func runUninstall(argv []string) error {
 
 	harvestData, err := inspector.InspectAndHarvest(args.InspectorConfig)
 	if err != nil {
-		return  fmt.Errorf("InspectAndHarvest error: %w", err)
+		return fmt.Errorf("InspectAndHarvest error: %w", err)
 	}
 	if harvestData == nil {
 		return fmt.Errorf("No harvest data obtained, internal error")
@@ -372,19 +372,19 @@ func runUninstall(argv []string) error {
 
 	fmt.Println("Performed checks and harvested platform information")
 
-	if harvestData.OSInfo == nil {
+	osInfo, hasOSInfo := harvestData.OSInfo.Get()
+	if !hasOSInfo {
 		return fmt.Errorf("Unable to continue without the OSInfo")
 	}
 
-
-	builderData := tb.OSInfoExt {
-		OSInfo: *harvestData.OSInfo,
+	builderData := &tb.OSInfoExt{
+		OSInfo:                   osInfo,
 		AvailableManagerPackages: make(tb.AvailablePackagesMap),
-		MainInstallDir: args.MainInstallDir,
-		DataDir: args.DataDir,
-		HomeDir: args.UserHomeDir,
-		MceRepositoryURL: "__NO__",
-		MceRepositoryBranch: "__NO__",
+		MainInstallDir:           args.MainInstallDir,
+		DataDir:                  args.DataDir,
+		HomeDir:                  args.UserHomeDir,
+		MceRepositoryURL:         "__NO__",
+		MceRepositoryBranch:      "__NO__",
 	}
 
 	tegnsetts, err := tb.InitializeAllTegnsetts(
@@ -393,7 +393,7 @@ func runUninstall(argv []string) error {
 	if err != nil {
 		return fmt.Errorf("InitializeAllTegnsetts error: %w", err)
 	}
-	initResult := *tegnsetts
+	initResult := tegnsetts
 
 	// Just check that we do not have errors
 	order, err := tb.GetTegnsettsOrder(initResult.TegnsettByID)
@@ -414,7 +414,7 @@ func runUninstall(argv []string) error {
 		}
 	}
 
-	filteredOrder := make([]string, 0, len(order.Tegnsett) * 4)
+	filteredOrder := make([]string, 0, len(order.Tegnsett)*4)
 	for _, tegnsettID := range order.Tegnsett {
 		for _, tegnID := range order.TegnByTegnsettID[tegnsettID] {
 			if alreadyInstalled[tegnID] {
@@ -449,14 +449,14 @@ func runUninstall(argv []string) error {
 
 	// TODO: HERE!!
 	uninstallUI := ui.NewUninstallApp(&ui.UninstallAppInitData{
-		InitResult: initResult,
-		OSInfExt: builderData,
+		InitResult:       initResult,
+		OSInfExt:         builderData,
 		AlreadyInstalled: alreadyInstalled,
-		OriginalOrder: *order,
-		FilteredOrder: filteredOrder,
-		EnabledIDsMap: enabledIDsMap,
+		OriginalOrder:    order,
+		FilteredOrder:    filteredOrder,
+		EnabledIDsMap:    enabledIDsMap,
 	})
-	
+
 	if !args.NoUI {
 		err = uninstallUI.Run()
 		if err != nil {

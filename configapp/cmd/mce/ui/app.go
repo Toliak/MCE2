@@ -11,17 +11,17 @@ import (
 
 // App represents the main TUI application
 type App struct {
-	app        *tview.Application
-	pages      *tview.Pages
-	State      *UIState
-	rootView   *tview.Flex
-	statusBar  *tview.TextView
+	app       *tview.Application
+	pages     *tview.Pages
+	State     *UIState
+	rootView  *tview.Flex
+	statusBar *tview.TextView
 }
 
 // NewApp creates a new TUI application
 func NewApp(
-	initResult tb.TegnsettInitializeResult, 
-	osInfoExt tb.OSInfoExt, 
+	initResult *tb.TegnsettInitializeResult,
+	osInfoExt *tb.OSInfoExt,
 	alreadyInstalled tb.AvailablePackagesMap,
 	alreadyInstalledFeatures tb.TegnInstalledFeaturesMap,
 ) App {
@@ -30,10 +30,10 @@ func NewApp(
 	state.InstalledFeatures = alreadyInstalledFeatures
 
 	ui := App{
-		app:       app,
-		State:     state,
+		app:   app,
+		State: state,
 	}
-	
+
 	ui.setupUI()
 	return ui
 }
@@ -41,57 +41,57 @@ func NewApp(
 func (a *App) setupUI() {
 	// Create main layout
 	a.rootView = tview.NewFlex().SetDirection(tview.FlexRow)
-	
+
 	// Create title
 	title := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
 		SetText("[::b]Configuration[::]").
 		SetDynamicColors(true)
-	
+
 	// Create main content area
 	a.pages = tview.NewPages()
-	
+
 	// Create status bar
 	a.statusBar = tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft)
 	a.updateStatusBar()
-	
+
 	// Create button bar
 	buttonBar := a.createButtonBar()
-	
+
 	// Assemble the layout
 	a.rootView.AddItem(title, 1, 0, false)
 	a.rootView.AddItem(a.pages, 0, 1, true)
 	a.rootView.AddItem(a.statusBar, 1, 0, false)
 	a.rootView.AddItem(buttonBar, 1, 0, false)
-	
+
 	a.app.SetRoot(a.rootView, true)
 	a.setupGlobalKeyBindings()
 }
 
 func (a *App) createButtonBar() *tview.Flex {
 	buttonBar := tview.NewFlex().SetDirection(tview.FlexRow)
-	
+
 	buttons := tview.NewFlex().SetDirection(tview.FlexColumn)
-	
+
 	helpBtn := tview.NewButton(" (F1) (?) Help ").
 		SetSelectedFunc(func() { a.showHelpModal(nil, nil) })
-	
+
 	// searchBtn := tview.NewButton(" (F3) Search ").
 	// 	SetSelectedFunc(func() { a.showSearchModal() })
-	
+
 	confirmBtn := tview.NewButton(" (F5) (C-x) Confirm ").
 		SetSelectedFunc(func() { a.showConfirmModal() })
-	
+
 	exitBtn := tview.NewButton(" (F10) (C-c) Exit ").
 		SetSelectedFunc(func() { a.showExitModal() })
-	
+
 	buttons.AddItem(helpBtn, 0, 1, false)
 	// buttons.AddItem(searchBtn, 0, 1, false)
 	buttons.AddItem(confirmBtn, 0, 1, false)
 	buttons.AddItem(exitBtn, 0, 1, false)
-	
+
 	buttonBar.AddItem(buttons, 0, 1, true)
 	return buttonBar
 }
@@ -133,7 +133,7 @@ func (a *App) setupGlobalKeyBindings() {
 func (a *App) updateStatusBar() {
 	currentView := a.State.CurrentView
 	statusText := ""
-	
+
 	switch currentView {
 	case ViewTegnsettList:
 		statusText = "View: Tegnsetts | [yellow]Space[-]: Toggle | [yellow]Enter[-]: Open | [yellow]F1[-]: Help"
@@ -142,7 +142,7 @@ func (a *App) updateStatusBar() {
 	case ViewParameterList:
 		statusText = "View: Parameters | [yellow]Enter[-]: Edit | [yellow]Esc[-]: Back"
 	}
-	
+
 	a.statusBar.SetText(statusText)
 }
 
@@ -154,11 +154,11 @@ func (a *App) showTegnsettList() {
 		return
 	}
 
-	// TODO: pick already installed 
+	// TODO: pick already installed
 
 	availability := tb.GetTegnsettsAvailability(
 		a.State.OSInfExt,
-		*order,
+		order,
 		a.State.InitResult.TegnsettByID,
 		a.State.InitResult.TegnByID,
 		a.State.EnabledIDsMap,
@@ -182,7 +182,7 @@ func (a *App) showTegnList(tegnsettID string) {
 
 	availability := tb.GetTegnsettsAvailability(
 		a.State.OSInfExt,
-		*order,
+		order,
 		a.State.InitResult.TegnsettByID,
 		a.State.InitResult.TegnByID,
 		a.State.EnabledIDsMap,
@@ -207,22 +207,22 @@ func (a *App) showParameterList(tegnID string) {
 }
 
 func (a *App) showHelpModal(tegnGeneral *tb.TegnGeneral, availability *tb.TegnAvailability) {
-	modal := NewHelpModal(a.State.InstalledCache, a.app, tegnGeneral, availability, func () {a.closeModals()})
+	modal := NewHelpModal(a.State.InstalledCache, a.app, tegnGeneral, availability, func() { a.closeModals() })
 	a.pages.AddPage("helpModal", modal, true, true)
 }
 
 func (a *App) showSearchModal() {
-	modal := NewSearchModal(a.State, a.app, func () {a.closeModals()})
+	modal := NewSearchModal(a.State, a.app, func() { a.closeModals() })
 	a.pages.AddPage("searchModal", modal, true, true)
 }
 
 func (a *App) showConfirmModal() {
-	modal := NewConfirmModal(a.State, a.app, func () {a.closeModals()})
+	modal := NewConfirmModal(a.State, a.app, func() { a.closeModals() })
 	a.pages.AddPage("confirmModal", modal, true, true)
 }
 
 func (a *App) showExitModal() {
-	modal := NewExitModal(a.State, a.app, func () {a.closeModals()})
+	modal := NewExitModal(a.State, a.app, func() { a.closeModals() })
 	a.pages.AddPage("exitModal", modal, true, true)
 }
 
@@ -246,14 +246,13 @@ func removeAllPagesExceptOne(pages *tview.Pages, nameToLeave string) {
 
 		namesToDelete = append(namesToDelete, name)
 	}
-	
+
 	for _, name := range namesToDelete {
 		pages.RemovePage(name)
 	}
 	pages.ShowPage(nameToLeave)
 	pages.SwitchToPage(nameToLeave)
 }
-
 
 func (a *App) closeModals() {
 	switch a.State.CurrentView {

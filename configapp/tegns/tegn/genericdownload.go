@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
@@ -24,30 +25,31 @@ import (
 // }
 
 // Raises the error if the URL not available => the Tegn is not available
-type GenericDownloadUrlFun func (osInfo tb.OSInfoExt) (string, error)
-type GenericDownloadPostProcessFun func (data GenericDownloadPostProcessData) error
+type GenericDownloadUrlFun func(osInfo *tb.OSInfoExt) (string, error)
+type GenericDownloadPostProcessFun func(data GenericDownloadPostProcessData) error
 
 type GenericDownloadPostProcessData struct {
-	OsInfo tb.OSInfoExt
-	Already tb.TegnInstalledFeaturesMap
+	OsInfo           *tb.OSInfoExt
+	Already          tb.TegnInstalledFeaturesMap
 	DownloadFilePath string
-	AppDir string
-	AppName string
+	AppDir           string
+	AppName          string
 	// TODO: pass parameters here
 	// TODO: and (maybe) allow the ability to add parameters
 }
 
 // The type describes the package that can be installed via the OS package manager
 type GenericDownload struct {
-	name string
-	description string
-	getUrl GenericDownloadUrlFun
-	postProcess GenericDownloadPostProcessFun
-	appName string
+	name             string
+	description      string
+	getUrl           optional.Optional[GenericDownloadUrlFun]
+	postProcess      optional.Optional[GenericDownloadPostProcessFun]
+	appName          string
 	downloadFileName string
 }
 
 var _ tb.Tegn = (*GenericDownload)(nil)
+
 // var _ GenericDownloadTegn = (*GenericDownload)(nil)
 
 func NewGenericDownloadBuilder(
@@ -58,13 +60,21 @@ func NewGenericDownloadBuilder(
 	getUrl GenericDownloadUrlFun,
 	postProcess GenericDownloadPostProcessFun,
 ) tb.TegnBuildFunc {
-	return func () tb.Tegn {
-		return &GenericDownload {
-			name: name,
-			description: description,
-			getUrl: getUrl,
-			postProcess: postProcess,
-			appName: appName,
+	return func() tb.Tegn {
+		getUrlOpt := optional.None[GenericDownloadUrlFun]()
+		if getUrl != nil {
+			getUrlOpt = optional.Some(getUrl)
+		}
+		postProcessOpt := optional.None[GenericDownloadPostProcessFun]()
+		if postProcess != nil {
+			postProcessOpt = optional.Some(postProcess)
+		}
+		return &GenericDownload{
+			name:             name,
+			description:      description,
+			getUrl:           getUrlOpt,
+			postProcess:      postProcessOpt,
+			appName:          appName,
 			downloadFileName: downloadFileName,
 		}
 	}
@@ -77,9 +87,9 @@ func getDownloadTempDir() string {
 	return path
 }
 
-func getDownloadAppDir(osInfo tb.OSInfoExt) string {
+func getDownloadAppDir(osInfo *tb.OSInfoExt) string {
 	// TODO: specify that in arguments.
-	// WARN: This must not be specified in arguments. 
+	// WARN: This must not be specified in arguments.
 	// Because many tegns depend on it. And they cannot (and must not) "read" the parameters of other tegns.
 	path := filepath.Join(osInfo.HomeDir, ".local", "bin")
 	return path
@@ -106,22 +116,26 @@ func (p *GenericDownload) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tegnbuilder.Tegn].
-func (p *GenericDownload) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *GenericDownload) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tegnbuilder.Tegn].
-func (p *GenericDownload) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *GenericDownload) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tegnbuilder.Tegn].
 func (p *GenericDownload) GetAvailability(
-	osInfo tb.OSInfoExt,
+	osInfo *tb.OSInfoExt,
 	_before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
-	_, err := p.getUrl(osInfo)
+	getUrl, ok := p.getUrl.Get()
+	if !ok {
+		return tb.NewTegnNotAvailable("getUrl callback is not configured")
+	}
+	_, err := getUrl(osInfo)
 	if err != nil {
 		return tb.NewTegnNotAvailable(
 			fmt.Sprintf("Unable to get URL: %s", err),
@@ -135,7 +149,7 @@ func (p *GenericDownload) GetAvailability(
 func (p *GenericDownload) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
 		// TODO: pkg?
-		tb.TegnFeature("app:" + p.appName): true,
+		tb.TegnFeature("app:" + p.appName):      true,
 		tb.TegnFeature("download:" + p.appName): true,
 	}
 }
@@ -146,10 +160,10 @@ func (p *GenericDownload) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tegnbuilder.Tegn].
-func (p *GenericDownload) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *GenericDownload) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	appDir := getDownloadAppDir(osInfo)
 
-	return[]tb.TegnParameter {
+	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"temp-dir",
 			"Temp dir",
@@ -171,7 +185,7 @@ func (p *GenericDownload) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter 
 	}
 }
 
-func (p *GenericDownload) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *GenericDownload) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	downloadDir := getDownloadAppDir(osInfo)
 	return platform.FileExists(
 		filepath.Join(downloadDir, p.appName),
@@ -179,7 +193,7 @@ func (p *GenericDownload) IsInstalled(osInfo tb.OSInfoExt) bool {
 }
 
 func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostProcessFun {
-	return func (data GenericDownloadPostProcessData) error {
+	return func(data GenericDownloadPostProcessData) error {
 		file, err := os.Open(data.DownloadFilePath)
 		if err != nil {
 			return err
@@ -193,7 +207,7 @@ func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostPro
 		defer gzr.Close()
 
 		tr := tar.NewReader(gzr)
-		
+
 		found := false
 		for {
 			header, err := tr.Next()
@@ -250,7 +264,7 @@ func GenericDownloadPostTarGzUnpack(pathInArchive string) GenericDownloadPostPro
 func GenericDownloadPostMove(data GenericDownloadPostProcessData) error {
 	sourcePath := data.DownloadFilePath
 	targetPath := filepath.Join(data.AppDir, data.AppName)
-	
+
 	err := platform.MoveFile(sourcePath, targetPath)
 	if err != nil {
 		return fmt.Errorf("GenericDownloadPostMove Rename: %w", err)
@@ -263,7 +277,7 @@ func GenericDownloadPostMove(data GenericDownloadPostProcessData) error {
 	return nil
 }
 
-func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
+func (p *GenericDownload) ExecInstall(osInfo *tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, _params tb.TegnParameterMap) error {
 	appDir := getDownloadAppDir(osInfo)
 	err := os.MkdirAll(appDir, 0755)
 	if err != nil {
@@ -276,7 +290,11 @@ func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		return fmt.Errorf("MkdirAll %s: %w", tempDownloadDir, err)
 	}
 
-	url, err := p.getUrl(osInfo)
+	getUrl, ok := p.getUrl.Get()
+	if !ok {
+		return fmt.Errorf("getUrl callback is not configured")
+	}
+	url, err := getUrl(osInfo)
 	if err != nil {
 		return fmt.Errorf("getUrl error: %w", err)
 	}
@@ -287,12 +305,16 @@ func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		return fmt.Errorf("cannot download '%s' -> '%s': %w", url, downloadPath, err)
 	}
 
-	err = p.postProcess(GenericDownloadPostProcessData{
-		OsInfo: osInfo,
-		Already: already,
+	postProcess, ok := p.postProcess.Get()
+	if !ok {
+		return fmt.Errorf("postProcess callback is not configured")
+	}
+	err = postProcess(GenericDownloadPostProcessData{
+		OsInfo:           osInfo,
+		Already:          already,
 		DownloadFilePath: downloadPath,
-		AppDir: appDir,
-		AppName: p.appName,
+		AppDir:           appDir,
+		AppName:          p.appName,
 	})
 	if err != nil {
 		return fmt.Errorf("postProcess: %w", err)
@@ -301,7 +323,7 @@ func (p *GenericDownload) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 	return nil
 }
 
-func (p *GenericDownload) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *GenericDownload) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	fmt.Printf("Tegn '%s' (appName: %s) is not removable\n", p.GetID(), p.appName)
 	return nil
 }

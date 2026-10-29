@@ -19,7 +19,7 @@ func NewTegnList(
 	list := tview.NewList().
 		ShowSecondaryText(false).
 		SetHighlightFullLine(true)
-	
+
 	for _, id := range order {
 		tegn := state.InitResult.TegnByID[id]
 		tegnName := tegn.GetName()
@@ -30,7 +30,7 @@ func NewTegnList(
 		canBeOpened := !isInstalled && isAvailable && enabled && len(tegn.GetParameters(state.OSInfExt)) > 0
 
 		status := "[gray]---[-]"
-		
+
 		if isInstalled {
 			status = "[yellow]-+-[-]"
 		} else if isAvailable {
@@ -82,7 +82,7 @@ func NewTegnList(
 				index := list.GetCurrentItem()
 				if index >= 0 && index < len(order) {
 					id := order[index]
-					
+
 					if !state.InstalledCache[id] && availability[id].Available {
 						state.ToggleID(id)
 
@@ -109,6 +109,6 @@ func NewTegnList(
 		}
 		return event
 	})
-	
+
 	return list
 }

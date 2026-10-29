@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 )
 
@@ -47,8 +48,10 @@ type TegnParameterMap map[string]string
 // Value -- is enabled (default -- false)
 type TegnGeneralEnabledIDsMap map[string]bool
 
-// The type MUST match [TegnGeneral.GetAvailability] function
-type TegnAvailabilityFunc func (osInfo OSInfoExt, before TegnInstalledFeaturesMap, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
+// The type MUST match [TegnGeneral.GetAvailability] function.
+//
+// osInfo must not be nil.
+type TegnAvailabilityFunc func (osInfo *OSInfoExt, before TegnInstalledFeaturesMap, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
 
 // TegnGeneral defines the common interface for all Tegn types.
 type TegnGeneral interface {
@@ -62,20 +65,21 @@ type TegnGeneral interface {
 	GetDescription() string
 
 	// Returns the CPU architectures this Tegn supports.
-	// Returns nil if the Tegn is available on all architectures.
+	// An empty Optional means the Tegn is available on all architectures.
 	// This condition is evaluated before GetAvailability.
-	GetAvailableCPUArch() *[]data.CPUArchE
+	GetAvailableCPUArch() optional.Optional[[]data.CPUArchE]
 
 	// Returns the OS types this Tegn supports.
-	// Returns nil if the Tegn is available on all OS types.
+	// An empty Optional means the Tegn is available on all OS types.
 	// This condition is evaluated before GetAvailableCPUArch.
-	GetAvailableOsType() *[]data.OSTypeE
+	GetAvailableOsType() optional.Optional[[]data.OSTypeE]
 
 	// Checks whether this Tegn is available for installation.
 	// Received all features that are available just before that Tegn (from previous Tegns and Tegnsetts).
 	//
 	// In Tegnsett the method must not accumulate the children data!
-	GetAvailability(osInfo OSInfoExt, before TegnInstalledFeaturesMap, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
+	// osInfo must not be nil.
+	GetAvailability(osInfo *OSInfoExt, before TegnInstalledFeaturesMap, enabledIds TegnGeneralEnabledIDsMap) TegnAvailability
 
 	// Returns IDs of Tegns that must be installed before this one.
 	// Only IDs from the same category take effect; IDs from other categories
@@ -87,10 +91,10 @@ type TegnGeneral interface {
 // - CPU arch
 // - OS Type
 // - own Tegn's Availability method
-func GetTegnGeneralAvailable(obj TegnGeneral, osInfo OSInfoExt, before TegnInstalledFeaturesMap, selectedIDs TegnGeneralEnabledIDsMap) TegnAvailability {
-	cpu := obj.GetAvailableCPUArch()
-	if cpu != nil {
-		if !slices.ContainsFunc(*cpu, func(v data.CPUArchE) bool {
+func GetTegnGeneralAvailable(obj TegnGeneral, osInfo *OSInfoExt, before TegnInstalledFeaturesMap, selectedIDs TegnGeneralEnabledIDsMap) TegnAvailability {
+	cpu, hasCPU := obj.GetAvailableCPUArch().Get()
+	if hasCPU {
+		if !slices.ContainsFunc(cpu, func(v data.CPUArchE) bool {
 			return v == osInfo.Arch.V
 		}) {
 			return NewTegnNotAvailable(
@@ -99,9 +103,9 @@ func GetTegnGeneralAvailable(obj TegnGeneral, osInfo OSInfoExt, before TegnInsta
 		}
 	}
 
-	osType := obj.GetAvailableOsType()
-	if osType != nil {
-		if !slices.ContainsFunc(*osType, func(v data.OSTypeE) bool {
+	osType, hasOsType := obj.GetAvailableOsType().Get()
+	if hasOsType {
+		if !slices.ContainsFunc(osType, func(v data.OSTypeE) bool {
 			return v == osInfo.OsType.V
 		}) {
 			return NewTegnNotAvailable(

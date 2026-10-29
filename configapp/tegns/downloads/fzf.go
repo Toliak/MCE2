@@ -9,19 +9,18 @@ import (
 	"github.com/toliak/mce/tegns/tegn"
 )
 
-
 var Fzf = tegn.NewGenericDownloadBuilder(
 	"fzf",
 	"fzf 0.71.0",
 	"fzf GoLang app 0.71.0",
 	"fzf-0.71.0.tar.gz",
-	func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+	func(osInfo *tegnbuilder.OSInfoExt) (string, error) {
 		var sb strings.Builder
 		// TODO: verify checksums
 		sb.WriteString("https://github.com/junegunn/fzf/releases/download/v0.71.0/fzf-0.71.0-")
 
 		switch osInfo.OsType.V {
-		case data.OSTypeLinux: 
+		case data.OSTypeLinux:
 			sb.WriteString("linux_")
 			switch osInfo.Arch.V {
 			case data.CPUArchAMD64:
@@ -35,7 +34,7 @@ var Fzf = tegn.NewGenericDownloadBuilder(
 			default:
 				return "", fmt.Errorf("OSTypeLinux Architecture not available: %s", &osInfo.Arch)
 			}
-		case data.OSTypeAndroid: 
+		case data.OSTypeAndroid:
 			sb.WriteString("android_")
 			switch osInfo.Arch.V {
 			case data.CPUArchAARCH64:
@@ -44,7 +43,7 @@ var Fzf = tegn.NewGenericDownloadBuilder(
 				return "", fmt.Errorf("OSTypeAndroid Architecture not available: %s", &osInfo.Arch)
 			}
 		// TODO: support windows's zip archive
-		case data.OSTypeDarwin: 
+		case data.OSTypeDarwin:
 			sb.WriteString("darwin_")
 			switch osInfo.Arch.V {
 			case data.CPUArchAMD64:

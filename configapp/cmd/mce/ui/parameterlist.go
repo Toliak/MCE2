@@ -14,7 +14,7 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 	list := tview.NewList().
 		ShowSecondaryText(false).
 		SetHighlightFullLine(true)
-	
+
 	tegn := state.InitResult.TegnByID[tegnID]
 
 	if tegn == nil {
@@ -23,7 +23,7 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 	}
 
 	params := tegn.GetParameters(state.OSInfExt)
-	
+
 	for _, param := range params {
 		paramID := param.GetID()
 		paramName := param.GetName()
@@ -33,7 +33,7 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 			paramValue = param.GetDefaultValue()
 		}
 		paramType := param.GetParamType().String()
-		
+
 		secondaryText := fmt.Sprintf("%s = [yellow]%s[-]", paramName, paramValue)
 		if param.GetAvailable().Available {
 			secondaryText = fmt.Sprintf("(%- 8s) %s", paramType, secondaryText)
@@ -50,7 +50,7 @@ func NewParameterList(state *UIState, tegnID string, app *App) *tview.List {
 		})
 	}
 
-	if sel := state.GetAndResetParameterSelection(); sel != -1 && sel < list.GetItemCount(){
+	if sel := state.GetAndResetParameterSelection(); sel != -1 && sel < list.GetItemCount() {
 		list.SetCurrentItem(sel)
 	}
 
@@ -93,16 +93,16 @@ func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbu
 		paramValue = param.GetDefaultValue()
 	}
 
-	getDefaultDescriptionValue := func () string {
+	getDefaultDescriptionValue := func() string {
 		return param.GetDescription()
 	}
 
-	var setDescriptionError func (value error)
+	var setDescriptionError func(value error)
 
 	// For now, use a simple form modal
 	form := tview.NewForm().
 		AddTextView("Description", getDefaultDescriptionValue(), 0, 2, false, true).
-		AddInputField("Value", paramValue, 0, nil, func (v string) {
+		AddInputField("Value", paramValue, 0, nil, func(v string) {
 			paramValue = v
 		}).
 		AddButton("Save", func() {
@@ -128,7 +128,7 @@ func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbu
 			a.showParameterList(state.CurrentTegnID)
 		})
 
-	setDescriptionError = func (value error) {
+	setDescriptionError = func(value error) {
 		newText := fmt.Sprintf("ERROR: %s\n\n%s", value, getDefaultDescriptionValue())
 		// TODO: Create TextView before the `form`. And use AddFormItem to add it
 		// This makes able to get rid of the "non-verifiable" GetFormItem(0)
@@ -136,7 +136,7 @@ func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbu
 		textView.SetText(newText)
 	}
 
-	form.SetFocus(1); // Focus on the value
+	form.SetFocus(1) // Focus on the value
 
 	form.SetBorder(true).
 		SetTitle("Edit Parameter").
@@ -150,6 +150,6 @@ func (a *App) showParameterEditModal(state *UIState, tegnID string, param tegnbu
 			}
 			return event
 		})
-	
+
 	a.pages.AddPage("parameterEditModal", form, true, true)
 }

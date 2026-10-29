@@ -14,13 +14,13 @@ var Lf = tegn.NewGenericDownloadBuilder(
 	"lf r41",
 	"list files GoLang app r41",
 	"lf-r41.tar.gz",
-	func(osInfo tegnbuilder.OSInfoExt) (string, error) {
+	func(osInfo *tegnbuilder.OSInfoExt) (string, error) {
 		var sb strings.Builder
 		// TODO: verify checksums
 		sb.WriteString("https://github.com/gokcehan/lf/releases/download/r41/lf-")
 
 		switch osInfo.OsType.V {
-		case data.OSTypeLinux: 
+		case data.OSTypeLinux:
 			sb.WriteString("linux-")
 			switch osInfo.Arch.V {
 			case data.CPUArchAMD64:
@@ -38,7 +38,7 @@ var Lf = tegn.NewGenericDownloadBuilder(
 			default:
 				return "", fmt.Errorf("OSTypeLinux Architecture not available: %s", &osInfo.Arch)
 			}
-		case data.OSTypeAndroid: 
+		case data.OSTypeAndroid:
 			sb.WriteString("android-")
 			switch osInfo.Arch.V {
 			case data.CPUArchAARCH64:
@@ -47,7 +47,7 @@ var Lf = tegn.NewGenericDownloadBuilder(
 				return "", fmt.Errorf("OSTypeAndroid Architecture not available: %s", &osInfo.Arch)
 			}
 		// TODO: support windows's zip archive
-		// case data.OSTypeWindows: 
+		// case data.OSTypeWindows:
 		// 	sb.WriteString("windows-")
 		// 	switch osInfo.Arch.V {
 		// 	case data.CPUArchAMD64:
@@ -57,7 +57,7 @@ var Lf = tegn.NewGenericDownloadBuilder(
 		// 	default:
 		// 		return "", fmt.Errorf("OSTypeWindows Architecture not available: %s", &osInfo.Arch)
 		// 	}
-		case data.OSTypeDarwin: 
+		case data.OSTypeDarwin:
 			sb.WriteString("darwin-")
 			switch osInfo.Arch.V {
 			case data.CPUArchAMD64:

@@ -7,7 +7,8 @@ type Tegn interface {
 	TegnGeneral
 
 	// Returns the list of configurable parameters.
-	GetParameters(osInfo OSInfoExt) []TegnParameter
+	// osInfo must not be nil.
+	GetParameters(osInfo *OSInfoExt) []TegnParameter
 
 	// The features parameter contains features provided 
 	// by previously selected Tegns (according to installation order).
@@ -17,19 +18,22 @@ type Tegn interface {
 	// Features do not depend on the parameters, OSInfo and before-installed featured.
 	GetFeatures() TegnInstalledFeaturesMap
 
-	// Returns true if the Tegn already installed
-	IsInstalled(osInfo OSInfoExt) bool
+	// Returns true if the Tegn already installed.
+	// osInfo must not be nil.
+	IsInstalled(osInfo *OSInfoExt) bool
 
-	// Install the Tegn
+	// Install the Tegn.
 	// WARN: this function does not check, is Tegn already installed.
 	// Params must contain all parameters value (even not available!)
-	ExecInstall(osInfo OSInfoExt, already TegnInstalledFeaturesMap, params TegnParameterMap) error
+	// osInfo must not be nil.
+	ExecInstall(osInfo *OSInfoExt, already TegnInstalledFeaturesMap, params TegnParameterMap) error
 
 	// WARN: this function does not check, is Tegn already installed
 	// ExecUpdate() error
 
 	// WARN: this function does not check, is Tegn already installed
-	ExecUninstall(osInfo OSInfoExt) error
+	// osInfo must not be nil.
+	ExecUninstall(osInfo *OSInfoExt) error
 }
 
 type TegnBuildFunc func() Tegn

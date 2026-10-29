@@ -1,11 +1,11 @@
 package ui
 
 import (
-	// "fmt"
-	// "strings"
+// "fmt"
+// "strings"
 
-	// "github.com/gdamore/tcell/v2"
-	// "github.com/rivo/tview"
+// "github.com/gdamore/tcell/v2"
+// "github.com/rivo/tview"
 )
 
 // ShowSearchModal creates and shows a search modal with proper functionality
@@ -16,14 +16,14 @@ import (
 // 			// Get the input field
 // 			inputField := form.GetFormItem(0).(*tview.InputField)
 // 			searchID := inputField.GetText()
-			
+
 // 			if searchID == "" {
 // 				return
 // 			}
-			
+
 // 			// Search for the ID
 // 			found := a.searchByID(searchID)
-			
+
 // 			if !found {
 // 				// Show error modal
 // 				errorModal := tview.NewModal().
@@ -36,13 +36,13 @@ import (
 // 				a.pages.AddPage("errorModal", errorModal, true, true)
 // 				return
 // 			}
-			
+
 // 			a.pages.RemovePage("searchModal")
 // 		}).
 // 		AddButton("Cancel", func() {
 // 			a.pages.RemovePage("searchModal")
 // 		})
-	
+
 // 	form.SetBorder(true).
 // 		SetTitle("Search by ID").
 // 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -52,13 +52,13 @@ import (
 // 			}
 // 			return event
 // 		})
-	
+
 // 	a.pages.AddPage("searchModal", form, true, true)
 // }
 
 // func (a *App) searchByID(id string) bool {
 // 	id = strings.TrimSpace(id)
-	
+
 // 	// Search in Tegnsetts
 // 	for _, ts := range a.state.Tegnsetts {
 // 		if ts.GetID() == id {
@@ -67,7 +67,7 @@ import (
 // 			a.showTegnList(ts.GetID())
 // 			return true
 // 		}
-		
+
 // 		// Search in children Tegns
 // 		for _, tegn := range ts.GetChildren() {
 // 			if tegn.GetID() == id {
@@ -80,6 +80,6 @@ import (
 // 			}
 // 		}
 // 	}
-	
+
 // 	return false
 // }

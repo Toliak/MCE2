@@ -7,12 +7,13 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type ZshChsh struct {}
+type ZshChsh struct{}
 
 var _ tb.Tegn = (*ZshChsh)(nil)
 
@@ -41,21 +42,21 @@ func (p *ZshChsh) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *ZshChsh) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *ZshChsh) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *ZshChsh) GetAvailableOsType() *[]data.OSTypeE {
-	return &[]data.OSTypeE{
+func (p *ZshChsh) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.Some([]data.OSTypeE{
 		data.OSTypeLinux,
-	}
+	})
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *ZshChsh) GetAvailability(
-	_osInfo tb.OSInfoExt, 
-	_before tb.TegnInstalledFeaturesMap, 
+	_osInfo *tb.OSInfoExt,
+	_before tb.TegnInstalledFeaturesMap,
 	_enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	return tb.NewTegnAvailable()
@@ -67,7 +68,7 @@ func (p *ZshChsh) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *ZshChsh) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
+func (p *ZshChsh) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
 	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"use-sudo",
@@ -87,12 +88,12 @@ func (p *ZshChsh) GetFeatures() tb.TegnInstalledFeaturesMap {
 	}
 }
 
-func (p *ZshChsh) IsInstalled(_osInfo tb.OSInfoExt) bool {
+func (p *ZshChsh) IsInstalled(_osInfo *tb.OSInfoExt) bool {
 	shell := os.Getenv("SHELL")
 	return strings.Contains(shell, "zsh")
 }
 
-func (p *ZshChsh) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *ZshChsh) ExecInstall(_osInfo *tb.OSInfoExt, _already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	// get path to zshExecInstall
 	zshPath, err := exec.LookPath("zsh")
 	if err != nil {
@@ -131,7 +132,7 @@ func (p *ZshChsh) ExecInstall(_osInfo tb.OSInfoExt, _already tb.TegnInstalledFea
 	return nil
 }
 
-func (p *ZshChsh) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *ZshChsh) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	fmt.Printf("Tegn '%s' is not removable\n", p.GetID())
 	return nil
 }

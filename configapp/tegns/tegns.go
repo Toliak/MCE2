@@ -1,6 +1,8 @@
 package tegns
 
 import (
+	"github.com/toliak/mce/optional"
+	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/tegnbuilder"
 	"github.com/toliak/mce/tegns/downloads"
 	"github.com/toliak/mce/tegns/tegn"
@@ -13,91 +15,91 @@ var AllPkgTegns = []tegnbuilder.TegnBuildFunc{
 		"vim",
 		"vim",
 		"vim",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"zsh",
 		"zsh",
 		"zsh",
 		"zsh",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"tmux",
 		"tmux",
 		"tmux",
 		"tmux",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"bash",
 		"bash",
 		"bash",
 		"bash",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"git",
 		"git",
 		"git",
 		"git",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"curl",
 		"curl",
 		"curl",
 		"curl",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"wget",
 		"wget",
 		"wget",
 		"wget",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"xclip",
 		"xclip",
 		"xclip",
 		"xclip",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"net-tools",
 		"net-tools",
 		"net-tools",
 		"net-tools",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"dnsutils",
 		"dnsutils",
 		"dnsutils",
 		"dnsutils",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"procps",
 		"procps",
 		"procps",
 		"procps",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"psmisc",
 		"psmisc",
 		"psmisc",
 		"psmisc",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 	tegn.NewGenericPackageBuilder(
 		"mc",
 		"mc",
 		"mc",
 		"mc",
-		nil,
+		optional.None[[]data.OSTypeE](),
 	),
 }
 

@@ -5,12 +5,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/toliak/mce/optional"
 	"github.com/toliak/mce/osinfo/data"
 	"github.com/toliak/mce/platform"
 	tb "github.com/toliak/mce/tegnbuilder"
 )
 
-type TmuxLocalConfig struct {}
+type TmuxLocalConfig struct{}
 
 var _ tb.Tegn = (*TmuxLocalConfig)(nil)
 
@@ -20,7 +21,7 @@ func NewTegnTmuxLocalConfigBuilder() tb.TegnBuildFunc {
 	}
 }
 
-func getTmuxLocalConfigPath(osInfo tb.OSInfoExt) string {
+func getTmuxLocalConfigPath(osInfo *tb.OSInfoExt) string {
 	return filepath.Join(osInfo.GetFullDataDir(), "local-tmux.conf")
 }
 
@@ -41,19 +42,19 @@ func (p *TmuxLocalConfig) GetDescription() string {
 }
 
 // GetAvailableCPUArch implements [tb.Tegn].
-func (p *TmuxLocalConfig) GetAvailableCPUArch() *[]data.CPUArchE {
-	return nil
+func (p *TmuxLocalConfig) GetAvailableCPUArch() optional.Optional[[]data.CPUArchE] {
+	return optional.None[[]data.CPUArchE]()
 }
 
 // GetAvailableOsType implements [tb.Tegn].
-func (p *TmuxLocalConfig) GetAvailableOsType() *[]data.OSTypeE {
-	return nil
+func (p *TmuxLocalConfig) GetAvailableOsType() optional.Optional[[]data.OSTypeE] {
+	return optional.None[[]data.OSTypeE]()
 }
 
 // GetAvailability implements [tb.Tegn].
 func (p *TmuxLocalConfig) GetAvailability(
-	osInfo tb.OSInfoExt, 
-	before tb.TegnInstalledFeaturesMap, 
+	osInfo *tb.OSInfoExt,
+	before tb.TegnInstalledFeaturesMap,
 	enabledIds tb.TegnGeneralEnabledIDsMap,
 ) tb.TegnAvailability {
 	// fmt.Printf("before: %#v\n", before)
@@ -70,8 +71,8 @@ func (p *TmuxLocalConfig) GetBeforeIDs() []string {
 }
 
 // GetParameters implements [tb.Tegn].
-func (p *TmuxLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter {
-	return []tb.TegnParameter {
+func (p *TmuxLocalConfig) GetParameters(osInfo *tb.OSInfoExt) []tb.TegnParameter {
+	return []tb.TegnParameter{
 		tb.NewTegnParameter(
 			"path",
 			"Local config path",
@@ -87,11 +88,11 @@ func (p *TmuxLocalConfig) GetParameters(osInfo tb.OSInfoExt) []tb.TegnParameter 
 // GetFeatures implements [tb.Tegn].
 func (p *TmuxLocalConfig) GetFeatures() tb.TegnInstalledFeaturesMap {
 	return tb.TegnInstalledFeaturesMap{
-		tb.TegnFeature("cfg:tmux-local"): true, 
+		tb.TegnFeature("cfg:tmux-local"): true,
 	}
 }
 
-func (p *TmuxLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
+func (p *TmuxLocalConfig) IsInstalled(osInfo *tb.OSInfoExt) bool {
 	path := getTmuxLocalConfigPath(osInfo)
 	return platform.FileExists(path)
 }
@@ -101,7 +102,7 @@ func (p *TmuxLocalConfig) IsInstalled(osInfo tb.OSInfoExt) bool {
 // - when we allow the file to exist (and where we append content into it)
 // - when we are not and we must check (or assume) that the file does not exist
 
-func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
+func (p *TmuxLocalConfig) ExecInstall(osInfo *tb.OSInfoExt, already tb.TegnInstalledFeaturesMap, params tb.TegnParameterMap) error {
 	localConfigPath := getTmuxLocalConfigPath(osInfo)
 
 	err := platform.MkdirAllParent(localConfigPath)
@@ -126,7 +127,7 @@ func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 		if already["cfg:mce2"] && platform.FileExists(mce2tmuxConfig) {
 			_, err = fmt.Fprintf(
 				outputFile,
-				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n", 
+				"# <BEGIN> MCE2 config\nsource '%s'\n# <END> MCE2 config\n",
 				mce2tmuxConfig,
 			)
 			if err != nil {
@@ -148,7 +149,7 @@ func (p *TmuxLocalConfig) ExecInstall(osInfo tb.OSInfoExt, already tb.TegnInstal
 	return nil
 }
 
-func (p *TmuxLocalConfig) ExecUninstall(osInfo tb.OSInfoExt) error {
+func (p *TmuxLocalConfig) ExecUninstall(osInfo *tb.OSInfoExt) error {
 	// Remove the entry from tmux.conf
 	tmuxConfPath := getTmuxConfigPath(osInfo)
 
